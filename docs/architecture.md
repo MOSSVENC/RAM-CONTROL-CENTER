@@ -58,6 +58,9 @@ Device interface:
 \\?\ACPI#CLV0001#1#{86994c74-ad43-4812-b7e7-0c420b5c5fd7}
 ```
 
+The default path is the validated ZY-T6K `CLV0001` interface. Set
+`NEO_CONTROL_ACPI_DEVICE` to test another CC4.0 model path.
+
 The protocol crate builds the recovered DCHU request frames directly:
 
 - `DeviceIoControl(0x322400)` for `_DSM` DCHU commands;

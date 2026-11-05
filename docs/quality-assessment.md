@@ -12,7 +12,8 @@ vendor package; no BIOS, EC, driver or vendor binary was modified for them.
 | App/UI cohesion | 8.5 / 10 | Startup orchestration, worker, callbacks, controls, pages and dialogs are separated |
 | Module coupling | 9.0 / 10 | Crate graph is acyclic; worker/UI messages and page callback boundaries are typed |
 | Maintainability | 8.5 / 10 | File bloat is resolved, CI and hardware smoke gates exist; FFI remains broad and hardware CI is manual |
-| Overall | **8.7 / 10** | Strong boundary architecture with a small composition layer and repeatable verification |
+| Portability | 8.0 / 10 | Capability-driven UI and an ACPI-device override support other CC4.0 models; model offsets and validation remain machine-specific |
+| Overall | **8.8 / 10** | Strong boundary architecture, green native CI, repeatable verification and a documented compatibility path |
 
 This is a sound native implementation. The maintainability debt named in the
 prior report was concentrated in oversized composition and protocol/control
@@ -186,7 +187,7 @@ CC40 plus two DLLs       33,246,592 bytes
 Current Neo Control:
 
 ```text
-neo-control.exe          10,767,872 bytes
+neo-control.exe          10,768,384 bytes
 ```
 
 ```text

@@ -21,6 +21,7 @@ mod rgb;
 mod telemetry;
 
 const DEVICE_PATH: &str = r"\\?\ACPI#CLV0001#1#{86994c74-ad43-4812-b7e7-0c420b5c5fd7}";
+const DEVICE_PATH_ENV: &str = "NEO_CONTROL_ACPI_DEVICE";
 const IOCTL_ACPI_DCHU: u32 = 0x0032_2400;
 const IOCTL_ACPI_SETTINGS: u32 = 0x0032_240C;
 const ACPI_REQUEST_LEN: usize = 0x420;
@@ -52,11 +53,13 @@ impl Drop for Dchu {
 
 impl Dchu {
     pub fn open() -> Result<Self> {
-        let handle = open_device()?;
-        Ok(Self {
-            handle,
-            path: DEVICE_PATH.to_owned(),
-        })
+        let path = std::env::var(DEVICE_PATH_ENV)
+            .ok()
+            .map(|value| value.trim().to_owned())
+            .filter(|value| !value.is_empty())
+            .unwrap_or_else(|| DEVICE_PATH.to_owned());
+        let handle = open_device(&path)?;
+        Ok(Self { handle, path })
     }
 
     pub fn path(&self) -> &str {
@@ -336,8 +339,8 @@ impl Dchu {
     }
 }
 
-fn open_device() -> Result<HANDLE> {
-    let wide = std::ffi::OsStr::new(DEVICE_PATH)
+fn open_device(path: &str) -> Result<HANDLE> {
+    let wide = std::ffi::OsStr::new(path)
         .encode_wide()
         .chain(std::iter::once(0))
         .collect::<Vec<_>>();

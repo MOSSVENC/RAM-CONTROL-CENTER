@@ -1,7 +1,7 @@
 # Neo Control
 
-Native Windows control center for the Firebat/Clevo ZY-T6K platform, built with
-Rust and Slint.
+Native Windows control center for compatible CC4.0 platforms, built with Rust
+and Slint. The current hardware validation baseline is the Firebat/Clevo ZY-T6K.
 
 ![Neo Control overview](docs/images/overview.png)
 
@@ -35,6 +35,23 @@ neo-control-protocol
 The workspace is split into a typed protocol layer, a serialized hardware
 worker and an independently editable Slint UI tree. See
 [`docs/architecture.md`](docs/architecture.md) for details.
+
+## Compatibility
+
+The protocol and UI layers are capability-driven and designed for CC4.0/DCHU
+platforms. Compatible machines can reuse the same architecture, with these
+model-level checks before enabling write controls:
+
+- verify the `AcpiBridge` ACPI device path; the default is `CLV0001` and can be
+  overridden with `NEO_CONTROL_ACPI_DEVICE` for another model;
+- verify the capability page, fan count and fan-channel mapping;
+- compare model-specific AppSettings offsets and power/fan transitions with the
+  vendor Control Center;
+- start with read-only telemetry, then exercise the reversible hardware smoke
+  suite on that exact machine.
+
+`Firebat/Clevo ZY-T6K` is the validated reference implementation; other CC4.0
+models require their own readback validation before write support is enabled.
 
 ## Build and verify
 
