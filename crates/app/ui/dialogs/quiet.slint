@@ -6,12 +6,15 @@ export component QuietDialog inherits Rectangle {
     callback apply-quiet(bool);
     callback cancel-quiet();
 
-if root.quiet-dialog-open : Rectangle {
+Rectangle {
     x: 0;
     y: 0;
     width: parent.width;
     height: parent.height;
     background: #00000088;
+    opacity: root.quiet-dialog-open ? 1.0 : 0.0;
+    visible: self.opacity > 0.001;
+    animate opacity { duration: 180ms; easing: cubic-bezier(0.22, 1, 0.36, 1); }
 
     Rectangle {
         width: 610px;

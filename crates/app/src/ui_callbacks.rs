@@ -22,6 +22,11 @@ use crate::{MainWindow, Palette};
 static PAGE_EPOCH: AtomicU64 = AtomicU64::new(0);
 static THEME_EPOCH: AtomicU64 = AtomicU64::new(0);
 
+const PAGE_FADE_MS: u64 = 180;
+const PAGE_SETTLE_MS: u64 = 16;
+const THEME_COVER_MS: u64 = 190;
+const THEME_HOLD_MS: u64 = 24;
+
 pub(crate) fn wire_ui(
     ui: &MainWindow,
     sender: Sender<WorkerCommand>,
@@ -40,16 +45,18 @@ pub(crate) fn wire_ui(
         let epoch = PAGE_EPOCH.fetch_add(1, Ordering::Relaxed) + 1;
         ui.set_page_opacity(0.0);
         let weak = ui.as_weak();
-        slint::Timer::single_shot(Duration::from_millis(105), move || {
+        slint::Timer::single_shot(Duration::from_millis(PAGE_FADE_MS), move || {
             if PAGE_EPOCH.load(Ordering::Relaxed) != epoch {
                 return;
             }
-            if let Some(ui) = weak.upgrade() {
-                ui.set_selected_page(page);
-            }
-            slint::Timer::single_shot(Duration::from_millis(25), move || {
+            let Some(ui) = weak.upgrade() else {
+                return;
+            };
+            ui.set_selected_page(page);
+            let weak_for_fade_in = ui.as_weak();
+            slint::Timer::single_shot(Duration::from_millis(PAGE_SETTLE_MS), move || {
                 if PAGE_EPOCH.load(Ordering::Relaxed) == epoch
-                    && let Some(ui) = weak.upgrade()
+                    && let Some(ui) = weak_for_fade_in.upgrade()
                 {
                     ui.set_page_opacity(1.0);
                 }
@@ -63,23 +70,38 @@ pub(crate) fn wire_ui(
         if is_zh() == zh {
             return;
         }
-        set_zh(zh);
-        let locale = if zh { "zh-CN" } else { "en" };
-        if let Err(error) = slint::select_bundled_translation(locale) {
-            log_action(&format!("translation switch to {locale} failed: {error}"));
-        }
-        if let Some(ui) = weak.upgrade() {
+        let Some(ui) = weak.upgrade() else {
+            return;
+        };
+        let epoch = PAGE_EPOCH.fetch_add(1, Ordering::Relaxed) + 1;
+        ui.set_page_opacity(0.0);
+        let weak_for_fade_out = ui.as_weak();
+        let flexikey_state_for_fade = Rc::clone(&flexikey_state);
+        let tx = tx.clone();
+        slint::Timer::single_shot(Duration::from_millis(PAGE_FADE_MS), move || {
+            if PAGE_EPOCH.load(Ordering::Relaxed) != epoch {
+                return;
+            }
+            set_zh(zh);
+            let locale = if zh { "zh-CN" } else { "en" };
+            if let Err(error) = slint::select_bundled_translation(locale) {
+                log_action(&format!("translation switch to {locale} failed: {error}"));
+            }
+            let Some(ui) = weak_for_fade_out.upgrade() else {
+                return;
+            };
             ui.set_language_zh(zh);
-            render_flexikey(&ui, &flexikey_state.borrow());
-            ui.set_page_opacity(0.0);
-            let weak_for_fade = ui.as_weak();
-            slint::Timer::single_shot(Duration::from_millis(90), move || {
-                if let Some(ui) = weak_for_fade.upgrade() {
+            render_flexikey(&ui, &flexikey_state_for_fade.borrow());
+            let weak_for_fade_in = ui.as_weak();
+            slint::Timer::single_shot(Duration::from_millis(PAGE_SETTLE_MS), move || {
+                if PAGE_EPOCH.load(Ordering::Relaxed) == epoch
+                    && let Some(ui) = weak_for_fade_in.upgrade()
+                {
                     ui.set_page_opacity(1.0);
                 }
             });
-        }
-        let _ = tx.send(WorkerCommand::Refresh);
+            let _ = tx.send(WorkerCommand::Refresh);
+        });
     });
 
     let weak = ui.as_weak();
@@ -93,14 +115,14 @@ pub(crate) fn wire_ui(
         let epoch = THEME_EPOCH.fetch_add(1, Ordering::Relaxed) + 1;
         ui.set_theme_flash(1.0);
         let weak = ui.as_weak();
-        slint::Timer::single_shot(Duration::from_millis(70), move || {
+        slint::Timer::single_shot(Duration::from_millis(THEME_COVER_MS), move || {
             if THEME_EPOCH.load(Ordering::Relaxed) != epoch {
                 return;
             }
             if let Some(ui) = weak.upgrade() {
                 ui.global::<Palette>().set_dark(dark);
             }
-            slint::Timer::single_shot(Duration::from_millis(230), move || {
+            slint::Timer::single_shot(Duration::from_millis(THEME_HOLD_MS), move || {
                 if THEME_EPOCH.load(Ordering::Relaxed) == epoch
                     && let Some(ui) = weak.upgrade()
                 {

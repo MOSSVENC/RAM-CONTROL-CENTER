@@ -547,7 +547,7 @@ export component MainWindow inherits Window {
                 Rectangle {
                     clip: true;
                     opacity: root.page-opacity;
-                    animate opacity { duration: 220ms; easing: ease-in-out; }
+                    animate opacity { duration: 180ms; easing: cubic-bezier(0.22, 1, 0.36, 1); }
                     VerticalLayout {
                         padding-left: 28px;
                         padding-right: 28px;
@@ -894,8 +894,8 @@ export component MainWindow inherits Window {
         height: parent.height;
         background: Palette.dark ? #12151E : #E8ECF3;
         opacity: root.theme-flash;
-        visible: root.theme-flash > 0.001;
-        animate opacity { duration: 250ms; easing: ease-in-out; }
+        visible: self.opacity > 0.001;
+        animate opacity { duration: 180ms; easing: cubic-bezier(0.22, 1, 0.36, 1); }
     }
 
     QuietDialog {
