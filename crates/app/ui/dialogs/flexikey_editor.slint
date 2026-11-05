@@ -1,0 +1,306 @@
+import { Palette } from "../theme.slint";
+import { ChromeButton, ChoiceChip, FieldInput, Hairline, StageButton } from "../components.slint";
+
+export component FlexiKeyEditor inherits Rectangle {
+    in-out property <bool> flexikey-editor-open: false;
+    in-out property <int> flexikey-editor-binding-index: -1;
+    in-out property <int> flexikey-editor-device: 1;
+    in-out property <string> flexikey-editor-key-code: "";
+    in-out property <string> flexikey-editor-key-name: "";
+    in-out property <int> flexikey-editor-action: 1;
+    in-out property <string> flexikey-editor-value: "";
+    in-out property <string> flexikey-editor-status: "";
+    in-out property <bool> flexikey-capture-armed: false;
+
+    callback close-flexikey-editor();
+    callback save-flexikey-editor(int, int, string, string, int, string);
+    callback delete-flexikey-binding(int);
+    callback capture-flexikey-trigger();
+    callback cancel-flexikey-capture();
+
+Rectangle {
+    x: 0;
+    y: 0;
+    width: parent.width;
+    height: parent.height;
+    background: #00000099;
+    opacity: root.flexikey-editor-open ? 1.0 : 0.0;
+    visible: self.opacity > 0.001;
+    animate opacity { duration: 180ms; easing: ease-in-out; }
+    TouchArea { }
+
+    editor-card := Rectangle {
+        width: 760px;
+        height: 610px;
+        x: (parent.width - self.width) / 2;
+        y: root.flexikey-editor-open ? 96px : 122px;
+        border-radius: 18px;
+        background: Palette.surface-gradient;
+        border-width: 1px;
+        border-color: root.flexikey-capture-armed ? Palette.cyan : Palette.line-hi;
+        animate y { duration: 220ms; easing: ease-out; }
+        animate border-color { duration: 160ms; easing: ease-out; }
+
+        VerticalLayout {
+            padding: 24px;
+            spacing: 13px;
+
+            HorizontalLayout {
+                spacing: 12px;
+                cross-axis-alignment: center;
+                VerticalLayout {
+                    spacing: 3px;
+                    Text {
+                        text: root.flexikey-editor-binding-index >= 0 ? @tr("Edit binding") : @tr("New binding");
+                        color: Palette.text;
+                        font-family: "Bahnschrift";
+                        font-size: 24px;
+                        font-weight: 600;
+                    }
+                    Text {
+                        text: @tr("Choose the trigger, then the action. Changes activate immediately.");
+                        color: Palette.text-dim;
+                        font-family: "Microsoft YaHei UI";
+                        font-size: 11px;
+                    }
+                }
+                Rectangle { horizontal-stretch: 1; }
+                ChromeButton {
+                    width: 64px;
+                    text: @tr("Close");
+                    clicked => { root.close-flexikey-editor(); }
+                }
+            }
+
+            Hairline {}
+
+            HorizontalLayout {
+                spacing: 18px;
+                vertical-stretch: 1;
+
+                Rectangle {
+                    horizontal-stretch: 1;
+                    border-radius: 12px;
+                    background: Palette.surface;
+                    border-width: 1px;
+                    border-color: Palette.line;
+                    VerticalLayout {
+                        padding: 16px;
+                        spacing: 10px;
+                        Text {
+                            text: @tr("Trigger");
+                            color: Palette.text;
+                            font-family: "Bahnschrift";
+                            font-size: 15px;
+                            font-weight: 600;
+                        }
+                        Text {
+                            text: @tr("Device");
+                            color: Palette.text-faint;
+                            font-family: "Microsoft YaHei UI";
+                            font-size: 10px;
+                        }
+                        HorizontalLayout {
+                            spacing: 8px;
+                            ChoiceChip {
+                                text: @tr("Keyboard");
+                                selected: root.flexikey-editor-device == 1;
+                                clicked => { root.flexikey-editor-device = 1; }
+                            }
+                            ChoiceChip {
+                                text: @tr("Mouse");
+                                selected: root.flexikey-editor-device == 2;
+                                clicked => { root.flexikey-editor-device = 2; }
+                            }
+                        }
+                        Text {
+                            text: @tr("Key code");
+                            color: Palette.text-faint;
+                            font-family: "Microsoft YaHei UI";
+                            font-size: 10px;
+                        }
+                        HorizontalLayout {
+                            spacing: 8px;
+                            FieldInput {
+                                horizontal-stretch: 1;
+                                value <=> root.flexikey-editor-key-code;
+                                hint: @tr("0xNN or decimal");
+                            }
+                            if !root.flexikey-capture-armed : ChromeButton {
+                                width: 96px;
+                                emphasized: true;
+                                text: @tr("Capture key");
+                                clicked => { root.capture-flexikey-trigger(); }
+                            }
+                            if root.flexikey-capture-armed : ChromeButton {
+                                width: 96px;
+                                emphasized: true;
+                                text: @tr("Cancel capture");
+                                clicked => { root.cancel-flexikey-capture(); }
+                            }
+                        }
+                        Text {
+                            text: @tr("Display name");
+                            color: Palette.text-faint;
+                            font-family: "Microsoft YaHei UI";
+                            font-size: 10px;
+                        }
+                        FieldInput {
+                            value <=> root.flexikey-editor-key-name;
+                            hint: @tr("Shown in the binding list");
+                        }
+                        Rectangle { vertical-stretch: 1; }
+                        Text {
+                            text: root.flexikey-capture-armed
+                                ? @tr("Listening for one key or mouse button. The captured input is swallowed.")
+                                : @tr("Capture accepts keyboard keys and the five standard mouse buttons.");
+                            color: root.flexikey-capture-armed ? Palette.cyan : Palette.text-faint;
+                            font-family: "Microsoft YaHei UI";
+                            font-size: 10px;
+                            wrap: word-wrap;
+                        }
+                    }
+                }
+
+                Rectangle {
+                    horizontal-stretch: 1;
+                    border-radius: 12px;
+                    background: Palette.surface;
+                    border-width: 1px;
+                    border-color: Palette.line;
+                    VerticalLayout {
+                        padding: 16px;
+                        spacing: 9px;
+                        Text {
+                            text: @tr("Action");
+                            color: Palette.text;
+                            font-family: "Bahnschrift";
+                            font-size: 15px;
+                            font-weight: 600;
+                        }
+                        HorizontalLayout {
+                            spacing: 6px;
+                            ChoiceChip {
+                                text: @tr("Hotkey");
+                                selected: root.flexikey-editor-action == 1;
+                                clicked => { root.flexikey-editor-action = 1; }
+                            }
+                            ChoiceChip {
+                                text: @tr("Launch");
+                                selected: root.flexikey-editor-action == 2;
+                                clicked => { root.flexikey-editor-action = 2; }
+                            }
+                            ChoiceChip {
+                                text: @tr("Text");
+                                selected: root.flexikey-editor-action == 3;
+                                clicked => { root.flexikey-editor-action = 3; }
+                            }
+                            ChoiceChip {
+                                text: @tr("Disable");
+                                selected: root.flexikey-editor-action == 4;
+                                clicked => { root.flexikey-editor-action = 4; }
+                            }
+                        }
+                        if root.flexikey-editor-action != 4 : Text {
+                            text: root.flexikey-editor-action == 1
+                                ? @tr("Hotkey sequence")
+                                : root.flexikey-editor-action == 2
+                                ? @tr("Target path")
+                                : @tr("Text to type");
+                            color: Palette.text-faint;
+                            font-family: "Microsoft YaHei UI";
+                            font-size: 10px;
+                        }
+                        if root.flexikey-editor-action != 4 : FieldInput {
+                            multiline: root.flexikey-editor-action == 1 || root.flexikey-editor-action == 3;
+                            value <=> root.flexikey-editor-value;
+                            hint: root.flexikey-editor-action == 1
+                                ? @tr("Ctrl+Shift+S, or Win+R  (space separates sequences)")
+                                : root.flexikey-editor-action == 2
+                                ? @tr("C:\\Tools\\app.exe")
+                                : @tr("Chinese and Unicode text are supported");
+                        }
+                        if root.flexikey-editor-action == 1 : Text {
+                            text: @tr("Leaving this empty keeps an existing macro unchanged. New hotkey bindings need a sequence.");
+                            color: Palette.text-faint;
+                            font-family: "Microsoft YaHei UI";
+                            font-size: 9px;
+                            wrap: word-wrap;
+                        }
+                        if root.flexikey-editor-action == 4 : Rectangle {
+                            height: 88px;
+                            border-radius: 8px;
+                            background: Palette.panel-hover;
+                            Text {
+                                text: @tr("This trigger is swallowed and performs no action.");
+                                color: Palette.text-dim;
+                                font-family: "Microsoft YaHei UI";
+                                font-size: 11px;
+                                horizontal-alignment: center;
+                                vertical-alignment: center;
+                                wrap: word-wrap;
+                            }
+                        }
+                        Text {
+                            text: root.flexikey-editor-action == 1
+                                ? @tr("Each chord is sent in order. Modifier keys are released in reverse order.")
+                                : root.flexikey-editor-action == 2
+                                ? @tr("The target opens through the Windows shell when the trigger fires.")
+                                : root.flexikey-editor-action == 3
+                                ? @tr("The text is typed into whichever window has focus when the trigger fires.")
+                                : @tr("Use this to reserve a key or mouse button without an action.");
+                            color: Palette.text-faint;
+                            font-family: "Microsoft YaHei UI";
+                            font-size: 10px;
+                            wrap: word-wrap;
+                        }
+                        Rectangle { vertical-stretch: 1; }
+                    }
+                }
+            }
+
+            if root.flexikey-editor-status != "" : Text {
+                text: root.flexikey-editor-status;
+                color: Palette.amber;
+                font-family: "Microsoft YaHei UI";
+                font-size: 10px;
+                wrap: word-wrap;
+            }
+
+            Hairline {}
+
+            HorizontalLayout {
+                spacing: 10px;
+                cross-axis-alignment: center;
+                if root.flexikey-editor-binding-index >= 0 : ChromeButton {
+                    width: 76px;
+                    text: @tr("Delete");
+                    clicked => { root.delete-flexikey-binding(root.flexikey-editor-binding-index); }
+                }
+                Rectangle { horizontal-stretch: 1; }
+                ChromeButton {
+                    width: 86px;
+                    text: @tr("Cancel");
+                    clicked => { root.close-flexikey-editor(); }
+                }
+                StageButton {
+                    width: 148px;
+                    primary: true;
+                    text: @tr("Save binding");
+                    clicked => {
+                        root.save-flexikey-editor(
+                            root.flexikey-editor-binding-index,
+                            root.flexikey-editor-device,
+                            root.flexikey-editor-key-code,
+                            root.flexikey-editor-key-name,
+                            root.flexikey-editor-action,
+                            root.flexikey-editor-value
+                        );
+                    }
+                }
+            }
+        }
+    }
+}
+
+}

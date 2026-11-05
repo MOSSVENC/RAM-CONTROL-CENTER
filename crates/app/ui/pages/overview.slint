@@ -1,0 +1,335 @@
+import { Palette } from "../theme.slint";
+import {
+    ChromeButton, ChoiceChip, CurveStepper, DataLabel, DataValue, FanOption, FanReadout,
+    FieldInput, Hairline, InfoRow, MetricBar, MicroLabel, NavGlyph, NavItem, PowerOption,
+    ReadoutRow, SectionTitle, SignalDot, StageButton, ToggleStatusRow,
+} from "../components.slint";
+
+                        export component OverviewPage inherits VerticalLayout {
+    in property <int> selected-page: 0;
+    in property <bool> transport-ready: false;
+    in property <string> cpu-temp: "--°C";
+    in property <string> gpu-temp: "--°C";
+    in property <string> cpu-rpm: "----";
+    in property <string> gpu-rpm: "----";
+    in property <string> fan3-rpm: "----";
+    in property <string> fan4-rpm: "----";
+    in property <string> fan3-temp: "--";
+    in property <string> fan4-temp: "--";
+    in property <string> cpu-duty: "--";
+    in property <string> gpu-duty: "--";
+    in property <string> fan3-duty: "--";
+    in property <string> fan4-duty: "--";
+    in property <int> cpu-load: 0;
+    in property <int> gpu-load: 0;
+    in property <int> gpu-memory-load: 0;
+    in property <int> memory-load: 0;
+    in property <int> disk-load: 0;
+    in property <string> cpu-clock: "--";
+    in property <string> cpu-clock-max: "--";
+    in property <string> gpu-clock: "--";
+    in property <string> gpu-clock-max: "--";
+    in property <string> memory-text: @tr("--");
+    in property <string> disk-text: @tr("--");
+    in property <string> gpu-memory-text: @tr("--");
+    in property <string> power-label: @tr("Performance");
+    in property <string> fan-label: @tr("Automatic");
+    in property <string> capabilities-text: @tr("--");
+    in property <string> platform-text: @tr("--");
+
+    spacing: 18px;
+
+    HorizontalLayout {
+        spacing: 20px;
+        cross-axis-alignment: end;
+        VerticalLayout {
+            spacing: 3px;
+            Text {
+                text: @tr("Platform overview");
+                color: Palette.text;
+                font-family: "Bahnschrift";
+                font-size: 27px;
+                font-weight: 600;
+                letter-spacing: -0.4px;
+            }
+            Text {
+                text: @tr("Live thermal, power and utilization state from the local platform.");
+                color: Palette.text-dim;
+                font-family: "Bahnschrift";
+                font-size: 12px;
+            }
+        }
+        Rectangle { horizontal-stretch: 1; }
+        Text {
+            text: root.power-label + "  /  " + root.fan-label;
+            color: Palette.amber;
+            font-family: "Cascadia Mono";
+            font-size: 11px;
+            vertical-alignment: bottom;
+        }
+    }
+
+    Rectangle {
+        vertical-stretch: 1;
+        border-radius: 16px;
+        background: Palette.surface;
+        border-width: 1px;
+        border-color: Palette.line;
+        clip: true;
+
+        Rectangle {
+            x: parent.width - 280px;
+            y: -180px;
+            width: 420px;
+            height: 420px;
+            border-radius: 210px;
+            background: Palette.accent-soft;
+            opacity: 0.45;
+        }
+
+        VerticalLayout {
+            padding: 22px;
+            spacing: 13px;
+
+            HorizontalLayout {
+                spacing: 10px;
+                cross-axis-alignment: center;
+                SectionTitle { text: @tr("Thermal state"); }
+                Rectangle { horizontal-stretch: 1; }
+                Text {
+                    text: @tr("DCHU · 2 s");
+                    color: Palette.text-faint;
+                    font-family: "Cascadia Mono";
+                    font-size: 10px;
+                }
+            }
+            Hairline {}
+
+            HorizontalLayout {
+                spacing: 0;
+                vertical-stretch: 1;
+
+                VerticalLayout {
+                    horizontal-stretch: 1;
+                    padding-right: 24px;
+                    spacing: 4px;
+                    alignment: center;
+                    MicroLabel { text: @tr("CPU PACKAGE"); color: Palette.cyan; }
+                    Text {
+                        text: root.cpu-temp;
+                        color: Palette.text;
+                        font-family: "Cascadia Mono";
+                        font-size: 68px;
+                        font-weight: 600;
+                        letter-spacing: -3px;
+                    }
+                    HorizontalLayout {
+                        spacing: 8px;
+                        cross-axis-alignment: center;
+                        Text {
+                            text: root.cpu-rpm + " rpm";
+                            color: Palette.text;
+                            font-family: "Cascadia Mono";
+                            font-size: 13px;
+                            font-weight: 500;
+                        }
+                        Text {
+                            text: root.cpu-duty + "% duty";
+                            color: Palette.text-dim;
+                            font-family: "Cascadia Mono";
+                            font-size: 11px;
+                        }
+                    }
+                    Rectangle { height: 3px; }
+                    MetricBar {
+                        fraction: min(1.0, root.cpu-load / 100.0);
+                        tone: root.cpu-load > 85 ? Palette.amber : Palette.cyan;
+                    }
+                }
+
+                Rectangle { width: 1px; background: Palette.line; }
+
+                VerticalLayout {
+                    horizontal-stretch: 1;
+                    padding-left: 24px;
+                    padding-right: 24px;
+                    spacing: 4px;
+                    alignment: center;
+                    MicroLabel { text: @tr("GPU DEVICE"); color: Palette.green; }
+                    Text {
+                        text: root.gpu-temp;
+                        color: Palette.text;
+                        font-family: "Cascadia Mono";
+                        font-size: 68px;
+                        font-weight: 600;
+                        letter-spacing: -3px;
+                    }
+                    HorizontalLayout {
+                        spacing: 8px;
+                        cross-axis-alignment: center;
+                        Text {
+                            text: root.gpu-rpm + " rpm";
+                            color: Palette.text;
+                            font-family: "Cascadia Mono";
+                            font-size: 13px;
+                            font-weight: 500;
+                        }
+                        Text {
+                            text: root.gpu-duty + "% duty";
+                            color: Palette.text-dim;
+                            font-family: "Cascadia Mono";
+                            font-size: 11px;
+                        }
+                    }
+                    Rectangle { height: 3px; }
+                    MetricBar {
+                        fraction: min(1.0, root.gpu-load / 100.0);
+                        tone: root.gpu-load > 85 ? Palette.amber : Palette.green;
+                    }
+                }
+
+                Rectangle { width: 1px; background: Palette.line; }
+
+                VerticalLayout {
+                    width: 300px;
+                    padding-left: 22px;
+                    spacing: 10px;
+                    alignment: center;
+                    MicroLabel { text: @tr("PLATFORM FANS"); }
+                    FanReadout { name: "FAN 1"; rpm: root.cpu-rpm; temp: root.cpu-temp; duty: root.cpu-duty; }
+                    FanReadout { name: "FAN 2"; rpm: root.gpu-rpm; temp: root.gpu-temp; duty: root.gpu-duty; }
+                    FanReadout { name: "FAN 3"; rpm: root.fan3-rpm; temp: root.fan3-temp; duty: root.fan3-duty; }
+                    FanReadout { name: "FAN 4"; rpm: root.fan4-rpm; temp: root.fan4-temp; duty: root.fan4-duty; }
+                }
+            }
+
+            Hairline {}
+
+            HorizontalLayout {
+                spacing: 28px;
+                height: 16px;
+                Text {
+                    text: root.transport-ready ? @tr("Signed DCHU transport active") : @tr("Waiting for the signed AcpiBridge transport");
+                    color: root.transport-ready ? Palette.green : Palette.amber;
+                    font-family: "Bahnschrift";
+                    font-size: 10px;
+                }
+                Text {
+                    text: @tr("Live clock ") + root.cpu-clock + @tr(" · nominal ") + root.cpu-clock-max;
+                    color: Palette.text-faint;
+                    font-family: "Cascadia Mono";
+                    font-size: 10px;
+                }
+                Rectangle { horizontal-stretch: 1; }
+                Text {
+                    text: @tr("cap ") + root.capabilities-text + "   " + @tr("platform") + " " + root.platform-text;
+                    color: Palette.text-faint;
+                    font-family: "Cascadia Mono";
+                    font-size: 10px;
+                }
+            }
+        }
+    }
+
+    HorizontalLayout {
+        height: 184px;
+        spacing: 18px;
+
+        Rectangle {
+            horizontal-stretch: 1;
+            border-radius: 12px;
+            background: Palette.surface-gradient;
+            border-width: 1px;
+            border-color: Palette.line;
+            VerticalLayout {
+                padding-left: 18px;
+                padding-right: 18px;
+                padding-top: 14px;
+                padding-bottom: 12px;
+                spacing: 4px;
+                HorizontalLayout {
+                    SectionTitle { text: @tr("Compute"); font-size: 15px; }
+                    Rectangle { horizontal-stretch: 1; }
+                    Text {
+                        text: root.gpu-clock + " / " + root.gpu-clock-max;
+                        color: Palette.text-faint;
+                        font-family: "Cascadia Mono";
+                        font-size: 9px;
+                        vertical-alignment: center;
+                    }
+                }
+                ReadoutRow { label: @tr("CPU utilization"); value: root.cpu-load + "%"; fraction: root.cpu-load / 100.0; tone: Palette.cyan; }
+                ReadoutRow { label: @tr("GPU utilization"); value: root.gpu-load + "%"; fraction: root.gpu-load / 100.0; tone: Palette.green; }
+                ReadoutRow { label: @tr("GPU memory"); value: root.gpu-memory-text; fraction: root.gpu-memory-load / 100.0; tone: Palette.green; }
+            }
+        }
+
+        Rectangle {
+            horizontal-stretch: 1;
+            border-radius: 12px;
+            background: Palette.surface-gradient;
+            border-width: 1px;
+            border-color: Palette.line;
+            VerticalLayout {
+                padding-left: 18px;
+                padding-right: 18px;
+                padding-top: 14px;
+                padding-bottom: 12px;
+                spacing: 4px;
+                SectionTitle { text: @tr("Resources"); font-size: 15px; }
+                ReadoutRow { label: @tr("System memory"); value: root.memory-text; fraction: root.memory-load / 100.0; tone: Palette.cyan; }
+                ReadoutRow { label: @tr("System disk"); value: root.disk-text; fraction: root.disk-load / 100.0; tone: Palette.amber; }
+            }
+        }
+
+        Rectangle {
+            horizontal-stretch: 0.8;
+            border-radius: 12px;
+            background: Palette.surface-gradient;
+            border-width: 1px;
+            border-color: Palette.line;
+            VerticalLayout {
+                padding: 18px;
+                spacing: 6px;
+                MicroLabel { text: @tr("CURRENT PROFILE"); color: Palette.text-faint; }
+                Text {
+                    text: root.power-label;
+                    color: Palette.text;
+                    font-family: "Bahnschrift";
+                    font-size: 20px;
+                    font-weight: 600;
+                }
+                Text {
+                    text: @tr("Cooling · ") + root.fan-label;
+                    color: Palette.cyan;
+                    font-family: "Bahnschrift";
+                    font-size: 12px;
+                }
+                Rectangle { vertical-stretch: 1; }
+                HorizontalLayout {
+                    spacing: 10px;
+                    Text {
+                        text: @tr("CPU ") + root.cpu-temp + "  " + root.cpu-rpm + " rpm";
+                        color: Palette.text-dim;
+                        font-family: "Cascadia Mono";
+                        font-size: 10px;
+                        horizontal-stretch: 1;
+                    }
+                    Text {
+                        text: @tr("GPU ") + root.gpu-temp + "  " + root.gpu-rpm + " rpm";
+                        color: Palette.text-faint;
+                        font-family: "Cascadia Mono";
+                        font-size: 10px;
+                    }
+                }
+                Text {
+                    text: @tr("Overview presents live telemetry; tune profiles in Performance and Cooling.");
+                    color: Palette.text-faint;
+                    font-family: "Bahnschrift";
+                    font-size: 10px;
+                    wrap: word-wrap;
+                }
+            }
+        }
+    }
+}

@@ -1,0 +1,217 @@
+import { Palette } from "../theme.slint";
+import {
+    ChromeButton, ChoiceChip, CurveStepper, DataLabel, DataValue, FanOption, FanReadout,
+    FieldInput, Hairline, InfoRow, MetricBar, MicroLabel, NavGlyph, NavItem, PowerOption,
+    ReadoutRow, SectionTitle, SignalDot, StageButton, ToggleStatusRow,
+} from "../components.slint";
+
+                        export component SystemPage inherits VerticalLayout {
+    in property <int> selected-page: 0;
+    in property <bool> busy: false;
+    in property <bool> transport-ready: false;
+    in property <string> power-label: @tr("Performance");
+    in property <string> capabilities-text: @tr("--");
+    in property <string> platform-text: @tr("--");
+    in property <string> transport-device-path: "Not located";
+    in property <bool> toggle-fn-value: false;
+    in property <bool> toggle-fn-known: false;
+    in property <bool> toggle-win-value: false;
+    in property <bool> toggle-win-known: false;
+    in property <bool> toggle-swap-value: false;
+    in property <bool> toggle-swap-known: false;
+    in property <bool> toggle-hotkeys-value: false;
+    in property <bool> toggle-hotkeys-known: false;
+    in property <bool> toggle-copilot-value: false;
+    in property <bool> toggle-copilot-known: false;
+    in property <string> extended-api-text: @tr("Unavailable");
+    in property <string> gpu-switch-text: @tr("Unavailable");
+    in property <int> gpu-current-mode: 0;
+    in property <bool> gpu-dgpu-supported: false;
+    in property <bool> gpu-mshybrid-supported: false;
+    in property <bool> gpu-dynamic-supported: false;
+    in property <bool> low-refresh-supported: false;
+    in property <bool> low-refresh-eligible: false;
+    in property <bool> low-refresh-enabled: false;
+    in property <bool> low-refresh-known: false;
+    callback set-quick-toggle(int, bool);
+    callback apply-low-refresh(bool);
+    callback apply-gpu-mode(int);
+
+    spacing: 18px;
+
+    VerticalLayout {
+        spacing: 3px;
+        Text {
+            text: @tr("System");
+            color: Palette.text;
+            font-family: "Bahnschrift";
+            font-size: 27px;
+            font-weight: 600;
+        }
+        Text {
+            text: @tr("Signed transport identity and vendor preferences reported by DCHU settings.");
+            color: Palette.text-dim;
+            font-family: "Bahnschrift";
+            font-size: 12px;
+        }
+    }
+
+    HorizontalLayout {
+        vertical-stretch: 1;
+        spacing: 18px;
+
+        Rectangle {
+            horizontal-stretch: 1;
+            border-radius: 16px;
+            background: Palette.surface-gradient;
+            border-width: 1px;
+            border-color: Palette.line;
+            VerticalLayout {
+                padding: 22px;
+                spacing: 7px;
+                HorizontalLayout {
+                    SectionTitle { text: @tr("Quick keys"); }
+                    Rectangle { horizontal-stretch: 1; }
+                    Text {
+                        text: @tr("SIGNED DCHU · READ / WRITE");
+                        color: Palette.text-faint;
+                        font-family: "Cascadia Mono";
+                        font-size: 9px;
+                        vertical-alignment: center;
+                    }
+                }
+                Hairline {}
+                ToggleStatusRow {
+                    label: @tr("Fn key lock");
+                    value: root.toggle-fn-value;
+                    known: root.toggle-fn-known;
+                    busy: root.busy;
+                    toggled(value) => { root.set-quick-toggle(0, value); }
+                }
+                ToggleStatusRow {
+                    label: @tr("Windows key lock");
+                    value: root.toggle-win-value;
+                    known: root.toggle-win-known;
+                    busy: root.busy;
+                    toggled(value) => { root.set-quick-toggle(1, value); }
+                }
+                ToggleStatusRow {
+                    label: @tr("Swap Win / Fn");
+                    value: root.toggle-swap-value;
+                    known: root.toggle-swap-known;
+                    busy: root.busy;
+                    toggled(value) => { root.set-quick-toggle(2, value); }
+                }
+                ToggleStatusRow {
+                    label: @tr("Control Center hotkey");
+                    value: root.toggle-hotkeys-value;
+                    known: root.toggle-hotkeys-known;
+                    busy: root.busy;
+                    toggled(value) => { root.set-quick-toggle(3, value); }
+                }
+                ToggleStatusRow {
+                    label: @tr("Copilot key");
+                    value: root.toggle-copilot-value;
+                    known: root.toggle-copilot-known;
+                    busy: root.busy;
+                    toggled(value) => { root.set-quick-toggle(4, value); }
+                }
+                if root.low-refresh-supported && root.low-refresh-eligible : VerticalLayout {
+                    spacing: 2px;
+                    Hairline {}
+                    ToggleStatusRow {
+                        label: @tr("Lowest panel refresh rate");
+                        value: root.low-refresh-enabled;
+                        known: root.low-refresh-known;
+                        busy: root.busy;
+                        toggled(value) => { root.apply-low-refresh(value); }
+                    }
+                    Text {
+                        text: @tr("Available in Power saving and Quiet+ profiles. The panel may blank briefly while its mode changes.");
+                        color: Palette.text-faint;
+                        font-family: "Microsoft YaHei UI";
+                        font-size: 9px;
+                        wrap: word-wrap;
+                    }
+                }
+                Rectangle { vertical-stretch: 1; }
+                Text {
+                    text: @tr("The first change initializes the complete five-field vendor group from safe defaults, persists the three settings bytes, and verifies all five values by readback.");
+                    color: Palette.text-faint;
+                    font-family: "Bahnschrift";
+                    font-size: 10px;
+                    wrap: word-wrap;
+                }
+            }
+        }
+
+        Rectangle {
+            width: 440px;
+            border-radius: 16px;
+            background: Palette.surface-gradient;
+            border-width: 1px;
+            border-color: Palette.line;
+            VerticalLayout {
+                padding: 22px;
+                spacing: 8px;
+                SectionTitle { text: @tr("Signed transport"); }
+                Hairline {}
+                InfoRow { label: @tr("Transport"); value: root.transport-ready ? "Connected" : "Unavailable"; value-tone: root.transport-ready ? Palette.green : Palette.amber; }
+                InfoRow { label: @tr("Capabilities"); value: root.capabilities-text; }
+                InfoRow { label: @tr("Platform ID"); value: root.platform-text; }
+                InfoRow { label: @tr("Power mode"); value: root.power-label; }
+                InfoRow { label: @tr("Extended API"); value: root.extended-api-text; value-tone: root.extended-api-text == "Available" ? Palette.green : Palette.amber; }
+                InfoRow { label: @tr("GPU switch"); value: root.gpu-switch-text; }
+                HorizontalLayout {
+                    spacing: 8px;
+                    ChromeButton {
+                        width: 112px;
+                        emphasized: root.gpu-current-mode == 2;
+                        enabled: root.gpu-dgpu-supported && !root.busy;
+                        text: "dGPU";
+                        clicked => { root.apply-gpu-mode(2); }
+                    }
+                    ChromeButton {
+                        width: 126px;
+                        emphasized: root.gpu-current-mode == 3;
+                        enabled: root.gpu-mshybrid-supported && !root.busy;
+                        text: "MSHybrid";
+                        clicked => { root.apply-gpu-mode(3); }
+                    }
+                    ChromeButton {
+                        width: 112px;
+                        emphasized: root.gpu-current-mode == 4;
+                        enabled: root.gpu-dynamic-supported && !root.busy;
+                        text: "Dynamic";
+                        clicked => { root.apply-gpu-mode(4); }
+                    }
+                    Rectangle { horizontal-stretch: 1; }
+                }
+                Text {
+                    text: @tr("A staged GPU mode applies on the next boot. Choose the restart time.");
+                    color: Palette.text-faint;
+                    font-family: "Microsoft YaHei UI";
+                    font-size: 9px;
+                    wrap: word-wrap;
+                }
+                Hairline {}
+                MicroLabel { text: @tr("DEVICE PATH"); }
+                Text {
+                    text: root.transport-device-path;
+                    color: Palette.text-dim;
+                    font-family: "Cascadia Mono";
+                    font-size: 10px;
+                    wrap: word-wrap;
+                }
+                Rectangle { vertical-stretch: 1; }
+                Text {
+                    text: @tr("Firmware, driver binaries, and signatures stay intact.");
+                    color: Palette.text-faint;
+                    font-family: "Bahnschrift";
+                    font-size: 10px;
+                    wrap: word-wrap;
+                }
+            }
+        }
+    }
+}

@@ -1,0 +1,126 @@
+import { Palette } from "../theme.slint";
+import { ChromeButton } from "../components.slint";
+
+export component QuietDialog inherits Rectangle {
+    in-out property <bool> quiet-dialog-open: false;
+    callback apply-quiet(bool);
+    callback cancel-quiet();
+
+if root.quiet-dialog-open : Rectangle {
+    x: 0;
+    y: 0;
+    width: parent.width;
+    height: parent.height;
+    background: #00000088;
+
+    Rectangle {
+        width: 610px;
+        height: 306px;
+        x: (parent.width - self.width) / 2;
+        y: (parent.height - self.height) / 2;
+        border-radius: 20px;
+        background: Palette.surface-gradient;
+        border-width: 1px;
+        border-color: Palette.cyan;
+
+        VerticalLayout {
+            padding: 26px;
+            spacing: 14px;
+
+            HorizontalLayout {
+                spacing: 12px;
+                cross-axis-alignment: center;
+                Rectangle {
+                    width: 34px;
+                    height: 34px;
+                    border-radius: 17px;
+                    background: Palette.accent-soft;
+                    Text {
+                        text: "Q";
+                        color: Palette.cyan;
+                        font-family: "Bahnschrift";
+                        font-size: 17px;
+                        font-weight: 700;
+                        horizontal-alignment: center;
+                        vertical-alignment: center;
+                    }
+                }
+                Text {
+                    text: @tr("Quiet mode needs a GPU policy");
+                    color: Palette.text;
+                    font-family: "Bahnschrift";
+                    font-size: 23px;
+                    font-weight: 600;
+                    vertical-alignment: center;
+                }
+            }
+
+            Text {
+                text: @tr("The original Control Center asks whether to turn off the discrete NVIDIA GPU when entering Quiet mode. Choose the behavior for this machine.");
+                color: Palette.text-dim;
+                font-family: "Microsoft YaHei UI";
+                font-size: 12px;
+                wrap: word-wrap;
+            }
+
+            Rectangle {
+                height: 64px;
+                border-radius: 12px;
+                background: Palette.panel-hover;
+                border-width: 1px;
+                border-color: Palette.line;
+                VerticalLayout {
+                    padding-left: 14px;
+                    padding-right: 14px;
+                    padding-top: 10px;
+                    padding-bottom: 10px;
+                    spacing: 4px;
+                    Text { text: @tr("Keep dGPU"); color: Palette.text; font-family: "Bahnschrift"; font-size: 12px; font-weight: 600; }
+                    Text { text: @tr("Quiet platform profile with the discrete GPU available immediately. This choice takes effect now."); color: Palette.text-dim; font-family: "Microsoft YaHei UI"; font-size: 10px; wrap: word-wrap; }
+                }
+            }
+
+            Rectangle {
+                height: 64px;
+                border-radius: 12px;
+                background: Palette.accent-soft;
+                border-width: 1px;
+                border-color: Palette.cyan;
+                VerticalLayout {
+                    padding-left: 14px;
+                    padding-right: 14px;
+                    padding-top: 10px;
+                    padding-bottom: 10px;
+                    spacing: 4px;
+                    Text { text: @tr("Disable dGPU · maximum quiet"); color: Palette.text; font-family: "Bahnschrift"; font-size: 12px; font-weight: 600; }
+                    Text { text: @tr("Stages iGPU-only mode for the next boot. Restart when you are ready; the staged mode applies on that boot."); color: Palette.text-dim; font-family: "Microsoft YaHei UI"; font-size: 10px; wrap: word-wrap; }
+                }
+            }
+
+            Rectangle { vertical-stretch: 1; }
+
+            HorizontalLayout {
+                spacing: 10px;
+                alignment: end;
+                ChromeButton {
+                    width: 92px;
+                    text: @tr("Cancel");
+                    clicked => { root.cancel-quiet(); }
+                }
+                ChromeButton {
+                    width: 154px;
+                    text: @tr("Keep dGPU");
+                    clicked => { root.apply-quiet(false); }
+                }
+                ChromeButton {
+                    width: 188px;
+                    emphasized: true;
+                    text: @tr("Disable dGPU");
+                    clicked => { root.apply-quiet(true); }
+                }
+            }
+        }
+    }
+}
+
+}

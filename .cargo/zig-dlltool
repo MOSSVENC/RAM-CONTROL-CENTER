@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+set -euo pipefail
+zig="${ZIG:-}"
+if [[ -z "$zig" ]]; then
+    zig="$(command -v zig || true)"
+fi
+if [[ -z "$zig" ]]; then
+    zig="$HOME/.local/zig-0.14.1/zig"
+fi
+exec "$zig" dlltool "$@"

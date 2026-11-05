@@ -1,0 +1,214 @@
+import { Palette } from "../theme.slint";
+import {
+    ChromeButton, ChoiceChip, CurveStepper, DataLabel, DataValue, FanOption, FanReadout,
+    FieldInput, Hairline, InfoRow, MetricBar, MicroLabel, NavGlyph, NavItem, PowerOption,
+    ReadoutRow, SectionTitle, SignalDot, StageButton, ToggleStatusRow,
+} from "../components.slint";
+
+                        export component BatteryPage inherits VerticalLayout {
+    in property <int> selected-page: 0;
+    in property <bool> busy: false;
+    in property <bool> battery-present: false;
+    in property <int> battery-percent: 0;
+    in property <string> battery-status-text: @tr("--");
+    in property <string> battery-ac-text: @tr("--");
+    in property <string> battery-time-text: @tr("--");
+    in property <string> battery-capacity-text: @tr("--");
+    in property <string> battery-rate-text: @tr("--");
+    in property <string> flexi-mode-text: @tr("Unavailable");
+    in property <string> flexi-ranges-text: @tr("--");
+    in property <bool> flexi-ready: false;
+    in-out property <int> requested-flexi-mode: 0;
+    in-out property <int> flexi-start-choice: 70;
+    in-out property <int> flexi-stop-choice: 80;
+    callback apply-flexi-charger(int, int, int);
+
+    spacing: 18px;
+
+    VerticalLayout {
+        spacing: 3px;
+        Text {
+            text: @tr("Battery & charging");
+            color: Palette.text;
+            font-family: "Bahnschrift";
+            font-size: 27px;
+            font-weight: 600;
+        }
+        Text {
+            text: @tr("Live battery state from Windows, with the vendor charge path kept behind a verified boundary.");
+            color: Palette.text-dim;
+            font-family: "Bahnschrift";
+            font-size: 12px;
+        }
+    }
+
+    HorizontalLayout {
+        vertical-stretch: 1;
+        spacing: 18px;
+
+        Rectangle {
+            horizontal-stretch: 1.25;
+            border-radius: 16px;
+            background: Palette.surface-gradient;
+            border-width: 1px;
+            border-color: Palette.line;
+            VerticalLayout {
+                padding: 24px;
+                spacing: 14px;
+                HorizontalLayout {
+                    SectionTitle { text: @tr("Battery state"); }
+                    Rectangle { horizontal-stretch: 1; }
+                    HorizontalLayout {
+                        spacing: 7px;
+                        cross-axis-alignment: center;
+                        SignalDot {
+                            active: root.battery-present;
+                            tone: root.battery-percent <= 15 ? Palette.red : Palette.green;
+                        }
+                        Text {
+                            text: root.battery-status-text;
+                            color: root.battery-percent <= 15 ? Palette.red : Palette.green;
+                            font-family: "Bahnschrift";
+                            font-size: 11px;
+                            vertical-alignment: center;
+                        }
+                    }
+                }
+                Hairline {}
+
+                HorizontalLayout {
+                    spacing: 24px;
+                    vertical-stretch: 1;
+                    VerticalLayout {
+                        width: 260px;
+                        alignment: center;
+                        spacing: 4px;
+                        MicroLabel { text: @tr("CHARGE LEVEL"); color: Palette.green; }
+                        Text {
+                            text: root.battery-present ? root.battery-percent + "%" : "--";
+                            color: Palette.text;
+                            font-family: "Cascadia Mono";
+                            font-size: 72px;
+                            font-weight: 600;
+                            letter-spacing: -3px;
+                        }
+                        Text {
+                            text: root.battery-ac-text;
+                            color: Palette.text-dim;
+                            font-family: "Bahnschrift";
+                            font-size: 12px;
+                        }
+                        Rectangle { height: 5px; }
+                        MetricBar {
+                            height: 8px;
+                            fraction: root.battery-percent / 100.0;
+                            tone: root.battery-percent <= 15 ? Palette.red : Palette.green;
+                        }
+                    }
+
+                    Rectangle { width: 1px; background: Palette.line; }
+
+                    VerticalLayout {
+                        horizontal-stretch: 1;
+                        alignment: center;
+                        spacing: 3px;
+                        InfoRow { label: @tr("Power source"); value: root.battery-ac-text; value-tone: Palette.cyan; }
+                        InfoRow { label: @tr("Estimated time"); value: root.battery-time-text; }
+                        InfoRow { label: @tr("Remaining / maximum"); value: root.battery-capacity-text; }
+                        InfoRow { label: @tr("Battery power rate"); value: root.battery-rate-text; value-tone: Palette.amber; }
+                    }
+                }
+
+                Hairline {}
+                Text {
+                    text: @tr("This page reads Windows battery telemetry. Charge policy controls live in the FlexiCharger section.");
+                    color: Palette.text-faint;
+                    font-family: "Bahnschrift";
+                    font-size: 10px;
+                    wrap: word-wrap;
+                }
+            }
+        }
+
+        Rectangle {
+            width: 330px;
+            border-radius: 16px;
+            background: Palette.surface-gradient;
+            border-width: 1px;
+            border-color: Palette.line;
+            VerticalLayout {
+                padding: 22px;
+                spacing: 13px;
+                HorizontalLayout {
+                    SectionTitle { text: @tr("FlexiCharger"); }
+                    Rectangle { horizontal-stretch: 1; }
+                    Text {
+                        text: root.flexi-ready ? @tr("Configurable") : @tr("Restart to refresh");
+                        color: root.flexi-ready ? Palette.green : Palette.amber;
+                        font-family: "Cascadia Mono";
+                        font-size: 9px;
+                        vertical-alignment: center;
+                    }
+                }
+                Hairline {}
+                Text {
+                    text: @tr("Set the charge ceiling through DCHU command 4. Neo Control verifies the persisted mode and live thresholds.");
+                    color: Palette.text-dim;
+                    font-family: "Microsoft YaHei UI";
+                    font-size: 11px;
+                    wrap: word-wrap;
+                }
+                HorizontalLayout {
+                    spacing: 6px;
+                    ChromeButton {
+                        width: 92px;
+                        emphasized: root.requested-flexi-mode == 0;
+                        enabled: root.flexi-ready && !root.busy;
+                        text: @tr("100%");
+                        clicked => { root.requested-flexi-mode = 0; root.flexi-start-choice = 95; root.flexi-stop-choice = 100; }
+                    }
+                    ChromeButton {
+                        width: 92px;
+                        emphasized: root.requested-flexi-mode == 1;
+                        enabled: root.flexi-ready && !root.busy;
+                        text: "70–80%";
+                        clicked => { root.requested-flexi-mode = 1; root.flexi-start-choice = 70; root.flexi-stop-choice = 80; }
+                    }
+                    ChromeButton {
+                        width: 92px;
+                        emphasized: root.requested-flexi-mode == 2;
+                        enabled: root.flexi-ready && !root.busy;
+                        text: @tr("Custom");
+                        clicked => { root.requested-flexi-mode = 2; }
+                    }
+                }
+                HorizontalLayout {
+                    spacing: 6px;
+                    CurveStepper { horizontal-stretch: 1; label: @tr("START"); value: root.flexi-start-choice; lower: 50; upper: 95; step: 5; suffix: "%"; enabled: root.flexi-ready && !root.busy && root.requested-flexi-mode == 2; changed(value) => { root.flexi-start-choice = value; } }
+                    CurveStepper { horizontal-stretch: 1; label: @tr("STOP"); value: root.flexi-stop-choice; lower: 55; upper: 100; step: 5; suffix: "%"; enabled: root.flexi-ready && !root.busy && root.requested-flexi-mode == 2; changed(value) => { root.flexi-stop-choice = value; } }
+                }
+                InfoRow { label: @tr("Current"); value: root.flexi-mode-text; value-tone: root.flexi-ready ? Palette.cyan : Palette.amber; }
+                Text {
+                    text: root.flexi-ranges-text;
+                    color: Palette.text-faint;
+                    font-family: "Cascadia Mono";
+                    font-size: 9px;
+                }
+                StageButton {
+                    text: root.busy ? @tr("Applying…") : @tr("Apply charge policy");
+                    primary: true;
+                    enabled: root.flexi-ready && !root.busy;
+                    clicked => { root.apply-flexi-charger(root.requested-flexi-mode, root.flexi-start-choice, root.flexi-stop-choice); }
+                }
+                Rectangle { vertical-stretch: 1; }
+                Text {
+                    text: @tr("The charge channel refreshes after one Windows restart. Each applied policy is read back before success is reported.");
+                    color: Palette.text-faint;
+                    font-family: "Microsoft YaHei UI";
+                    font-size: 9px;
+                    wrap: word-wrap;
+                }
+            }
+        }
+    }
+}

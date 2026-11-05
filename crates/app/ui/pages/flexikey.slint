@@ -1,0 +1,291 @@
+import { Palette } from "../theme.slint";
+import {
+    ChromeButton, ChoiceChip, CurveStepper, DataLabel, DataValue, FanOption, FanReadout,
+    FieldInput, Hairline, InfoRow, MetricBar, MicroLabel, NavGlyph, NavItem, PowerOption,
+    ReadoutRow, SectionTitle, SignalDot, StageButton, ToggleStatusRow,
+} from "../components.slint";
+
+                        export component FlexiKeyPage inherits VerticalLayout {
+    in property <int> selected-page: 0;
+    in property <[string]> flexikey-profile-names: [];
+    in property <int> flexikey-active-index: -1;
+    in property <string> flexikey-active-title: "FlexiKey";
+    in property <string> flexikey-summary: "";
+    in property <string> flexikey-status: "";
+    in property <string> flexikey-engine-status: "";
+    in property <string> flexikey-path: "";
+    in-out property <string> flexikey-profile-name: "";
+    in-out property <bool> flexikey-delete-armed: false;
+    in property <[string]> flexikey-binding-labels: [];
+    in property <bool> flexikey-keyboard-enabled: true;
+    in property <bool> flexikey-mouse-enabled: true;
+    callback reload-flexikey();
+    callback select-flexikey-profile(int);
+    callback new-flexikey-profile();
+    callback rename-flexikey-profile(string);
+    callback delete-flexikey-profile();
+    callback set-flexikey-device-enabled(int, bool);
+    callback open-flexikey-editor(int);
+
+    spacing: 18px;
+
+    VerticalLayout {
+        spacing: 3px;
+        Text {
+            text: @tr("FlexiKey");
+            color: Palette.text;
+            font-family: "Bahnschrift";
+            font-size: 27px;
+            font-weight: 600;
+        }
+        Text {
+            text: @tr("Profile library imported from the CC4.0 FlexiKey XML format.");
+            color: Palette.text-dim;
+            font-family: "Microsoft YaHei UI";
+            font-size: 12px;
+        }
+    }
+
+    HorizontalLayout {
+        vertical-stretch: 1;
+        spacing: 18px;
+
+        Rectangle {
+            width: 310px;
+            border-radius: 16px;
+            background: Palette.surface-gradient;
+            border-width: 1px;
+            border-color: Palette.line;
+            VerticalLayout {
+                padding: 20px;
+                spacing: 7px;
+                HorizontalLayout {
+                    SectionTitle { text: @tr("Profiles"); }
+                    Rectangle { horizontal-stretch: 1; }
+                    Text {
+                        text: root.flexikey-profile-names.length;
+                        color: Palette.cyan;
+                        font-family: "Cascadia Mono";
+                        font-size: 11px;
+                    }
+                }
+                Text {
+                    text: root.flexikey-path;
+                    color: Palette.text-faint;
+                    font-family: "Cascadia Mono";
+                    font-size: 9px;
+                    wrap: word-wrap;
+                }
+                Hairline {}
+                for profile-name[index] in root.flexikey-profile-names : Rectangle {
+                    height: 38px;
+                    border-radius: 8px;
+                    background: index == root.flexikey-active-index ? Palette.panel-selected : (profile-tap.has-hover ? Palette.panel-hover : transparent);
+                    Text {
+                        x: 10px;
+                        width: parent.width - 20px;
+                        height: parent.height;
+                        text: profile-name;
+                        color: index == root.flexikey-active-index ? Palette.text : Palette.text-dim;
+                        font-family: "Bahnschrift";
+                        font-size: 12px;
+                        vertical-alignment: center;
+                        overflow: elide;
+                    }
+                    profile-tap := TouchArea {
+                        mouse-cursor: pointer;
+                        clicked => { root.select-flexikey-profile(index); }
+                    }
+                }
+                if root.flexikey-profile-names.length == 0 : Text {
+                    text: @tr("No profile.xml was found. Existing CC4.0 profiles appear here without modification.");
+                    color: Palette.text-faint;
+                    font-family: "Microsoft YaHei UI";
+                    font-size: 10px;
+                    wrap: word-wrap;
+                }
+                Rectangle { height: 4px; }
+                Text {
+                    text: @tr("Trigger devices");
+                    color: Palette.text-faint;
+                    font-family: "Microsoft YaHei UI";
+                    font-size: 10px;
+                }
+                ToggleStatusRow {
+                    label: @tr("Keyboard");
+                    value: root.flexikey-keyboard-enabled;
+                    known: root.flexikey-active-index >= 0;
+                    toggled(value) => { root.set-flexikey-device-enabled(1, value); }
+                }
+                ToggleStatusRow {
+                    label: @tr("Mouse");
+                    value: root.flexikey-mouse-enabled;
+                    known: root.flexikey-active-index >= 0;
+                    toggled(value) => { root.set-flexikey-device-enabled(2, value); }
+                }
+                Rectangle { height: 4px; }
+                Text {
+                    text: @tr("Profile name");
+                    color: Palette.text-faint;
+                    font-family: "Microsoft YaHei UI";
+                    font-size: 10px;
+                }
+                Rectangle {
+                    height: 40px;
+                    border-radius: 8px;
+                    border-width: 1px;
+                    border-color: profile-name-input.has-focus ? Palette.cyan : Palette.line-hi;
+                    background: Palette.surface;
+                    animate border-color { duration: 140ms; easing: ease-out; }
+                    profile-name-input := TextInput {
+                        x: 12px;
+                        width: parent.width - 24px;
+                        height: parent.height;
+                        text <=> root.flexikey-profile-name;
+                        single-line: true;
+                        color: Palette.text;
+                        font-family: "Microsoft YaHei UI";
+                        font-size: 12px;
+                        vertical-alignment: center;
+                        selection-background-color: Palette.cyan;
+                        selection-foreground-color: Palette.primary-text;
+                        accepted => { root.rename-flexikey-profile(root.flexikey-profile-name); }
+                    }
+                }
+                StageButton {
+                    text: @tr("Save name");
+                    primary: false;
+                    clicked => { root.rename-flexikey-profile(root.flexikey-profile-name); }
+                }
+                HorizontalLayout {
+                    spacing: 4px;
+                    ChromeButton {
+                        width: 132px;
+                        text: @tr("New");
+                        clicked => { root.flexikey-delete-armed = false; root.new-flexikey-profile(); }
+                    }
+                    ChromeButton {
+                        width: 132px;
+                        emphasized: root.flexikey-delete-armed;
+                        text: root.flexikey-delete-armed ? @tr("Confirm") : @tr("Delete");
+                        clicked => {
+                            if (root.flexikey-delete-armed) {
+                                root.flexikey-delete-armed = false;
+                                root.delete-flexikey-profile();
+                            } else {
+                                root.flexikey-delete-armed = true;
+                            }
+                        }
+                    }
+                }
+                Rectangle { vertical-stretch: 1; }
+                ChromeButton {
+                    text: @tr("Reload profiles");
+                    emphasized: false;
+                    clicked => { root.reload-flexikey(); }
+                }                                    }
+        }
+
+        Rectangle {
+            horizontal-stretch: 1;
+            border-radius: 16px;
+            background: Palette.surface-gradient;
+            border-width: 1px;
+            border-color: Palette.line;
+            VerticalLayout {
+                padding: 22px;
+                spacing: 8px;
+                HorizontalLayout {
+                    spacing: 12px;
+                    cross-axis-alignment: center;
+                    SectionTitle { text: root.flexikey-active-title; }
+                    Rectangle { horizontal-stretch: 1; }
+                    ChromeButton {
+                        width: 82px;
+                        text: @tr("Add binding");
+                        emphasized: true;
+                        enabled: root.flexikey-active-index >= 0;
+                        clicked => { root.open-flexikey-editor(-1); }
+                    }
+                }
+                Hairline {}
+                Text {
+                    text: root.flexikey-status;
+                    color: Palette.text-dim;
+                    font-family: "Microsoft YaHei UI";
+                    font-size: 10px;
+                    wrap: word-wrap;
+                }
+                Text {
+                    text: root.flexikey-engine-status;
+                    color: root.flexikey-engine-status == "" ? Palette.text-faint : Palette.green;
+                    font-family: "Microsoft YaHei UI";
+                    font-size: 10px;
+                    wrap: word-wrap;
+                }
+                Rectangle { height: 4px; }
+                Text {
+                    text: root.flexikey-summary;
+                    color: Palette.text-dim;
+                    font-family: "Microsoft YaHei UI";
+                    font-size: 10px;
+                }
+                if root.flexikey-binding-labels.length == 0 : Rectangle {
+                    height: 86px;
+                    border-radius: 10px;
+                    background: Palette.surface;
+                    border-width: 1px;
+                    border-color: Palette.line;
+                    Text {
+                        text: @tr("No bindings yet. Add one to map a keyboard key or mouse button to an action.");
+                        color: Palette.text-faint;
+                        font-family: "Microsoft YaHei UI";
+                        font-size: 11px;
+                        horizontal-alignment: center;
+                        vertical-alignment: center;
+                        wrap: word-wrap;
+                    }
+                }
+                for binding-label[index] in root.flexikey-binding-labels : Rectangle {
+                    height: 44px;
+                    border-radius: 8px;
+                    background: binding-tap.has-hover ? Palette.panel-hover : Palette.surface;
+                    border-width: 1px;
+                    border-color: Palette.line;
+                    HorizontalLayout {
+                        padding-left: 12px;
+                        padding-right: 6px;
+                        spacing: 10px;
+                        cross-axis-alignment: center;
+                        Text {
+                            text: binding-label;
+                            color: Palette.text;
+                            font-family: "Cascadia Mono";
+                            font-size: 10px;
+                            vertical-alignment: center;
+                            horizontal-stretch: 1;
+                            overflow: elide;
+                        }
+                        ChromeButton {
+                            width: 50px;
+                            text: @tr("Edit");
+                            clicked => { root.open-flexikey-editor(index); }
+                        }
+                    }
+                    binding-tap := TouchArea {
+                        mouse-cursor: pointer;
+                        clicked => { root.open-flexikey-editor(index); }
+                    }
+                }
+                Rectangle { vertical-stretch: 1; }
+                Text {
+                    text: @tr("Changes are saved atomically to profile.xml and reloaded into the resident input engine.");
+                    color: Palette.text-faint;
+                    font-family: "Microsoft YaHei UI";
+                    font-size: 10px;
+                    wrap: word-wrap;
+                }
+            }
+        }
+    }
+}

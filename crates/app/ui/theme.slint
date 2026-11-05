@@ -1,0 +1,37 @@
+export global Palette {
+    in-out property <bool> dark: false;
+    out property <color> base: dark ? #12151E : #E8ECF3;
+    out property <color> rail: dark ? #171A24 : #DDE3EE;
+    out property <color> surface: dark ? #1C202C : #F7F9FD;
+    out property <color> surface-hi: dark ? #252A38 : #FFFFFF;
+    out property <color> line: dark ? #303647 : #C8D1DF;
+    out property <color> line-hi: dark ? #485169 : #95A2B8;
+    out property <color> text: dark ? #F4F3FA : #141824;
+    out property <color> text-dim: dark ? #A6AABC : #586578;
+    out property <color> text-faint: dark ? #73798F : #8591A5;
+    out property <color> cyan: dark ? #A7A9FF : #3E50D8;
+    out property <color> amber: dark ? #FF86A9 : #D93B70;
+    out property <color> green: dark ? #72E6BC : #078A66;
+    out property <color> red: dark ? #FF818B : #D62F4E;
+    out property <color> panel-hover: dark ? #242938 : #EEF2F9;
+    out property <color> panel-selected: dark ? #292D46 : #E2E6FB;
+    out property <color> track: dark ? #2B3142 : #D6DDE8;
+    out property <color> accent-soft: dark ? #2C3154 : #DDE2FF;
+    out property <color> rose-soft: dark ? #3B2532 : #FCE3EA;
+    out property <color> green-soft: dark ? #19372F : #DDF5EC;
+    out property <color> red-soft: dark ? #3B242A : #FCE2E6;
+    out property <color> accent-hover: dark ? #BABCFF : #5264EE;
+    out property <color> primary-text: dark ? #12151E : #F9FAFF;
+    out property <brush> base-gradient: dark
+        ? @linear-gradient(135deg, #0F121A 0%, #141824 55%, #11141C 100%)
+        : @linear-gradient(135deg, #E9EDF5 0%, #F4F6FB 58%, #E6EAF2 100%);
+    out property <brush> rail-gradient: dark
+        ? @linear-gradient(180deg, #1A1D29 0%, #151822 100%)
+        : @linear-gradient(180deg, #E2E7F1 0%, #D9E0EB 100%);
+    out property <brush> surface-gradient: dark
+        ? @linear-gradient(145deg, #202532 0%, #191D28 100%)
+        : @linear-gradient(145deg, #FFFFFF 0%, #F3F6FC 100%);
+    out property <brush> accent-gradient: dark
+        ? @linear-gradient(135deg, #8D90FF 0%, #FF83A6 100%)
+        : @linear-gradient(135deg, #3F50D8 0%, #7A4BDB 100%);
+}

@@ -1,0 +1,632 @@
+import { Palette } from "theme.slint";
+
+export component Hairline inherits Rectangle {
+    height: 1px;
+    background: Palette.line;
+}
+
+export component SignalDot inherits Rectangle {
+    in property <color> tone: Palette.green;
+    in property <bool> active: true;
+    width: 7px;
+    height: 7px;
+    border-radius: 4px;
+    background: active ? tone : Palette.text-faint;
+    opacity: active ? 1 : 0.5;
+    animate background { duration: 160ms; easing: ease-out; }
+}
+
+export component NavGlyph inherits Path {
+    in property <int> kind: 0;
+    in property <color> tone: Palette.text-dim;
+    width: 18px;
+    height: 18px;
+    stroke: tone;
+    stroke-width: 1.45px;
+    fill: transparent;
+    commands: kind == 0
+        ? "M 2 2 L 8 2 L 8 8 L 2 8 Z M 10 2 L 16 2 L 16 8 L 10 8 Z M 2 10 L 8 10 L 8 16 L 2 16 Z M 10 10 L 16 10 L 16 16 L 10 16 Z"
+        : kind == 1
+        ? "M 2 13 L 6 8 L 9 11 L 13 5 L 16 5 M 13 2 L 16 2 L 16 5"
+        : kind == 2
+        ? "M 9 2 C 5 2 3 5 3 9 C 3 13 5 16 9 16 C 13 16 16 13 16 9 M 9 2 C 13 2 16 5 16 9 M 9 9 L 9 3 M 9 9 L 15 9 M 9 9 L 6 15 M 9 9 L 3 6"
+        : kind == 3
+        ? "M 4 5 L 14 5 L 14 15 L 4 15 Z M 7 2 L 11 2 M 7 8 L 11 8 M 7 11 L 10 11"
+        : kind == 4
+        ? "M 2 4 L 16 4 M 2 9 L 16 9 M 2 14 L 16 14 M 6 2 L 6 6 M 12 7 L 12 11 M 8 12 L 8 16"
+        : kind == 5
+        ? "M 9 2 L 10 2 L 10 4 L 12 5 L 14 4 L 15 6 L 13 7 L 13 10 L 15 11 L 14 13 L 12 12 L 10 13 L 10 15 L 8 15 L 8 13 L 6 12 L 4 13 L 3 11 L 5 10 L 5 7 L 3 6 L 4 4 L 6 5 L 8 4 Z M 9 8 A 2 2 0 1 0 9.01 8"
+        : kind == 6
+        ? "M 2 5 L 16 5 L 16 13 L 2 13 Z M 5 8 L 5 8.01 M 8 8 L 8 8.01 M 11 8 L 11 8.01 M 14 8 L 14 8.01 M 5 11 L 12 11"
+        : kind == 8
+        ? "M 2 3 L 16 3 L 16 12 L 2 12 Z M 7 15 L 11 15 M 9 12 L 9 15"
+        : "M 3 4 L 15 4 M 3 9 L 15 9 M 3 14 L 15 14 M 6 2 L 6 6 M 12 7 L 12 11 M 9 12 L 9 16";
+    animate stroke { duration: 120ms; easing: ease-out; }
+}
+
+export component NavItem inherits Rectangle {
+    in property <string> label;
+    in property <int> glyph;
+    in property <bool> selected;
+    callback clicked();
+    height: 44px;
+    border-radius: 9px;
+    background: selected ? Palette.panel-selected : (tap.has-hover ? Palette.panel-hover : transparent);
+    animate background { duration: 120ms; easing: ease-out; }
+
+    HorizontalLayout {
+        padding-left: 13px;
+        padding-right: 12px;
+        spacing: 11px;
+        cross-axis-alignment: center;
+        NavGlyph { kind: root.glyph; tone: root.selected ? Palette.cyan : Palette.text-dim; }
+        Text {
+            text: root.label;
+            color: root.selected ? Palette.text : Palette.text-dim;
+            font-family: "Bahnschrift";
+            font-size: 13px;
+            font-weight: root.selected ? 600 : 400;
+            vertical-alignment: center;
+            animate color { duration: 120ms; easing: ease-out; }
+        }
+    }
+
+    Rectangle {
+        x: 0;
+        y: 12px;
+        width: 2px;
+        height: 20px;
+        border-radius: 1px;
+        background: Palette.cyan;
+        opacity: root.selected ? 1 : 0;
+        animate opacity { duration: 120ms; easing: ease-out; }
+    }
+
+    tap := TouchArea {
+        x: 0;
+        y: 0;
+        width: parent.width;
+        height: parent.height;
+        mouse-cursor: pointer;
+        clicked => { root.clicked(); }
+    }
+}
+
+export component MetricBar inherits Rectangle {
+    in property <float> fraction: 0;
+    in property <color> tone: Palette.cyan;
+    height: 4px;
+    border-radius: 2px;
+    background: Palette.track;
+    clip: true;
+
+    Rectangle {
+        width: max(0px, min(parent.width, parent.width * root.fraction));
+        height: parent.height;
+        border-radius: 2px;
+        background: root.tone;
+        animate width { duration: 260ms; easing: ease-out; }
+    }
+}
+
+export component DataLabel inherits Text {
+    color: Palette.text-dim;
+    font-family: "Bahnschrift";
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.5px;
+}
+
+export component DataValue inherits Text {
+    color: Palette.text;
+    font-family: "Cascadia Mono";
+    font-size: 13px;
+    font-weight: 500;
+    horizontal-alignment: right;
+}
+
+export component ReadoutRow inherits Rectangle {
+    in property <string> label;
+    in property <string> value;
+    in property <float> fraction: 0;
+    in property <color> tone: Palette.cyan;
+    height: 42px;
+
+    VerticalLayout {
+        padding-top: 8px;
+        padding-bottom: 8px;
+        spacing: 7px;
+        HorizontalLayout {
+            DataLabel { text: root.label; vertical-alignment: center; }
+            Rectangle { horizontal-stretch: 1; }
+            DataValue { text: root.value; vertical-alignment: center; }
+        }
+        MetricBar { fraction: root.fraction; tone: root.tone; }
+    }
+}
+
+export component FanReadout inherits Rectangle {
+    in property <string> name;
+    in property <string> rpm;
+    in property <string> temp;
+    in property <string> duty;
+    height: 40px;
+
+    HorizontalLayout {
+        spacing: 10px;
+        cross-axis-alignment: center;
+        Text {
+            width: 38px;
+            text: root.name;
+            color: Palette.text;
+            font-family: "Bahnschrift";
+            font-size: 12px;
+            font-weight: 600;
+            vertical-alignment: center;
+        }
+        Text {
+            width: 86px;
+            text: root.rpm + " rpm";
+            color: Palette.cyan;
+            font-family: "Cascadia Mono";
+            font-size: 12px;
+            horizontal-alignment: right;
+            vertical-alignment: center;
+        }
+        Text {
+            width: 54px;
+            text: root.temp;
+            color: Palette.text-dim;
+            font-family: "Cascadia Mono";
+            font-size: 12px;
+            horizontal-alignment: right;
+            vertical-alignment: center;
+        }
+        Text {
+            width: 52px;
+            text: root.duty + "%";
+            color: Palette.text-dim;
+            font-family: "Cascadia Mono";
+            font-size: 12px;
+            horizontal-alignment: right;
+            vertical-alignment: center;
+        }
+    }
+}
+
+export component ChromeButton inherits Rectangle {
+    in property <string> text;
+    in property <bool> emphasized: false;
+    in property <bool> enabled: true;
+    callback clicked();
+    height: 28px;
+    border-radius: 14px;
+    border-width: 1px;
+    border-color: root.emphasized ? Palette.cyan : Palette.line;
+    background: tap.has-hover && root.enabled
+        ? (root.emphasized ? Palette.accent-soft : Palette.panel-hover)
+        : Palette.surface-hi;
+    opacity: root.enabled ? 1 : 0.45;
+    animate background { duration: 220ms; easing: ease-in-out; }
+    animate border-color { duration: 220ms; easing: ease-in-out; }
+    animate opacity { duration: 180ms; easing: ease-in-out; }
+
+    Text {
+        text: root.text;
+        color: root.emphasized ? Palette.cyan : Palette.text-dim;
+        font-family: "Bahnschrift";
+        font-size: 10px;
+        font-weight: 600;
+        horizontal-alignment: center;
+        vertical-alignment: center;
+    }
+    tap := TouchArea {
+        mouse-cursor: root.enabled ? pointer : default;
+        clicked => { if (root.enabled) { root.clicked(); } }
+    }
+}
+
+export component StageButton inherits Rectangle {
+    in property <string> text;
+    in property <bool> primary: false;
+    in property <bool> enabled: true;
+    callback clicked();
+    height: 42px;
+    border-radius: 8px;
+    border-width: 1px;
+    border-color: primary ? Palette.cyan : Palette.line-hi;
+    background: primary
+        ? (tap.has-hover && root.enabled ? Palette.accent-hover : Palette.accent-gradient)
+        : (tap.has-hover && root.enabled ? Palette.panel-hover : Palette.surface);
+    opacity: root.enabled ? 1 : 0.42;
+    animate background { duration: 120ms; easing: ease-out; }
+    animate opacity { duration: 120ms; easing: ease-out; }
+
+    Text {
+        text: root.text;
+        color: root.primary ? Palette.primary-text : Palette.text;
+        font-family: "Bahnschrift";
+        font-size: 12px;
+        font-weight: 600;
+        horizontal-alignment: center;
+        vertical-alignment: center;
+    }
+
+    tap := TouchArea {
+        x: 0;
+        y: 0;
+        width: parent.width;
+        height: parent.height;
+        mouse-cursor: root.enabled ? pointer : default;
+        clicked => { if (root.enabled) { root.clicked(); } }
+    }
+}
+
+export component FieldInput inherits Rectangle {
+    in-out property <string> value;
+    in property <string> hint;
+    in property <bool> multiline: false;
+    in property <bool> enabled: true;
+    callback accepted();
+    height: root.multiline ? 88px : 40px;
+    border-radius: 8px;
+    border-width: 1px;
+    border-color: input.has-focus ? Palette.cyan : Palette.line-hi;
+    background: root.enabled ? Palette.surface : Palette.panel-hover;
+    opacity: root.enabled ? 1 : 0.55;
+    animate border-color { duration: 140ms; easing: ease-out; }
+    animate opacity { duration: 140ms; easing: ease-out; }
+
+    input := TextInput {
+        x: 12px;
+        y: root.multiline ? 10px : 0px;
+        width: parent.width - 24px;
+        height: root.multiline ? parent.height - 20px : parent.height;
+        text <=> root.value;
+        enabled: root.enabled;
+        single-line: !root.multiline;
+        wrap: root.multiline ? word-wrap : no-wrap;
+        color: Palette.text;
+        font-family: "Cascadia Mono";
+        font-size: 12px;
+        vertical-alignment: root.multiline ? top : center;
+        selection-background-color: Palette.cyan;
+        selection-foreground-color: Palette.primary-text;
+        accepted => { root.accepted(); }
+    }
+    if root.value == "" && !input.has-focus : Text {
+        x: 13px;
+        y: root.multiline ? 11px : 0px;
+        width: parent.width - 26px;
+        height: root.multiline ? 30px : parent.height;
+        text: root.hint;
+        color: Palette.text-faint;
+        font-family: "Microsoft YaHei UI";
+        font-size: 11px;
+        vertical-alignment: root.multiline ? top : center;
+        overflow: elide;
+    }
+}
+
+export component ChoiceChip inherits Rectangle {
+    in property <string> text;
+    in property <bool> selected: false;
+    callback clicked();
+    horizontal-stretch: 1;
+    height: 34px;
+    border-radius: 7px;
+    border-width: 1px;
+    border-color: root.selected ? Palette.cyan : Palette.line;
+    background: root.selected ? Palette.accent-soft : (tap.has-hover ? Palette.panel-hover : Palette.surface);
+    animate background { duration: 140ms; easing: ease-out; }
+    animate border-color { duration: 140ms; easing: ease-out; }
+    Text {
+        text: root.text;
+        color: root.selected ? Palette.cyan : Palette.text-dim;
+        font-family: "Bahnschrift";
+        font-size: 11px;
+        font-weight: root.selected ? 600 : 400;
+        horizontal-alignment: center;
+        vertical-alignment: center;
+    }
+    tap := TouchArea {
+        mouse-cursor: pointer;
+        clicked => { root.clicked(); }
+    }
+}
+
+export component PowerOption inherits Rectangle {
+    in property <int> value;
+    in property <string> title;
+    in property <string> detail;
+    in property <bool> selected;
+    callback clicked();
+    height: 78px;
+    border-radius: 10px;
+    border-width: 1px;
+    border-color: selected ? Palette.amber : Palette.line;
+    background: selected ? Palette.panel-selected : (tap.has-hover ? Palette.panel-hover : transparent);
+    animate background { duration: 140ms; easing: ease-out; }
+    animate border-color { duration: 140ms; easing: ease-out; }
+
+    Rectangle {
+        x: 0;
+        y: 15px;
+        width: 3px;
+        height: 48px;
+        border-radius: 2px;
+        background: Palette.amber;
+        opacity: selected ? 1 : 0;
+        animate opacity { duration: 140ms; easing: ease-out; }
+    }
+
+    HorizontalLayout {
+        padding-left: 18px;
+        padding-right: 16px;
+        spacing: 14px;
+        cross-axis-alignment: center;
+        VerticalLayout {
+            spacing: 4px;
+            alignment: center;
+            Text {
+                text: root.title;
+                color: Palette.text;
+                font-family: "Bahnschrift";
+                font-size: 16px;
+                font-weight: 600;
+            }
+            Text {
+                text: root.detail;
+                color: Palette.text-dim;
+                font-family: "Bahnschrift";
+                font-size: 12px;
+            }
+        }
+        Rectangle { horizontal-stretch: 1; }
+        Rectangle {
+            width: 18px;
+            height: 18px;
+            border-radius: 9px;
+            border-width: 1px;
+            border-color: selected ? Palette.amber : Palette.line-hi;
+            Rectangle {
+                x: 5px;
+                y: 5px;
+                width: 8px;
+                height: 8px;
+                border-radius: 4px;
+                background: Palette.amber;
+                opacity: root.selected ? 1 : 0;
+                animate opacity { duration: 120ms; }
+            }
+        }
+    }
+
+    tap := TouchArea {
+        x: 0;
+        y: 0;
+        width: parent.width;
+        height: parent.height;
+        mouse-cursor: pointer;
+        clicked => { root.clicked(); }
+    }
+}
+
+export component FanOption inherits Rectangle {
+    in property <int> value;
+    in property <string> title;
+    in property <string> detail;
+    in property <bool> selected;
+    in property <bool> active;
+    callback clicked();
+    height: 76px;
+    border-radius: 11px;
+    border-width: 1px;
+    border-color: selected ? Palette.cyan : Palette.line;
+    background: selected ? Palette.accent-soft : (tap.has-hover ? Palette.panel-hover : Palette.surface);
+    animate background { duration: 140ms; easing: ease-out; }
+    animate border-color { duration: 140ms; easing: ease-out; }
+
+    VerticalLayout {
+        padding-left: 14px;
+        padding-right: 14px;
+        padding-top: 11px;
+        padding-bottom: 11px;
+        spacing: 3px;
+        HorizontalLayout {
+            Text {
+                text: root.title;
+                color: Palette.text;
+                font-family: "Bahnschrift";
+                font-size: 14px;
+                font-weight: 600;
+            }
+            Rectangle { horizontal-stretch: 1; }
+            Rectangle {
+                width: 58px;
+                height: 20px;
+                border-radius: 10px;
+                background: root.active ? Palette.green-soft : Palette.track;
+                Text {
+                    text: root.active ? @tr("Current") : @tr("Standby");
+                    color: root.active ? Palette.green : Palette.text-faint;
+                    font-family: "Bahnschrift";
+                    font-size: 10px;
+                    horizontal-alignment: center;
+                    vertical-alignment: center;
+                }
+            }
+        }
+        Text {
+            text: root.detail;
+            color: Palette.text-dim;
+            font-family: "Bahnschrift";
+            font-size: 10px;
+            wrap: word-wrap;
+        }
+    }
+
+    tap := TouchArea {
+        x: 0;
+        y: 0;
+        width: parent.width;
+        height: parent.height;
+        mouse-cursor: pointer;
+        clicked => { root.clicked(); }
+    }
+}
+
+export component CurveStepper inherits Rectangle {
+    in property <string> label;
+    in property <int> value;
+    in property <int> lower: 0;
+    in property <int> upper: 100;
+    in property <int> step: 5;
+    in property <string> suffix: "";
+    in property <bool> enabled: true;
+    callback changed(int);
+    height: 38px;
+    border-radius: 9px;
+    background: Palette.panel-hover;
+    border-width: 1px;
+    border-color: Palette.line;
+
+    HorizontalLayout {
+        padding-left: 9px;
+        padding-right: 7px;
+        spacing: 5px;
+        cross-axis-alignment: center;
+        Text {
+            text: root.label;
+            color: Palette.text-faint;
+            font-family: "Bahnschrift";
+            font-size: 9px;
+            vertical-alignment: center;
+        }
+        Rectangle {
+            width: 22px;
+            height: 22px;
+            border-radius: 7px;
+            background: minus-tap.has-hover && root.enabled ? Palette.panel-selected : Palette.surface-hi;
+            Text { text: @tr("−"); color: root.enabled ? Palette.text-dim : Palette.text-faint; font-size: 15px; horizontal-alignment: center; vertical-alignment: center; }
+            minus-tap := TouchArea {
+                mouse-cursor: root.enabled ? pointer : default;
+                clicked => { if (root.enabled) { root.changed(max(root.lower, root.value - root.step)); } }
+            }
+        }
+        Text {
+            text: root.value + root.suffix;
+            color: root.enabled ? Palette.text : Palette.text-faint;
+            font-family: "Cascadia Mono";
+            font-size: 11px;
+            horizontal-alignment: center;
+            horizontal-stretch: 1;
+            vertical-alignment: center;
+        }
+        Rectangle {
+            width: 22px;
+            height: 22px;
+            border-radius: 7px;
+            background: plus-tap.has-hover && root.enabled ? Palette.panel-selected : Palette.surface-hi;
+            Text { text: @tr("+"); color: root.enabled ? Palette.text-dim : Palette.text-faint; font-size: 14px; horizontal-alignment: center; vertical-alignment: center; }
+            plus-tap := TouchArea {
+                mouse-cursor: root.enabled ? pointer : default;
+                clicked => { if (root.enabled) { root.changed(min(root.upper, root.value + root.step)); } }
+            }
+        }
+    }
+}
+
+export component SectionTitle inherits Text {
+    color: Palette.text;
+    font-family: "Bahnschrift";
+    font-size: 19px;
+    font-weight: 600;
+}
+
+export component MicroLabel inherits Text {
+    color: Palette.text-faint;
+    font-family: "Bahnschrift";
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 0.7px;
+}
+
+export component InfoRow inherits Rectangle {
+    in property <string> label;
+    in property <string> value;
+    in property <color> value-tone: Palette.text;
+    height: 38px;
+
+    HorizontalLayout {
+        spacing: 12px;
+        cross-axis-alignment: center;
+        DataLabel {
+            text: root.label;
+            vertical-alignment: center;
+            horizontal-stretch: 1;
+        }
+        Text {
+            text: root.value;
+            color: root.value-tone;
+            font-family: "Cascadia Mono";
+            font-size: 12px;
+            horizontal-alignment: right;
+            vertical-alignment: center;
+        }
+    }
+}
+
+export component ToggleStatusRow inherits Rectangle {
+    in property <string> label;
+    in property <bool> value: false;
+    in property <bool> known: false;
+    in property <bool> busy: false;
+    callback toggled(bool);
+    height: 40px;
+    border-radius: 8px;
+    background: tap.has-hover && root.known && !root.busy ? Palette.panel-hover : transparent;
+    animate background { duration: 120ms; }
+
+    HorizontalLayout {
+        padding-left: 8px;
+        padding-right: 8px;
+        spacing: 12px;
+        cross-axis-alignment: center;
+        Text {
+            text: root.label;
+            color: root.known ? Palette.text-dim : Palette.text-faint;
+            font-family: "Bahnschrift";
+            font-size: 12px;
+            vertical-alignment: center;
+            horizontal-stretch: 1;
+        }
+        Rectangle {
+            width: 96px;
+            height: 24px;
+            border-radius: 12px;
+            background: root.value ? Palette.green-soft : Palette.track;
+            border-width: 1px;
+            border-color: root.value ? Palette.green : Palette.line;
+            Text {
+                text: root.known ? (root.value ? @tr("Enabled") : @tr("Disabled")) : @tr("Initialize");
+                color: root.known ? (root.value ? Palette.green : Palette.text-faint) : Palette.amber;
+                font-family: "Bahnschrift";
+                font-size: 9px;
+                horizontal-alignment: center;
+                vertical-alignment: center;
+            }
+        }
+    }
+
+    tap := TouchArea {
+        x: 0;
+        y: 0;
+        width: parent.width;
+        height: parent.height;
+        enabled: !root.busy;
+        mouse-cursor: pointer;
+        clicked => { root.toggled(!root.value); }
+    }
+}
+

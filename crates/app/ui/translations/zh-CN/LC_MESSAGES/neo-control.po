@@ -1,0 +1,1063 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: neo-control\n"
+"Language: zh_CN\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+msgid "Current"
+msgstr "当前"
+
+msgid "Standby"
+msgstr "待机"
+
+msgid "−"
+msgstr "−"
+
+msgid "+"
+msgstr "+"
+
+msgid "Enabled"
+msgstr "已启用"
+
+msgid "Disabled"
+msgstr "已禁用"
+
+msgid "Initialize"
+msgstr "初始化"
+
+msgid "NEO CONTROL"
+msgstr "NEO CONTROL"
+
+msgid "Connecting to DCHU"
+msgstr "正在连接 DCHU"
+
+msgid "Opening the signed AcpiBridge device"
+msgstr "正在打开签名 AcpiBridge 设备"
+
+msgid "--"
+msgstr "--"
+
+msgid "Performance"
+msgstr "性能"
+
+msgid "Automatic"
+msgstr "自动"
+
+msgid "Reading runtime table"
+msgstr "正在读取运行时风扇表"
+
+msgid "Not initialized"
+msgstr "未初始化"
+
+msgid "Unavailable"
+msgstr "不可用"
+
+msgid "NEO"
+msgstr "NEO"
+
+msgid "CONTROL"
+msgstr "CONTROL"
+
+msgid "WORKSPACE"
+msgstr "工作区"
+
+msgid "Overview"
+msgstr "概览"
+
+msgid "Cooling"
+msgstr "散热"
+
+msgid "Battery"
+msgstr "电池"
+
+msgid "System"
+msgstr "系统"
+
+msgid "Settings"
+msgstr "设置"
+
+msgid "LOCAL HARDWARE"
+msgstr "本地硬件"
+
+msgid "HARDWARE OFFLINE"
+msgstr "硬件离线"
+
+msgid "Dismiss"
+msgstr "关闭"
+
+msgid "Platform overview"
+msgstr "平台概览"
+
+msgid "Live thermal, power and utilization state from the local platform."
+msgstr "来自本地平台的实时温度、电源与利用率状态。"
+
+msgid "Thermal state"
+msgstr "温度状态"
+
+msgid "DCHU · 2 s"
+msgstr "DCHU · 2 秒"
+
+msgid "CPU PACKAGE"
+msgstr "CPU 封装"
+
+msgid "GPU DEVICE"
+msgstr "GPU 设备"
+
+msgid "PLATFORM FANS"
+msgstr "平台风扇"
+
+msgid "Signed DCHU transport active"
+msgstr "已连接签名 DCHU 通道"
+
+msgid "Waiting for the signed AcpiBridge transport"
+msgstr "正在等待签名 AcpiBridge 通道"
+
+msgid "CPU clock "
+msgstr "CPU 时钟 "
+
+msgid "cap "
+msgstr "上限 "
+
+msgid "Compute"
+msgstr "计算"
+
+msgid "CPU utilization"
+msgstr "CPU 利用率"
+
+msgid "GPU utilization"
+msgstr "GPU 利用率"
+
+msgid "GPU memory"
+msgstr "GPU 显存"
+
+msgid "Resources"
+msgstr "资源"
+
+msgid "System memory"
+msgstr "系统内存"
+
+msgid "System disk"
+msgstr "系统磁盘"
+
+msgid "CURRENT PROFILE"
+msgstr "当前配置"
+
+msgid "Cooling · "
+msgstr "散热 · "
+
+msgid "CPU "
+msgstr "CPU "
+
+msgid "GPU "
+msgstr "GPU "
+
+msgid "Overview presents live telemetry; tune profiles in Performance and Cooling."
+msgstr "概览展示实时遥测；请在性能与散热页面调整配置。"
+
+msgid "Choose a platform power profile; Overview reflects the result immediately."
+msgstr "选择平台电源配置，概览会立即反映结果。"
+
+msgid "Platform profile"
+msgstr "平台配置"
+
+msgid "Current · "
+msgstr "当前 · "
+
+msgid "Quiet"
+msgstr "静音"
+
+msgid "Lowest acoustics. Choose whether to disable the discrete GPU for the next boot."
+msgstr "最低噪音。选择是否在下次启动时关闭独立显卡。"
+
+msgid "Power saving"
+msgstr "节能"
+
+msgid "Prioritize battery life and lower heat."
+msgstr "优先考虑续航并降低发热。"
+
+msgid "Maximum sustained platform response."
+msgstr "最大化持续平台响应。"
+
+msgid "Entertainment"
+msgstr "娱乐"
+
+msgid "Balance acoustics with sustained response."
+msgstr "在噪音与持续响应之间取得平衡。"
+
+msgid "Quiet+"
+msgstr "静音+"
+
+msgid "The quietest supported platform profile."
+msgstr "支持的最安静平台配置。"
+
+msgid "LIVE RESULT"
+msgstr "实时结果"
+
+msgid "Apply writes CC40 command 121/[mode,0,0,25], persists page 1 offset 1, then verifies the value by reading it back."
+msgstr "写入 CC40 命令 121/[mode,0,0,25]，持久化到页 1 偏移 1，然后读回校验。"
+
+msgid "Commands travel directly through the signed AcpiBridge device while platform firmware, drivers, and signatures stay intact."
+msgstr "所有命令直接通过签名的 AcpiBridge 设备传递，平台固件、驱动与签名保持原样。"
+
+msgid "Applying profile…"
+msgstr "正在应用配置…"
+
+msgid "Apply power profile"
+msgstr "应用电源配置"
+
+msgid "Automatic, Maximum, and a verified custom curve. Every write is read back; the previous table and mode return automatically when verification differs."
+msgstr "自动、最大以及经过验证的自定义曲线。每次写入都会读回；校验不一致时自动恢复之前的表和模式。"
+
+msgid "Fan policy"
+msgstr "风扇策略"
+
+msgid "EC-controlled curve and the recovery fallback."
+msgstr "EC 控制的曲线，也是安全回退方案。"
+
+msgid "Maximum"
+msgstr "最大"
+
+msgid "Full fan duty for short thermal recovery."
+msgstr "短时热恢复时使用全速风扇。"
+
+msgid "Mode writes 121/[mode,0,0,1] and page 4 offset 5, then verifies readback."
+msgstr "模式写入 121/[mode,0,0,1] 与页 4 偏移 5，然后读回验证。"
+
+msgid "Applying fan policy…"
+msgstr "正在应用风扇策略…"
+
+msgid "Apply fan policy"
+msgstr "应用风扇策略"
+
+msgid "Live fans"
+msgstr "实时风扇"
+
+msgid "CHANNEL"
+msgstr "通道"
+
+msgid "SPEED"
+msgstr "转速"
+
+msgid "TEMP"
+msgstr "温度"
+
+msgid "DUTY"
+msgstr "占空比"
+
+msgid "Telemetry command 12 · RPM/duty/temperature normalized with the verified CC40 formulas."
+msgstr "遥测命令 12 · RPM/占空比/温度均按已验证的 CC40 公式换算。"
+
+msgid "Custom fan curve"
+msgstr "自定义风扇曲线"
+
+msgid "CPU CHANNEL"
+msgstr "CPU 通道"
+
+msgid "T2"
+msgstr "T2"
+
+msgid "D2"
+msgstr "D2"
+
+msgid "T3"
+msgstr "T3"
+
+msgid "D3"
+msgstr "D3"
+
+msgid "GPU CHANNEL"
+msgstr "GPU 通道"
+
+msgid "Middle nodes are adjustable. T1/D1 and T4/D4 remain firmware-owned. Writes block 14, select Custom (6), verify block 13, and restore the prior table when verification differs."
+msgstr "中间节点可调，T1/D1 与 T4/D4 由固件管理。写入 block 14，切换到自定义 (6)，校验 block 13，并在校验不一致时恢复原表。"
+
+msgid "Writing curve…"
+msgstr "正在写入曲线…"
+
+msgid "Apply custom curve"
+msgstr "应用自定义曲线"
+
+msgid "Battery & charging"
+msgstr "电池与充电"
+
+msgid "Live battery state from Windows, with the vendor charge path kept behind a verified boundary."
+msgstr "Windows 实时电池状态；厂商充电路径仍保持验证边界。"
+
+msgid "Battery state"
+msgstr "电池状态"
+
+msgid "CHARGE LEVEL"
+msgstr "电量"
+
+msgid "Power source"
+msgstr "电源"
+
+msgid "Estimated time"
+msgstr "预计时间"
+
+msgid "Remaining / maximum"
+msgstr "剩余 / 最大"
+
+msgid "Battery power rate"
+msgstr "电池功率"
+
+msgid "This page reads Windows battery telemetry. Charge policy controls live in the FlexiCharger section."
+msgstr "本页读取 Windows 电池遥测；充电策略控制位于 FlexiCharger 区域。"
+
+msgid "FlexiCharger"
+msgstr "FlexiCharger"
+
+msgid "Restart required"
+msgstr "需要重启"
+
+msgid "The vendor exposes Disable, 70–80% and custom charge thresholds through DCHU command 4."
+msgstr "厂商通过 DCHU 命令 4 提供关闭、70–80% 与自定义充电阈值。"
+
+msgid "Vendor mode"
+msgstr "厂商模式"
+
+msgid "Start threshold"
+msgstr "起始阈值"
+
+msgid "Stop threshold"
+msgstr "停止阈值"
+
+msgid "Restart Windows once to refresh the DCHU charge channel. Neo Control then applies each charge policy through the signed AcpiBridge device and verifies the result."
+msgstr "重启一次 Windows 以刷新 DCHU 充电通道。随后 Neo Control 会通过签名 AcpiBridge 设备应用每一项充电策略并校验结果。"
+
+msgid "Signed transport identity and vendor preferences reported by DCHU settings."
+msgstr "签名通道身份，以及 DCHU 设置报告的厂商偏好。"
+
+msgid "Quick keys"
+msgstr "快捷键"
+
+msgid "SIGNED DCHU · READ / WRITE"
+msgstr "签名 DCHU · 读取 / 写入"
+
+msgid "Fn key lock"
+msgstr "Fn 键锁定"
+
+msgid "Windows key lock"
+msgstr "Windows 键锁定"
+
+msgid "Swap Win / Fn"
+msgstr "交换 Win / Fn"
+
+msgid "Control Center hotkey"
+msgstr "控制中心热键"
+
+msgid "Copilot key"
+msgstr "Copilot 键"
+
+msgid "The first change initializes the complete five-field vendor group from safe defaults, persists the three settings bytes, and verifies all five values by readback."
+msgstr "第一次修改会从安全默认值初始化完整的五字段厂商组，持久化三个设置字节，并读回校验这五个值。"
+
+msgid "Signed transport"
+msgstr "签名通道"
+
+msgid "Transport"
+msgstr "传输通道"
+
+msgid "Capabilities"
+msgstr "能力"
+
+msgid "Platform ID"
+msgstr "平台 ID"
+
+msgid "Power mode"
+msgstr "电源模式"
+
+msgid "Extended API"
+msgstr "扩展 API"
+
+msgid "GPU switch"
+msgstr "显卡切换"
+
+msgid "DEVICE PATH"
+msgstr "设备路径"
+
+msgid "Firmware, driver binaries, and signatures stay intact."
+msgstr "固件、驱动二进制与签名保持原样。"
+
+msgid "Language, appearance, and the active graphics path. Changes apply immediately."
+msgstr "语言、外观和当前图形渲染路径。修改会立即生效。"
+
+msgid "Language & appearance"
+msgstr "语言与外观"
+
+msgid "Language"
+msgstr "语言"
+
+msgid "The interface and diagnostic labels switch immediately. Technical vendor names stay unchanged."
+msgstr "界面与诊断标签会立即切换，厂商技术名称保持不变。"
+
+msgid "Theme"
+msgstr "主题"
+
+msgid "Switching theme uses a short cross-fade instead of an abrupt color jump."
+msgstr "切换主题使用短暂交叉淡化，而不是生硬跳色。"
+
+msgid "Graphics renderer"
+msgstr "图形渲染"
+
+msgid "Backend"
+msgstr "后端"
+
+msgid "Acceleration"
+msgstr "硬件加速"
+
+msgid "GPU compositing"
+msgstr "GPU 合成"
+
+msgid "Animation"
+msgstr "动画"
+
+msgid "Continuous cross-fade"
+msgstr "连续交叉淡化"
+
+msgid "Neo Control uses the Slint winit renderer. The scene is composed by the GPU; the hardware worker only samples telemetry off the UI thread."
+msgstr "Neo Control 使用 Slint winit 渲染器，画面由 GPU 合成；硬件采样在工作线程中进行，不阻塞 UI。"
+
+msgid "If Windows graphics settings assign a specific adapter, the active backend string above remains the authoritative runtime report."
+msgstr "如果 Windows 图形设置指定了显卡，以上运行时后端字符串仍是最终权威结果。"
+
+msgid "Quiet mode needs a GPU policy"
+msgstr "静音模式需要选择显卡策略"
+
+msgid "The original Control Center asks whether to turn off the discrete NVIDIA GPU when entering Quiet mode. Choose the behavior for this machine."
+msgstr "原厂控制中心在进入静音模式时会询问是否关闭 NVIDIA 独立显卡。请选择这台机器的行为。"
+
+msgid "Keep dGPU"
+msgstr "保留独显"
+
+msgid "Quiet platform profile with the discrete GPU available immediately. This choice takes effect now."
+msgstr "使用静音平台配置，同时让独显立即可用。此选择立即生效。"
+
+msgid "Disable dGPU · maximum quiet"
+msgstr "关闭独显 · 最大静音"
+
+msgid "Stages iGPU-only mode for the next boot. Restart when you are ready; the staged mode applies on that boot."
+msgstr "为下次启动暂存仅使用集显的模式。准备好时再重启，暂存模式会在该次启动生效。"
+
+msgid "Cancel"
+msgstr "取消"
+
+msgid "Disable dGPU"
+msgstr "关闭独显"
+
+msgid "A staged GPU mode applies on the next boot. Choose the restart time."
+msgstr "暂存的显卡模式会在下次启动生效，重启时间由你选择。"
+
+msgid "GPU mode staged:"
+msgstr "显卡模式已暂存："
+
+msgid "Restart to apply."
+msgstr "重启后生效。"
+
+msgid "Staging the GPU mode for the next boot…"
+msgstr "正在为下次启动暂存显卡模式…"
+
+msgid "Configurable"
+msgstr "可配置"
+
+msgid "Restart to refresh"
+msgstr "重启后刷新"
+
+msgid "Set the charge ceiling through DCHU command 4. Neo Control verifies the persisted mode and live thresholds."
+msgstr "通过 DCHU 命令 4 设置充电上限。Neo Control 会校验持久化模式与实时阈值。"
+
+msgid "100%"
+msgstr "100%"
+
+msgid "Custom"
+msgstr "自定义"
+
+msgid "START"
+msgstr "起始"
+
+msgid "STOP"
+msgstr "停止"
+
+msgid "Applying…"
+msgstr "正在应用…"
+
+msgid "Apply charge policy"
+msgstr "应用充电策略"
+
+msgid "The charge channel refreshes after one Windows restart. Each applied policy is read back before success is reported."
+msgstr "充电通道会在一次 Windows 重启后刷新。每次应用策略都会读回确认后才报告成功。"
+
+msgid "Charge to 100%"
+msgstr "充至 100%"
+
+msgid "Preset · 70–80%"
+msgstr "预设 · 70–80%"
+
+msgid "Custom thresholds"
+msgstr "自定义阈值"
+
+msgid "Mode"
+msgstr "模式"
+
+msgid "Charge channel ready"
+msgstr "充电通道就绪"
+
+msgid "Restart to refresh the charge channel"
+msgstr "重启后刷新充电通道"
+
+msgid "Applying charge policy…"
+msgstr "正在应用充电策略…"
+
+msgid "Unsupported charge mode."
+msgstr "不支持的充电模式。"
+
+msgid "Charge policy applied and verified."
+msgstr "充电策略已应用并校验。"
+
+msgid "Live clock "
+msgstr "实时频率 "
+
+msgid " · nominal "
+msgstr " · 标称 "
+
+msgid "Fan curve"
+msgstr "风扇曲线"
+
+msgid "Lighting"
+msgstr "灯效"
+
+msgid "Input & I/O"
+msgstr "输入与接口"
+
+msgid "15-color keyboard, sleep timer, and boot effect, driven through the signed AcpiBridge transport."
+msgstr "15 色键盘、休眠计时与开机灯效，全部通过签名 AcpiBridge 通道控制。"
+
+msgid "Keyboard lighting is not available"
+msgstr "键盘灯效不可用"
+
+msgid "The platform did not report the 15-color keyboard capability."
+msgstr "当前平台未报告 15 色键盘能力。"
+
+msgid "Color bench"
+msgstr "调色台"
+
+msgid "LIVE"
+msgstr "实时"
+
+msgid "Backlight behavior"
+msgstr "背光行为"
+
+msgid "BRIGHTNESS"
+msgstr "亮度"
+
+msgid "EFFECT"
+msgstr "灯效"
+
+msgid "Static"
+msgstr "静态"
+
+msgid "Breathe"
+msgstr "呼吸"
+
+msgid "Cycle"
+msgstr "循环"
+
+msgid "Override boot effect"
+msgstr "覆盖开机灯效"
+
+msgid "SLEEP TIMER"
+msgstr "休眠计时"
+
+msgid "Apply sleep timer"
+msgstr "应用休眠计时"
+
+msgid "Apply keyboard color"
+msgstr "应用键盘颜色"
+
+msgid "Applying keyboard brightness…"
+msgstr "正在应用键盘亮度…"
+
+msgid "Applying keyboard color…"
+msgstr "正在应用键盘颜色…"
+
+msgid "Applying keyboard effect…"
+msgstr "正在应用键盘灯效…"
+
+msgid "Applying keyboard sleep timer…"
+msgstr "正在应用键盘休眠计时…"
+
+msgid "Applying keyboard boot effect…"
+msgstr "正在应用键盘开机灯效…"
+
+msgid "Updating camera state…"
+msgstr "正在更新摄像头状态…"
+
+msgid "Updating touchpad state…"
+msgstr "正在更新触摸板状态…"
+
+msgid "Toggling lock key…"
+msgstr "正在切换锁定键…"
+
+msgid "Applying Noiseless fan mode…"
+msgstr "正在应用静音风扇模式…"
+
+msgid "Applying Turbo fan…"
+msgstr "正在应用涡轮风扇…"
+
+msgid "Applying ten-point fan curve…"
+msgstr "正在应用十点风扇曲线…"
+
+msgid "Applying fan offset…"
+msgstr "正在应用风扇补偿…"
+
+msgid "Ten-point fan curve"
+msgstr "十点风扇曲线"
+
+msgid "RPM-controlled CPU and GPU curves. Values are written to the signed EC path and verified against the complete 112-byte module."
+msgstr "RPM 控制的 CPU 与 GPU 曲线。写入签名 EC 通道，并按完整 112 字节模块校验。"
+
+msgid "CPU fan"
+msgstr "CPU 风扇"
+
+msgid "GPU fan"
+msgstr "GPU 风扇"
+
+msgid "OFFSET"
+msgstr "补偿"
+
+msgid "Apply offset"
+msgstr "应用补偿"
+
+msgid "Apply ten-point curve"
+msgstr "应用十点曲线"
+
+msgid "Writing fan curve…"
+msgstr "正在写入风扇曲线…"
+
+msgid "Each edited point updates the up/down temperature and RPM pair. Vendor reserved bytes, duties, and timing fields are preserved."
+msgstr "每个编辑点会同时更新升温/降温温度与 RPM 对；厂商保留字节、占空比和时序字段保持不变。"
+
+msgid "Camera, touchpad, and lock-key controls exposed by CC4.0."
+msgstr "CC4.0 提供的摄像头、触摸板与锁定键控制。"
+
+msgid "Devices"
+msgstr "设备"
+
+msgid "Camera"
+msgstr "摄像头"
+
+msgid "Touchpad"
+msgstr "触摸板"
+
+msgid "Camera and touchpad state are read back from the vendor setting pages after each write."
+msgstr "每次写入后都会从厂商设置页读回摄像头与触摸板状态。"
+
+msgid "Lock keys"
+msgstr "锁定键"
+
+msgid "Send the same lock-key transitions as the factory control center."
+msgstr "发送与原厂控制中心相同的锁定键切换。"
+
+msgid "Camera enabled."
+msgstr "摄像头已启用。"
+
+msgid "Camera disabled."
+msgstr "摄像头已关闭。"
+
+msgid "Touchpad enabled."
+msgstr "触摸板已启用。"
+
+msgid "Touchpad disabled."
+msgstr "触摸板已关闭。"
+
+msgid "Lock key toggled."
+msgstr "锁定键已切换。"
+
+msgid "Keyboard brightness applied."
+msgstr "键盘亮度已应用。"
+
+msgid "Keyboard color applied."
+msgstr "键盘颜色已应用。"
+
+msgid "Keyboard effect applied."
+msgstr "键盘灯效已应用。"
+
+msgid "Keyboard sleep timer applied."
+msgstr "键盘休眠计时已应用。"
+
+msgid "Keyboard boot effect applied."
+msgstr "键盘开机灯效已应用。"
+
+msgid "Noiseless fan setting applied."
+msgstr "静音风扇设置已应用。"
+
+msgid "Turbo fan setting applied."
+msgstr "涡轮风扇设置已应用。"
+
+msgid "Fan offset applied."
+msgstr "风扇补偿已应用。"
+
+msgid "Ten-point fan table applied and read back."
+msgstr "十点风扇曲线已应用并读回。"
+
+msgid "platform"
+msgstr "平台"
+
+msgid "Display"
+msgstr "显示"
+
+msgid "Apply brightness"
+msgstr "应用亮度"
+
+msgid "BLUE LIGHT"
+msgstr "蓝光"
+
+msgid "Apply blue-light filter"
+msgstr "应用蓝光滤镜"
+
+msgid "Audio"
+msgstr "音频"
+
+msgid "VOLUME"
+msgstr "音量"
+
+msgid "Apply volume"
+msgstr "应用音量"
+
+msgid "Mute"
+msgstr "静音"
+
+msgid "Applying display brightness…"
+msgstr "正在应用屏幕亮度…"
+
+msgid "Applying blue-light filter…"
+msgstr "正在应用蓝光滤镜…"
+
+msgid "Applying volume…"
+msgstr "正在应用音量…"
+
+msgid "Updating mute state…"
+msgstr "正在更新静音状态…"
+
+msgid "Display brightness applied."
+msgstr "屏幕亮度已应用。"
+
+msgid "Blue-light filter applied."
+msgstr "蓝光滤镜已应用。"
+
+msgid "Volume applied."
+msgstr "音量已应用。"
+
+msgid "Audio muted."
+msgstr "音频已静音。"
+
+msgid "Audio unmuted."
+msgstr "音频已取消静音。"
+
+msgid "Noiseless"
+msgstr "静音模式"
+
+msgid "Turbo fan"
+msgstr "涡轮风扇"
+
+msgid "Noiseless and Turbo fan are separate vendor policies."
+msgstr "静音模式与涡轮风扇是两项独立的厂商策略。"
+
+msgid "Turbo fan is available in the Performance profile."
+msgstr "涡轮风扇仅在性能配置下可用。"
+
+msgid "Airplane mode"
+msgstr "飞行模式"
+
+msgid "Updating airplane mode…"
+msgstr "正在更新飞行模式…"
+
+msgid "Airplane mode enabled."
+msgstr "飞行模式已开启。"
+
+msgid "Airplane mode disabled."
+msgstr "飞行模式已关闭。"
+
+msgid "Anti-dust"
+msgstr "防尘"
+
+msgid "Running"
+msgstr "运行中"
+
+msgid "Scheduler ready"
+msgstr "计划就绪"
+
+msgid "Run the fan cleaning routine now, or schedule it by weekday and hour. Day 0 is Sunday. Resume keeps the schedule after a wake."
+msgstr "立即执行风扇清洁，或按星期与小时设置计划。0 表示星期日。“恢复”会在唤醒后保留计划。"
+
+msgid "DAY"
+msgstr "星期"
+
+msgid "HOUR"
+msgstr "小时"
+
+msgid "Schedule"
+msgstr "计划"
+
+msgid "Resume"
+msgstr "恢复"
+
+msgid "Cleaning…"
+msgstr "清洁中…"
+
+msgid "Run now"
+msgstr "立即运行"
+
+msgid "Apply schedule"
+msgstr "应用计划"
+
+msgid "FlexiKey"
+msgstr "FlexiKey"
+
+msgid "Profile library imported from the CC4.0 FlexiKey XML format."
+msgstr "从 CC4.0 FlexiKey XML 格式导入的配置库。"
+
+msgid "Profiles"
+msgstr "配置文件"
+
+msgid "Reload profiles"
+msgstr "重新加载配置"
+
+msgid "No profile.xml was found. Existing CC4.0 profiles appear here without modification."
+msgstr "未找到 profile.xml。现有 CC4.0 配置会在这里原样显示。"
+
+msgid "Lowest panel refresh rate"
+msgstr "最低屏幕刷新率"
+
+msgid "Available in Power saving and Quiet+ profiles. The panel may blank briefly while its mode changes."
+msgstr "仅在节能和静音+配置下可用。切换时屏幕可能短暂黑屏。"
+
+msgid "Selecting a profile activates it, saves profile.xml, and reloads the keyboard action engine."
+msgstr "选择配置会立即启用并保存 profile.xml，同时重新加载键盘动作引擎。"
+
+msgid "Resident control"
+msgstr "常驻控制"
+
+msgid "Start with Windows"
+msgstr "登录时启动"
+
+msgid "Uses the current-user Run key to start the same executable in the tray at logon."
+msgstr "使用当前用户 Run 键在登录时启动同一个可执行文件并驻留托盘。"
+
+msgid "Add binding"
+msgstr "添加绑定"
+
+msgid "Edit"
+msgstr "编辑"
+
+msgid "No bindings yet. Add one to map a keyboard key or mouse button to an action."
+msgstr "尚无绑定。添加一条，将键盘按键或鼠标按钮映射到动作。"
+
+msgid "Changes are saved atomically to profile.xml and reloaded into the resident input engine."
+msgstr "更改会原子写入 profile.xml，并重新载入常驻输入引擎。"
+
+msgid "Edit binding"
+msgstr "编辑绑定"
+
+msgid "New binding"
+msgstr "新建绑定"
+
+msgid "Choose the trigger, then the action. Changes activate immediately."
+msgstr "选择触发方式，然后设置动作。保存后立即生效。"
+
+msgid "Close"
+msgstr "关闭"
+
+msgid "Trigger"
+msgstr "触发"
+
+msgid "Device"
+msgstr "设备"
+
+msgid "Keyboard"
+msgstr "键盘"
+
+msgid "Mouse"
+msgstr "鼠标"
+
+msgid "Key code"
+msgstr "按键代码"
+
+msgid "0xNN or decimal"
+msgstr "0xNN 或十进制"
+
+msgid "Capture key"
+msgstr "捕获按键"
+
+msgid "Cancel capture"
+msgstr "取消捕获"
+
+msgid "Display name"
+msgstr "显示名称"
+
+msgid "Shown in the binding list"
+msgstr "显示在绑定列表中"
+
+msgid "Listening for one key or mouse button. The captured input is swallowed."
+msgstr "正在监听一个按键或鼠标按钮。捕获到的输入会被拦截。"
+
+msgid "Capture accepts keyboard keys and the five standard mouse buttons."
+msgstr "可捕获键盘按键和五种标准鼠标按钮。"
+
+msgid "Action"
+msgstr "动作"
+
+msgid "Hotkey"
+msgstr "快捷键"
+
+msgid "Launch"
+msgstr "启动"
+
+msgid "Text"
+msgstr "文本"
+
+msgid "Disable"
+msgstr "禁用"
+
+msgid "Hotkey sequence"
+msgstr "快捷键组合"
+
+msgid "Target path"
+msgstr "启动目标"
+
+msgid "Text to type"
+msgstr "输入文本"
+
+msgid "Ctrl+Shift+S, or Win+R  (space separates sequences)"
+msgstr "Ctrl+Shift+S，或 Win+R（空格分隔多个组合）"
+
+msgid "C:\\Tools\\app.exe"
+msgstr "C:\\Tools\\app.exe"
+
+msgid "Chinese and Unicode text are supported"
+msgstr "支持中文和 Unicode 文本"
+
+msgid "Leaving this empty keeps an existing macro unchanged. New hotkey bindings need a sequence."
+msgstr "编辑现有按键宏时留空可保持原动作；新快捷键绑定必须填写。"
+
+msgid "This trigger is swallowed and performs no action."
+msgstr "此触发会被拦截，不执行任何动作。"
+
+msgid "Delete"
+msgstr "删除"
+
+msgid "Save binding"
+msgstr "保存绑定"
+
+msgid "Each chord is sent in order. Modifier keys are released in reverse order."
+msgstr "每个组合键会按顺序发送，修饰键按相反顺序释放。"
+
+msgid "The target opens through the Windows shell when the trigger fires."
+msgstr "触发时，目标会通过 Windows Shell 打开。"
+
+msgid "The text is typed into whichever window has focus when the trigger fires."
+msgstr "触发时，文本会输入到当前获得焦点的窗口。"
+
+msgid "Use this to reserve a key or mouse button without an action."
+msgstr "用于保留一个按键或鼠标按钮，但不执行动作。"
+
+msgid "Trigger devices"
+msgstr "触发设备"
+
+msgid "Display care"
+msgstr "显示保护"
+
+msgid "Windows presence, screen timeout, and screen-saver controls recovered from the CC4.0 OLED page."
+msgstr "从 CC4.0 OLED 页面恢复的 Windows 界面、显示器超时与屏幕保护控制。"
+
+msgid "Windows surface"
+msgstr "Windows 界面"
+
+msgid "These changes are applied immediately and read back from Windows."
+msgstr "这些更改会立即应用，并从 Windows 读回验证。"
+
+msgid "Automatically hide taskbar"
+msgstr "自动隐藏任务栏"
+
+msgid "Taskbar transparency"
+msgstr "任务栏透明效果"
+
+msgid "Dark appearance"
+msgstr "深色外观"
+
+msgid "The panel reports OLED. Static taskbar elements and long display-on sessions are the main burn-in risks."
+msgstr "面板报告为 OLED。静态任务栏元素和长时间亮屏是主要的烧屏风险。"
+
+msgid "The panel reports LCD. Pixel shifting and OLED refresh routines are not exposed; the Windows protection controls remain available."
+msgstr "面板报告为 LCD。像素偏移与 OLED 刷新例程不会显示；Windows 保护控制仍然可用。"
+
+msgid "CC4.0 stores these preferences in AppSettings offsets 45–47 and applies the corresponding Windows state itself."
+msgstr "CC4.0 将这些偏好保存在 AppSettings 偏移 45–47，并直接应用对应的 Windows 状态。"
+
+msgid "Timing & screen saver"
+msgstr "时间与屏幕保护"
+
+msgid "Monitor timeout"
+msgstr "显示器超时"
+
+msgid "AC"
+msgstr "交流电"
+
+msgid "BATTERY"
+msgstr "电池"
+
+msgid "A value of 0 means the display never turns off automatically."
+msgstr "值为 0 表示显示器不会自动关闭。"
+
+msgid "Apply monitor timeouts"
+msgstr "应用显示器超时"
+
+msgid "Screen saver"
+msgstr "屏幕保护程序"
+
+msgid "None"
+msgstr "无"
+
+msgid "Blank"
+msgstr "空白"
+
+msgid "Bubbles"
+msgstr "气泡"
+
+msgid "Mystify"
+msgstr "变幻线"
+
+msgid "Photos"
+msgstr "照片"
+
+msgid "Ribbons"
+msgstr "彩带"
+
+msgid "3D Text"
+msgstr "3D 文字"
+
+msgid "WAIT"
+msgstr "等待"
+
+msgid "Apply screen saver"
+msgstr "应用屏幕保护程序"
+
+msgid "CC4.0 uses the Windows screen-saver list and persists the selected mode at AppSettings offset 48. The timeout is written to both Windows and the desktop registry."
+msgstr "CC4.0 使用 Windows 屏幕保护列表，并将所选模式保存到 AppSettings 偏移 48。超时会同时写入 Windows 与桌面注册表。"
+
+msgid "Profile name"
+msgstr "配置名称"
+
+msgid "Name shown in the profile list"
+msgstr "显示在配置列表中的名称"
+
+msgid "Save name"
+msgstr "保存名称"
+
+msgid "New"
+msgstr "新建"
+
+msgid "Confirm"
+msgstr "确认"

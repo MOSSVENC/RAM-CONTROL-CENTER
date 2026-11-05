@@ -1,0 +1,278 @@
+import { Palette } from "../theme.slint";
+import {
+    ChromeButton, ChoiceChip, CurveStepper, DataLabel, DataValue, FanOption, FanReadout,
+    FieldInput, Hairline, InfoRow, MetricBar, MicroLabel, NavGlyph, NavItem, PowerOption,
+    ReadoutRow, SectionTitle, SignalDot, StageButton, ToggleStatusRow,
+} from "../components.slint";
+
+                        export component FanCurvePage inherits VerticalLayout {
+    in property <int> selected-page: 0;
+    in property <bool> busy: false;
+    in property <int> fan-offset-current: 0;
+    in-out property <int> fan-offset-requested: 0;
+    in property <bool> rpm-editable: false;
+    in-out property <int> rpm-cpu-temp-0: 0;
+    in-out property <int> rpm-cpu-temp-1: 0;
+    in-out property <int> rpm-cpu-temp-2: 0;
+    in-out property <int> rpm-cpu-temp-3: 0;
+    in-out property <int> rpm-cpu-temp-4: 0;
+    in-out property <int> rpm-cpu-temp-5: 0;
+    in-out property <int> rpm-cpu-temp-6: 0;
+    in-out property <int> rpm-cpu-temp-7: 0;
+    in-out property <int> rpm-cpu-temp-8: 0;
+    in-out property <int> rpm-cpu-temp-9: 0;
+    in-out property <int> rpm-cpu-rpm-0: 0;
+    in-out property <int> rpm-cpu-rpm-1: 0;
+    in-out property <int> rpm-cpu-rpm-2: 0;
+    in-out property <int> rpm-cpu-rpm-3: 0;
+    in-out property <int> rpm-cpu-rpm-4: 0;
+    in-out property <int> rpm-cpu-rpm-5: 0;
+    in-out property <int> rpm-cpu-rpm-6: 0;
+    in-out property <int> rpm-cpu-rpm-7: 0;
+    in-out property <int> rpm-cpu-rpm-8: 0;
+    in-out property <int> rpm-cpu-rpm-9: 0;
+    in-out property <int> rpm-gpu-temp-0: 0;
+    in-out property <int> rpm-gpu-temp-1: 0;
+    in-out property <int> rpm-gpu-temp-2: 0;
+    in-out property <int> rpm-gpu-temp-3: 0;
+    in-out property <int> rpm-gpu-temp-4: 0;
+    in-out property <int> rpm-gpu-temp-5: 0;
+    in-out property <int> rpm-gpu-temp-6: 0;
+    in-out property <int> rpm-gpu-temp-7: 0;
+    in-out property <int> rpm-gpu-temp-8: 0;
+    in-out property <int> rpm-gpu-temp-9: 0;
+    in-out property <int> rpm-gpu-rpm-0: 0;
+    in-out property <int> rpm-gpu-rpm-1: 0;
+    in-out property <int> rpm-gpu-rpm-2: 0;
+    in-out property <int> rpm-gpu-rpm-3: 0;
+    in-out property <int> rpm-gpu-rpm-4: 0;
+    in-out property <int> rpm-gpu-rpm-5: 0;
+    in-out property <int> rpm-gpu-rpm-6: 0;
+    in-out property <int> rpm-gpu-rpm-7: 0;
+    in-out property <int> rpm-gpu-rpm-8: 0;
+    in-out property <int> rpm-gpu-rpm-9: 0;
+    callback apply-rpm-curve();
+    callback apply-fan-offset(int);
+
+    spacing: 14px;
+
+    VerticalLayout {
+        spacing: 3px;
+        Text {
+            text: @tr("Ten-point fan curve");
+            color: Palette.text;
+            font-family: "Bahnschrift";
+            font-size: 27px;
+            font-weight: 600;
+        }
+        Text {
+            text: @tr("RPM-controlled CPU and GPU curves. Values are written to the signed EC path and verified against the complete 112-byte module.");
+            color: Palette.text-dim;
+            font-family: "Microsoft YaHei UI";
+            font-size: 12px;
+        }
+    }
+
+    HorizontalLayout {
+        spacing: 10px;
+        cross-axis-alignment: center;
+        CurveStepper {
+            width: 320px;
+            label: @tr("OFFSET");
+            value: root.fan-offset-requested;
+            lower: 0;
+            upper: 100;
+            step: 5;
+            suffix: "%";
+            enabled: !root.busy;
+            changed(v) => { root.fan-offset-requested = v; }
+        }
+        StageButton {
+            width: 180px;
+            text: @tr("Apply offset");
+            primary: false;
+            enabled: !root.busy && root.fan-offset-requested != root.fan-offset-current;
+            clicked => { root.apply-fan-offset(root.fan-offset-requested); }
+        }
+        Rectangle { horizontal-stretch: 1; }
+        Text {
+            text: @tr("Current · ") + root.fan-offset-current + "%";
+            color: Palette.text-faint;
+            font-family: "Cascadia Mono";
+            font-size: 10px;
+        }
+    }
+
+    HorizontalLayout {
+        spacing: 16px;
+        vertical-stretch: 1;
+
+        Rectangle {
+            horizontal-stretch: 1;
+            border-radius: 16px;
+            background: Palette.surface-gradient;
+            border-width: 1px;
+            border-color: Palette.line;
+            VerticalLayout {
+                padding: 16px;
+                spacing: 5px;
+                SectionTitle { text: @tr("CPU fan"); }
+                Hairline { }
+                    HorizontalLayout {
+                        spacing: 8px;
+                        Text { width: 16px; text: "1"; color: Palette.text-faint; font-family: "Cascadia Mono"; font-size: 9px; vertical-alignment: center; }
+                        CurveStepper { horizontal-stretch: 1; label: "T"; value: root.rpm-cpu-temp-0; lower: 0; upper: 100; step: 1; suffix: "°C"; enabled: root.rpm-editable && !root.busy; changed(v) => { root.rpm-cpu-temp-0 = v; } }
+                        CurveStepper { horizontal-stretch: 1; label: "R"; value: root.rpm-cpu-rpm-0; lower: 0; upper: 8000; step: 100; suffix: ""; enabled: root.rpm-editable && !root.busy; changed(v) => { root.rpm-cpu-rpm-0 = v; } }
+                    }
+                    HorizontalLayout {
+                        spacing: 8px;
+                        Text { width: 16px; text: "2"; color: Palette.text-faint; font-family: "Cascadia Mono"; font-size: 9px; vertical-alignment: center; }
+                        CurveStepper { horizontal-stretch: 1; label: "T"; value: root.rpm-cpu-temp-1; lower: 0; upper: 100; step: 1; suffix: "°C"; enabled: root.rpm-editable && !root.busy; changed(v) => { root.rpm-cpu-temp-1 = v; } }
+                        CurveStepper { horizontal-stretch: 1; label: "R"; value: root.rpm-cpu-rpm-1; lower: 0; upper: 8000; step: 100; suffix: ""; enabled: root.rpm-editable && !root.busy; changed(v) => { root.rpm-cpu-rpm-1 = v; } }
+                    }
+                    HorizontalLayout {
+                        spacing: 8px;
+                        Text { width: 16px; text: "3"; color: Palette.text-faint; font-family: "Cascadia Mono"; font-size: 9px; vertical-alignment: center; }
+                        CurveStepper { horizontal-stretch: 1; label: "T"; value: root.rpm-cpu-temp-2; lower: 0; upper: 100; step: 1; suffix: "°C"; enabled: root.rpm-editable && !root.busy; changed(v) => { root.rpm-cpu-temp-2 = v; } }
+                        CurveStepper { horizontal-stretch: 1; label: "R"; value: root.rpm-cpu-rpm-2; lower: 0; upper: 8000; step: 100; suffix: ""; enabled: root.rpm-editable && !root.busy; changed(v) => { root.rpm-cpu-rpm-2 = v; } }
+                    }
+                    HorizontalLayout {
+                        spacing: 8px;
+                        Text { width: 16px; text: "4"; color: Palette.text-faint; font-family: "Cascadia Mono"; font-size: 9px; vertical-alignment: center; }
+                        CurveStepper { horizontal-stretch: 1; label: "T"; value: root.rpm-cpu-temp-3; lower: 0; upper: 100; step: 1; suffix: "°C"; enabled: root.rpm-editable && !root.busy; changed(v) => { root.rpm-cpu-temp-3 = v; } }
+                        CurveStepper { horizontal-stretch: 1; label: "R"; value: root.rpm-cpu-rpm-3; lower: 0; upper: 8000; step: 100; suffix: ""; enabled: root.rpm-editable && !root.busy; changed(v) => { root.rpm-cpu-rpm-3 = v; } }
+                    }
+                    HorizontalLayout {
+                        spacing: 8px;
+                        Text { width: 16px; text: "5"; color: Palette.text-faint; font-family: "Cascadia Mono"; font-size: 9px; vertical-alignment: center; }
+                        CurveStepper { horizontal-stretch: 1; label: "T"; value: root.rpm-cpu-temp-4; lower: 0; upper: 100; step: 1; suffix: "°C"; enabled: root.rpm-editable && !root.busy; changed(v) => { root.rpm-cpu-temp-4 = v; } }
+                        CurveStepper { horizontal-stretch: 1; label: "R"; value: root.rpm-cpu-rpm-4; lower: 0; upper: 8000; step: 100; suffix: ""; enabled: root.rpm-editable && !root.busy; changed(v) => { root.rpm-cpu-rpm-4 = v; } }
+                    }
+                    HorizontalLayout {
+                        spacing: 8px;
+                        Text { width: 16px; text: "6"; color: Palette.text-faint; font-family: "Cascadia Mono"; font-size: 9px; vertical-alignment: center; }
+                        CurveStepper { horizontal-stretch: 1; label: "T"; value: root.rpm-cpu-temp-5; lower: 0; upper: 100; step: 1; suffix: "°C"; enabled: root.rpm-editable && !root.busy; changed(v) => { root.rpm-cpu-temp-5 = v; } }
+                        CurveStepper { horizontal-stretch: 1; label: "R"; value: root.rpm-cpu-rpm-5; lower: 0; upper: 8000; step: 100; suffix: ""; enabled: root.rpm-editable && !root.busy; changed(v) => { root.rpm-cpu-rpm-5 = v; } }
+                    }
+                    HorizontalLayout {
+                        spacing: 8px;
+                        Text { width: 16px; text: "7"; color: Palette.text-faint; font-family: "Cascadia Mono"; font-size: 9px; vertical-alignment: center; }
+                        CurveStepper { horizontal-stretch: 1; label: "T"; value: root.rpm-cpu-temp-6; lower: 0; upper: 100; step: 1; suffix: "°C"; enabled: root.rpm-editable && !root.busy; changed(v) => { root.rpm-cpu-temp-6 = v; } }
+                        CurveStepper { horizontal-stretch: 1; label: "R"; value: root.rpm-cpu-rpm-6; lower: 0; upper: 8000; step: 100; suffix: ""; enabled: root.rpm-editable && !root.busy; changed(v) => { root.rpm-cpu-rpm-6 = v; } }
+                    }
+                    HorizontalLayout {
+                        spacing: 8px;
+                        Text { width: 16px; text: "8"; color: Palette.text-faint; font-family: "Cascadia Mono"; font-size: 9px; vertical-alignment: center; }
+                        CurveStepper { horizontal-stretch: 1; label: "T"; value: root.rpm-cpu-temp-7; lower: 0; upper: 100; step: 1; suffix: "°C"; enabled: root.rpm-editable && !root.busy; changed(v) => { root.rpm-cpu-temp-7 = v; } }
+                        CurveStepper { horizontal-stretch: 1; label: "R"; value: root.rpm-cpu-rpm-7; lower: 0; upper: 8000; step: 100; suffix: ""; enabled: root.rpm-editable && !root.busy; changed(v) => { root.rpm-cpu-rpm-7 = v; } }
+                    }
+                    HorizontalLayout {
+                        spacing: 8px;
+                        Text { width: 16px; text: "9"; color: Palette.text-faint; font-family: "Cascadia Mono"; font-size: 9px; vertical-alignment: center; }
+                        CurveStepper { horizontal-stretch: 1; label: "T"; value: root.rpm-cpu-temp-8; lower: 0; upper: 100; step: 1; suffix: "°C"; enabled: root.rpm-editable && !root.busy; changed(v) => { root.rpm-cpu-temp-8 = v; } }
+                        CurveStepper { horizontal-stretch: 1; label: "R"; value: root.rpm-cpu-rpm-8; lower: 0; upper: 8000; step: 100; suffix: ""; enabled: root.rpm-editable && !root.busy; changed(v) => { root.rpm-cpu-rpm-8 = v; } }
+                    }
+                    HorizontalLayout {
+                        spacing: 8px;
+                        Text { width: 16px; text: "10"; color: Palette.text-faint; font-family: "Cascadia Mono"; font-size: 9px; vertical-alignment: center; }
+                        CurveStepper { horizontal-stretch: 1; label: "T"; value: root.rpm-cpu-temp-9; lower: 0; upper: 100; step: 1; suffix: "°C"; enabled: root.rpm-editable && !root.busy; changed(v) => { root.rpm-cpu-temp-9 = v; } }
+                        CurveStepper { horizontal-stretch: 1; label: "R"; value: root.rpm-cpu-rpm-9; lower: 0; upper: 8000; step: 100; suffix: ""; enabled: root.rpm-editable && !root.busy; changed(v) => { root.rpm-cpu-rpm-9 = v; } }
+                    }
+            }
+        }
+
+        Rectangle {
+            horizontal-stretch: 1;
+            border-radius: 16px;
+            background: Palette.surface-gradient;
+            border-width: 1px;
+            border-color: Palette.line;
+            VerticalLayout {
+                padding: 16px;
+                spacing: 5px;
+                SectionTitle { text: @tr("GPU fan"); }
+                Hairline { }
+                    HorizontalLayout {
+                        spacing: 8px;
+                        Text { width: 16px; text: "1"; color: Palette.text-faint; font-family: "Cascadia Mono"; font-size: 9px; vertical-alignment: center; }
+                        CurveStepper { horizontal-stretch: 1; label: "T"; value: root.rpm-gpu-temp-0; lower: 0; upper: 100; step: 1; suffix: "°C"; enabled: root.rpm-editable && !root.busy; changed(v) => { root.rpm-gpu-temp-0 = v; } }
+                        CurveStepper { horizontal-stretch: 1; label: "R"; value: root.rpm-gpu-rpm-0; lower: 0; upper: 8000; step: 100; suffix: ""; enabled: root.rpm-editable && !root.busy; changed(v) => { root.rpm-gpu-rpm-0 = v; } }
+                    }
+                    HorizontalLayout {
+                        spacing: 8px;
+                        Text { width: 16px; text: "2"; color: Palette.text-faint; font-family: "Cascadia Mono"; font-size: 9px; vertical-alignment: center; }
+                        CurveStepper { horizontal-stretch: 1; label: "T"; value: root.rpm-gpu-temp-1; lower: 0; upper: 100; step: 1; suffix: "°C"; enabled: root.rpm-editable && !root.busy; changed(v) => { root.rpm-gpu-temp-1 = v; } }
+                        CurveStepper { horizontal-stretch: 1; label: "R"; value: root.rpm-gpu-rpm-1; lower: 0; upper: 8000; step: 100; suffix: ""; enabled: root.rpm-editable && !root.busy; changed(v) => { root.rpm-gpu-rpm-1 = v; } }
+                    }
+                    HorizontalLayout {
+                        spacing: 8px;
+                        Text { width: 16px; text: "3"; color: Palette.text-faint; font-family: "Cascadia Mono"; font-size: 9px; vertical-alignment: center; }
+                        CurveStepper { horizontal-stretch: 1; label: "T"; value: root.rpm-gpu-temp-2; lower: 0; upper: 100; step: 1; suffix: "°C"; enabled: root.rpm-editable && !root.busy; changed(v) => { root.rpm-gpu-temp-2 = v; } }
+                        CurveStepper { horizontal-stretch: 1; label: "R"; value: root.rpm-gpu-rpm-2; lower: 0; upper: 8000; step: 100; suffix: ""; enabled: root.rpm-editable && !root.busy; changed(v) => { root.rpm-gpu-rpm-2 = v; } }
+                    }
+                    HorizontalLayout {
+                        spacing: 8px;
+                        Text { width: 16px; text: "4"; color: Palette.text-faint; font-family: "Cascadia Mono"; font-size: 9px; vertical-alignment: center; }
+                        CurveStepper { horizontal-stretch: 1; label: "T"; value: root.rpm-gpu-temp-3; lower: 0; upper: 100; step: 1; suffix: "°C"; enabled: root.rpm-editable && !root.busy; changed(v) => { root.rpm-gpu-temp-3 = v; } }
+                        CurveStepper { horizontal-stretch: 1; label: "R"; value: root.rpm-gpu-rpm-3; lower: 0; upper: 8000; step: 100; suffix: ""; enabled: root.rpm-editable && !root.busy; changed(v) => { root.rpm-gpu-rpm-3 = v; } }
+                    }
+                    HorizontalLayout {
+                        spacing: 8px;
+                        Text { width: 16px; text: "5"; color: Palette.text-faint; font-family: "Cascadia Mono"; font-size: 9px; vertical-alignment: center; }
+                        CurveStepper { horizontal-stretch: 1; label: "T"; value: root.rpm-gpu-temp-4; lower: 0; upper: 100; step: 1; suffix: "°C"; enabled: root.rpm-editable && !root.busy; changed(v) => { root.rpm-gpu-temp-4 = v; } }
+                        CurveStepper { horizontal-stretch: 1; label: "R"; value: root.rpm-gpu-rpm-4; lower: 0; upper: 8000; step: 100; suffix: ""; enabled: root.rpm-editable && !root.busy; changed(v) => { root.rpm-gpu-rpm-4 = v; } }
+                    }
+                    HorizontalLayout {
+                        spacing: 8px;
+                        Text { width: 16px; text: "6"; color: Palette.text-faint; font-family: "Cascadia Mono"; font-size: 9px; vertical-alignment: center; }
+                        CurveStepper { horizontal-stretch: 1; label: "T"; value: root.rpm-gpu-temp-5; lower: 0; upper: 100; step: 1; suffix: "°C"; enabled: root.rpm-editable && !root.busy; changed(v) => { root.rpm-gpu-temp-5 = v; } }
+                        CurveStepper { horizontal-stretch: 1; label: "R"; value: root.rpm-gpu-rpm-5; lower: 0; upper: 8000; step: 100; suffix: ""; enabled: root.rpm-editable && !root.busy; changed(v) => { root.rpm-gpu-rpm-5 = v; } }
+                    }
+                    HorizontalLayout {
+                        spacing: 8px;
+                        Text { width: 16px; text: "7"; color: Palette.text-faint; font-family: "Cascadia Mono"; font-size: 9px; vertical-alignment: center; }
+                        CurveStepper { horizontal-stretch: 1; label: "T"; value: root.rpm-gpu-temp-6; lower: 0; upper: 100; step: 1; suffix: "°C"; enabled: root.rpm-editable && !root.busy; changed(v) => { root.rpm-gpu-temp-6 = v; } }
+                        CurveStepper { horizontal-stretch: 1; label: "R"; value: root.rpm-gpu-rpm-6; lower: 0; upper: 8000; step: 100; suffix: ""; enabled: root.rpm-editable && !root.busy; changed(v) => { root.rpm-gpu-rpm-6 = v; } }
+                    }
+                    HorizontalLayout {
+                        spacing: 8px;
+                        Text { width: 16px; text: "8"; color: Palette.text-faint; font-family: "Cascadia Mono"; font-size: 9px; vertical-alignment: center; }
+                        CurveStepper { horizontal-stretch: 1; label: "T"; value: root.rpm-gpu-temp-7; lower: 0; upper: 100; step: 1; suffix: "°C"; enabled: root.rpm-editable && !root.busy; changed(v) => { root.rpm-gpu-temp-7 = v; } }
+                        CurveStepper { horizontal-stretch: 1; label: "R"; value: root.rpm-gpu-rpm-7; lower: 0; upper: 8000; step: 100; suffix: ""; enabled: root.rpm-editable && !root.busy; changed(v) => { root.rpm-gpu-rpm-7 = v; } }
+                    }
+                    HorizontalLayout {
+                        spacing: 8px;
+                        Text { width: 16px; text: "9"; color: Palette.text-faint; font-family: "Cascadia Mono"; font-size: 9px; vertical-alignment: center; }
+                        CurveStepper { horizontal-stretch: 1; label: "T"; value: root.rpm-gpu-temp-8; lower: 0; upper: 100; step: 1; suffix: "°C"; enabled: root.rpm-editable && !root.busy; changed(v) => { root.rpm-gpu-temp-8 = v; } }
+                        CurveStepper { horizontal-stretch: 1; label: "R"; value: root.rpm-gpu-rpm-8; lower: 0; upper: 8000; step: 100; suffix: ""; enabled: root.rpm-editable && !root.busy; changed(v) => { root.rpm-gpu-rpm-8 = v; } }
+                    }
+                    HorizontalLayout {
+                        spacing: 8px;
+                        Text { width: 16px; text: "10"; color: Palette.text-faint; font-family: "Cascadia Mono"; font-size: 9px; vertical-alignment: center; }
+                        CurveStepper { horizontal-stretch: 1; label: "T"; value: root.rpm-gpu-temp-9; lower: 0; upper: 100; step: 1; suffix: "°C"; enabled: root.rpm-editable && !root.busy; changed(v) => { root.rpm-gpu-temp-9 = v; } }
+                        CurveStepper { horizontal-stretch: 1; label: "R"; value: root.rpm-gpu-rpm-9; lower: 0; upper: 8000; step: 100; suffix: ""; enabled: root.rpm-editable && !root.busy; changed(v) => { root.rpm-gpu-rpm-9 = v; } }
+                    }
+            }
+        }
+    }
+
+    HorizontalLayout {
+        spacing: 12px;
+        cross-axis-alignment: center;
+        Text {
+            text: @tr("Each edited point updates the up/down temperature and RPM pair. Vendor reserved bytes, duties, and timing fields are preserved.");
+            color: Palette.text-faint;
+            font-family: "Microsoft YaHei UI";
+            font-size: 10px;
+            wrap: word-wrap;
+            horizontal-stretch: 1;
+        }
+        StageButton {
+            width: 220px;
+            text: root.busy ? @tr("Writing fan curve…") : @tr("Apply ten-point curve");
+            primary: true;
+            enabled: !root.busy && root.rpm-editable;
+            clicked => { root.apply-rpm-curve(); }
+        }
+    }
+}

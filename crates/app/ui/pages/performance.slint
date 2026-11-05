@@ -1,0 +1,150 @@
+import { Palette } from "../theme.slint";
+import {
+    ChromeButton, ChoiceChip, CurveStepper, DataLabel, DataValue, FanOption, FanReadout,
+    FieldInput, Hairline, InfoRow, MetricBar, MicroLabel, NavGlyph, NavItem, PowerOption,
+    ReadoutRow, SectionTitle, SignalDot, StageButton, ToggleStatusRow,
+} from "../components.slint";
+
+                        export component PerformancePage inherits VerticalLayout {
+    in property <int> selected-page: 0;
+    in-out property <int> requested-power-mode: 2;
+    in property <bool> busy: false;
+    in property <string> cpu-temp: "--°C";
+    in property <string> cpu-clock: "--";
+    in property <int> power-mode: 2;
+    in property <string> power-label: @tr("Performance");
+    in property <bool> power-quiet-supported: false;
+    in property <bool> power-saving-supported: false;
+    in property <bool> power-performance-supported: true;
+    in property <bool> power-entertainment-supported: true;
+    callback apply-power(int);
+
+    spacing: 18px;
+    alignment: start;
+
+    VerticalLayout {
+        spacing: 3px;
+        Text {
+            text: @tr("Performance");
+            color: Palette.text;
+            font-family: "Bahnschrift";
+            font-size: 27px;
+            font-weight: 600;
+        }
+        Text {
+            text: @tr("Choose a platform power profile; Overview reflects the result immediately.");
+            color: Palette.text-dim;
+            font-family: "Bahnschrift";
+            font-size: 12px;
+        }
+    }
+
+    Rectangle {
+        vertical-stretch: 1;
+        border-radius: 16px;
+        background: Palette.surface;
+        border-width: 1px;
+        border-color: Palette.line;
+        HorizontalLayout {
+            spacing: 0;
+            VerticalLayout {
+                horizontal-stretch: 1.3;
+                padding: 22px;
+                spacing: 9px;
+                HorizontalLayout {
+                    SectionTitle { text: @tr("Platform profile"); }
+                    Rectangle { horizontal-stretch: 1; }
+                    Text {
+                        text: @tr("Current · ") + root.power-label;
+                        color: Palette.amber;
+                        font-family: "Cascadia Mono";
+                        font-size: 10px;
+                    }
+                }
+                Hairline {}
+                if root.power-quiet-supported : PowerOption {
+                    value: 0;
+                    title: @tr("Quiet");
+                    detail: @tr("Lowest acoustics. Choose whether to disable the discrete GPU for the next boot.");
+                    selected: root.requested-power-mode == 0;
+                    clicked => { root.requested-power-mode = 0; }
+                }
+                if root.power-saving-supported : PowerOption {
+                    value: 1;
+                    title: @tr("Power saving");
+                    detail: @tr("Prioritize battery life and lower heat.");
+                    selected: root.requested-power-mode == 1;
+                    clicked => { root.requested-power-mode = 1; }
+                }
+                if root.power-performance-supported : PowerOption {
+                    value: 2;
+                    title: @tr("Performance");
+                    detail: @tr("Maximum sustained platform response.");
+                    selected: root.requested-power-mode == 2;
+                    clicked => { root.requested-power-mode = 2; }
+                }
+                if root.power-entertainment-supported : PowerOption {
+                    value: 3;
+                    title: @tr("Entertainment");
+                    detail: @tr("Balance acoustics with sustained response.");
+                    selected: root.requested-power-mode == 3;
+                    clicked => { root.requested-power-mode = 3; }
+                }
+                if root.power-quiet-supported : PowerOption {
+                    value: 4;
+                    title: @tr("Quiet+");
+                    detail: @tr("The quietest supported platform profile.");
+                    selected: root.requested-power-mode == 4;
+                    clicked => { root.requested-power-mode = 4; }
+                }
+            }
+
+            Rectangle { width: 1px; background: Palette.line; }
+
+            VerticalLayout {
+                width: 310px;
+                padding: 22px;
+                spacing: 14px;
+                MicroLabel { text: @tr("LIVE RESULT"); }
+                VerticalLayout {
+                    spacing: 4px;
+                    Text {
+                        text: root.power-label;
+                        color: Palette.text;
+                        font-family: "Bahnschrift";
+                        font-size: 26px;
+                        font-weight: 600;
+                    }
+                    Text {
+                        text: @tr("CPU ") + root.cpu-clock + " · " + root.cpu-temp;
+                        color: Palette.cyan;
+                        font-family: "Cascadia Mono";
+                        font-size: 11px;
+                    }
+                }
+                Hairline {}
+                Text {
+                    text: @tr("Apply writes CC40 command 121/[mode,0,0,25], persists page 1 offset 1, then verifies the value by reading it back.");
+                    color: Palette.text-dim;
+                    font-family: "Bahnschrift";
+                    font-size: 11px;
+                    wrap: word-wrap;
+                }
+                Rectangle { vertical-stretch: 1; }
+                Text {
+                    text: @tr("Commands travel directly through the signed AcpiBridge device while platform firmware, drivers, and signatures stay intact.");
+                    color: Palette.text-faint;
+                    font-family: "Bahnschrift";
+                    font-size: 10px;
+                    wrap: word-wrap;
+                }
+                StageButton {
+                    text: root.busy ? @tr("Applying profile…") : @tr("Apply power profile");
+                    primary: true;
+                    enabled: !root.busy && root.requested-power-mode != root.power-mode;
+                    clicked => { root.apply-power(root.requested-power-mode); }
+                }
+            }
+        }
+    }
+}

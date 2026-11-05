@@ -1,0 +1,52 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+zig="${ZIG:-}"
+if [[ -z "$zig" ]]; then
+    zig="$(command -v zig || true)"
+fi
+if [[ -z "$zig" ]]; then
+    zig="$HOME/.local/zig-0.14.1/zig"
+fi
+libdir="${NEO_MSVCRT_LIBDIR:-$HOME/.local/zig-msvcrt}"
+
+if [[ ! -x "$zig" ]]; then
+    echo "Neo Control cross linker: Zig was not found at $zig" >&2
+    exit 1
+fi
+
+mkdir -p "$libdir"
+if [[ ! -f "$libdir/libmsvcrt.a" ]]; then
+    "$zig" dlltool \
+        -m i386:x86-64 \
+        -D msvcrt.dll \
+        -d "$script_dir/msvcrt.def" \
+        -l "$libdir/libmsvcrt.a"
+fi
+if [[ ! -f "$libdir/libpthread.a" ]]; then
+    "$zig" ar rcs "$libdir/libpthread.a"
+fi
+
+args=()
+for arg in "$@"; do
+    case "$arg" in
+        -lmsvcrt)
+            args+=("$libdir/libmsvcrt.a")
+            ;;
+        -l:libpthread.a)
+            args+=("$libdir/libpthread.a")
+            ;;
+        -lwindows.0.52.0)
+            args+=("$(find "$HOME/.cargo/registry/src" -path '*/windows_x86_64_gnu-0.52.6/lib/libwindows.0.52.0.a' -print -quit)")
+            ;;
+        -lwindows.0.48.5)
+            args+=("$(find "$HOME/.cargo/registry/src" -path '*/windows_x86_64_gnu-0.48.5/lib/libwindows.0.48.5.a' -print -quit)")
+            ;;
+        *)
+            args+=("$arg")
+            ;;
+    esac
+done
+
+exec "$zig" cc -target x86_64-windows-gnu "${args[@]}"

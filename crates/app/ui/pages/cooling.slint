@@ -1,0 +1,370 @@
+import { Palette } from "../theme.slint";
+import {
+    ChromeButton, ChoiceChip, CurveStepper, DataLabel, DataValue, FanOption, FanReadout,
+    FieldInput, Hairline, InfoRow, MetricBar, MicroLabel, NavGlyph, NavItem, PowerOption,
+    ReadoutRow, SectionTitle, SignalDot, StageButton, ToggleStatusRow,
+} from "../components.slint";
+
+                        export component CoolingPage inherits VerticalLayout {
+    in property <int> selected-page: 0;
+    in-out property <int> requested-fan-mode: 0;
+    in property <bool> busy: false;
+    in property <bool> transport-ready: false;
+    in property <string> cpu-temp: "--°C";
+    in property <string> gpu-temp: "--°C";
+    in property <string> cpu-rpm: "----";
+    in property <string> gpu-rpm: "----";
+    in property <string> fan3-rpm: "----";
+    in property <string> fan4-rpm: "----";
+    in property <string> fan3-temp: "--";
+    in property <string> fan4-temp: "--";
+    in property <string> cpu-duty: "--";
+    in property <string> gpu-duty: "--";
+    in property <string> fan3-duty: "--";
+    in property <string> fan4-duty: "--";
+    in property <int> fan-mode: 0;
+    in property <string> fan-label: @tr("Automatic");
+    in property <bool> slow-fan-active: false;
+    in property <bool> turbo-fan-active: false;
+    in property <bool> slow-fan-supported: false;
+    in property <bool> turbo-fan-supported: false;
+    in property <bool> turbo-fan-eligible: false;
+    in property <bool> curve-available: false;
+    in property <bool> rpm-fan-control: false;
+    in property <string> curve-current-text: @tr("Reading runtime table");
+    in property <string> rpm-curve-text: @tr("Reading ten-point fan table");
+    in-out property <int> curve-cpu-t2: 60;
+    in-out property <int> curve-cpu-d2: 45;
+    in-out property <int> curve-cpu-t3: 80;
+    in-out property <int> curve-cpu-d3: 65;
+    in-out property <int> curve-gpu-t2: 60;
+    in-out property <int> curve-gpu-d2: 40;
+    in-out property <int> curve-gpu-t3: 80;
+    in-out property <int> curve-gpu-d3: 60;
+    in property <int> curve-current-cpu-t2: 60;
+    in property <int> curve-current-cpu-d2: 45;
+    in property <int> curve-current-cpu-t3: 80;
+    in property <int> curve-current-cpu-d3: 65;
+    in property <int> curve-current-gpu-t2: 60;
+    in property <int> curve-current-gpu-d2: 40;
+    in property <int> curve-current-gpu-t3: 80;
+    in property <int> curve-current-gpu-d3: 60;
+    in property <bool> anti-dust-supported: false;
+    in property <bool> anti-dust-running: false;
+    in-out property <bool> anti-dust-enabled: false;
+    in-out property <bool> anti-dust-resume: true;
+    in-out property <int> anti-dust-day: 6;
+    in-out property <int> anti-dust-hour: 0;
+    callback apply-fan(int);
+    callback apply-fan-curve();
+    callback apply-slow-fan(bool);
+    callback apply-turbo-fan(bool);
+    callback run-anti-dust();
+    callback apply-anti-dust-schedule(bool, bool, int, int);
+
+    spacing: 14px;
+
+    VerticalLayout {
+        spacing: 3px;
+        Text {
+            text: @tr("Cooling");
+            color: Palette.text;
+            font-family: "Bahnschrift";
+            font-size: 27px;
+            font-weight: 600;
+        }
+        Text {
+            text: @tr("Automatic, Maximum, and a verified custom curve. Every write is read back; the previous table and mode return automatically when verification differs.");
+            color: Palette.text-dim;
+            font-family: "Bahnschrift";
+            font-size: 12px;
+        }
+        Text {
+            text: root.rpm-curve-text;
+            color: Palette.text-faint;
+            font-family: "Cascadia Mono";
+            font-size: 9px;
+            wrap: word-wrap;
+        }
+    }
+
+    VerticalLayout {
+        spacing: 14px;
+
+        HorizontalLayout {
+            height: 330px;
+            spacing: 18px;
+
+            Rectangle {
+                horizontal-stretch: 1;
+                border-radius: 16px;
+                background: Palette.surface;
+                border-width: 1px;
+                border-color: Palette.line;
+                VerticalLayout {
+                    padding: 18px;
+                    spacing: 8px;
+                    HorizontalLayout {
+                        SectionTitle { text: @tr("Fan policy"); }
+                        Rectangle { horizontal-stretch: 1; }
+                        Text {
+                            text: @tr("Current · ") + root.fan-label;
+                            color: Palette.cyan;
+                            font-family: "Cascadia Mono";
+                            font-size: 10px;
+                        }
+                    }
+                    Hairline {}
+                    FanOption {
+                        value: 0;
+                        title: @tr("Automatic");
+                        detail: @tr("EC-controlled curve and the recovery fallback.");
+                        selected: root.requested-fan-mode == 0;
+                        active: root.fan-mode == 0;
+                        clicked => { root.requested-fan-mode = 0; }
+                    }
+                    FanOption {
+                        value: 1;
+                        title: @tr("Maximum");
+                        detail: @tr("Full fan duty for short thermal recovery.");
+                        selected: root.requested-fan-mode == 1;
+                        active: root.fan-mode == 1;
+                        clicked => { root.requested-fan-mode = 1; }
+                    }
+                    HorizontalLayout {
+                        spacing: 8px;
+                        ChromeButton {
+                            horizontal-stretch: 1;
+                            text: @tr("Noiseless");
+                            emphasized: root.slow-fan-active;
+                            enabled: !root.busy && root.slow-fan-supported;
+                            clicked => { root.apply-slow-fan(!root.slow-fan-active); }
+                        }
+                        ChromeButton {
+                            horizontal-stretch: 1;
+                            text: @tr("Turbo fan");
+                            emphasized: root.turbo-fan-active;
+                            enabled: !root.busy && root.turbo-fan-supported && root.turbo-fan-eligible;
+                            clicked => { root.apply-turbo-fan(!root.turbo-fan-active); }
+                        }
+                    }
+                    Text {
+                        text: root.turbo-fan-eligible ? @tr("Noiseless and Turbo fan are separate vendor policies.") : @tr("Turbo fan is available in the Performance profile.");
+                        color: Palette.text-faint;
+                        font-family: "Microsoft YaHei UI";
+                        font-size: 9px;
+                        wrap: word-wrap;
+                    }
+                    Rectangle { vertical-stretch: 1; }
+                    Text {
+                        text: @tr("Mode writes 121/[mode,0,0,1] and page 4 offset 5, then verifies readback.");
+                        color: Palette.text-dim;
+                        font-family: "Bahnschrift";
+                        font-size: 10px;
+                        wrap: word-wrap;
+                    }
+                    StageButton {
+                        text: root.busy ? @tr("Applying fan policy…") : @tr("Apply fan policy");
+                        primary: true;
+                        enabled: !root.busy && root.requested-fan-mode != root.fan-mode;
+                        clicked => { root.apply-fan(root.requested-fan-mode); }
+                    }
+                }
+            }
+
+            Rectangle {
+                width: 380px;
+                border-radius: 16px;
+                background: Palette.surface;
+                border-width: 1px;
+                border-color: Palette.line;
+                VerticalLayout {
+                    padding: 18px;
+                    spacing: 9px;
+                    HorizontalLayout {
+                        SectionTitle { text: @tr("Live fans"); }
+                        Rectangle { horizontal-stretch: 1; }
+                        SignalDot { active: root.transport-ready; tone: Palette.green; }
+                    }
+                    Hairline {}
+                    HorizontalLayout {
+                        width: parent.width;
+                        spacing: 8px;
+                        MicroLabel { text: @tr("CHANNEL"); horizontal-stretch: 1; }
+                        MicroLabel { text: @tr("SPEED"); width: 80px; horizontal-alignment: right; }
+                        MicroLabel { text: @tr("TEMP"); width: 50px; horizontal-alignment: right; }
+                        MicroLabel { text: @tr("DUTY"); width: 48px; horizontal-alignment: right; }
+                    }
+                    FanReadout { name: "FAN 1"; rpm: root.cpu-rpm; temp: root.cpu-temp; duty: root.cpu-duty; }
+                    FanReadout { name: "FAN 2"; rpm: root.gpu-rpm; temp: root.gpu-temp; duty: root.gpu-duty; }
+                    FanReadout { name: "FAN 3"; rpm: root.fan3-rpm; temp: root.fan3-temp; duty: root.fan3-duty; }
+                    FanReadout { name: "FAN 4"; rpm: root.fan4-rpm; temp: root.fan4-temp; duty: root.fan4-duty; }
+                    Rectangle { vertical-stretch: 1; }
+                    Text {
+                        text: @tr("Telemetry command 12 · RPM/duty/temperature normalized with the verified CC40 formulas.");
+                        color: Palette.text-faint;
+                        font-family: "Cascadia Mono";
+                        font-size: 9px;
+                        wrap: word-wrap;
+                    }
+                }
+            }
+        }
+
+        Rectangle {
+            height: 176px;
+            border-radius: 16px;
+            background: Palette.surface-gradient;
+            border-width: 1px;
+            border-color: Palette.line;
+            VerticalLayout {
+                padding: 18px;
+                spacing: 8px;
+                HorizontalLayout {
+                    SectionTitle { text: @tr("Anti-dust"); }
+                    Rectangle { horizontal-stretch: 1; }
+                    Text {
+                        text: root.anti-dust-running ? @tr("Running") : (root.anti-dust-supported ? @tr("Scheduler ready") : @tr("Unavailable"));
+                        color: root.anti-dust-running ? Palette.amber : (root.anti-dust-supported ? Palette.green : Palette.text-faint);
+                        font-family: "Cascadia Mono";
+                        font-size: 10px;
+                        vertical-alignment: center;
+                    }
+                }
+                Text {
+                    text: @tr("Run the fan cleaning routine now, or schedule it by weekday and hour. Day 0 is Sunday. Resume keeps the schedule after a wake.");
+                    color: Palette.text-dim;
+                    font-family: "Bahnschrift";
+                    font-size: 11px;
+                    wrap: word-wrap;
+                }
+                HorizontalLayout {
+                    spacing: 10px;
+                    CurveStepper { horizontal-stretch: 1; label: @tr("DAY"); value: root.anti-dust-day; lower: 0; upper: 6; step: 1; enabled: root.anti-dust-supported && !root.busy; changed(value) => { root.anti-dust-day = value; } }
+                    CurveStepper { horizontal-stretch: 1; label: @tr("HOUR"); value: root.anti-dust-hour; lower: 0; upper: 23; step: 1; enabled: root.anti-dust-supported && !root.busy; changed(value) => { root.anti-dust-hour = value; } }
+                    ToggleStatusRow { width: 210px; label: @tr("Schedule"); value: root.anti-dust-enabled; known: root.anti-dust-supported; busy: root.busy; toggled(value) => { root.anti-dust-enabled = value; } }
+                    ToggleStatusRow { width: 190px; label: @tr("Resume"); value: root.anti-dust-resume; known: root.anti-dust-supported; busy: root.busy; toggled(value) => { root.anti-dust-resume = value; } }
+                }
+                HorizontalLayout {
+                    spacing: 8px;
+                    Rectangle { horizontal-stretch: 1; }
+                    StageButton {
+                        width: 150px;
+                        text: root.anti-dust-running ? @tr("Cleaning…") : @tr("Run now");
+                        enabled: !root.busy && root.anti-dust-supported && !root.anti-dust-running;
+                        clicked => { root.run-anti-dust(); }
+                    }
+                    StageButton {
+                        width: 180px;
+                        text: @tr("Apply schedule");
+                        primary: true;
+                        enabled: !root.busy && root.anti-dust-supported;
+                        clicked => { root.apply-anti-dust-schedule(root.anti-dust-enabled, root.anti-dust-resume, root.anti-dust-day, root.anti-dust-hour); }
+                    }
+                }
+            }
+        }
+
+        if !root.rpm-fan-control : Rectangle {
+            height: 225px;
+            border-radius: 16px;
+            background: Palette.surface-gradient;
+            border-width: 1px;
+            border-color: Palette.line;
+            VerticalLayout {
+                padding: 18px;
+                spacing: 8px;
+                HorizontalLayout {
+                    SectionTitle { text: @tr("Custom fan curve"); }
+                    Rectangle { horizontal-stretch: 1; }
+                    Text {
+                        text: root.curve-current-text;
+                        color: root.curve-available ? Palette.cyan : Palette.amber;
+                        font-family: "Cascadia Mono";
+                        font-size: 9px;
+                        vertical-alignment: center;
+                    }
+                }
+                Hairline {}
+                HorizontalLayout {
+                    spacing: 12px;
+                    vertical-stretch: 1;
+
+                    Rectangle {
+                        horizontal-stretch: 1;
+                        border-radius: 12px;
+                        background: Palette.surface-hi;
+                        border-width: 1px;
+                        border-color: Palette.line;
+                        VerticalLayout {
+                            padding: 10px;
+                            spacing: 7px;
+                            Text { text: @tr("CPU CHANNEL"); color: Palette.text-dim; font-family: "Bahnschrift"; font-size: 10px; font-weight: 600; }
+                            HorizontalLayout {
+                                spacing: 7px;
+                                CurveStepper { horizontal-stretch: 1; label: @tr("T2"); value: root.curve-cpu-t2; lower: 20; upper: 98; step: 1; suffix: "°C"; enabled: root.curve-available && !root.busy; changed(value) => { root.curve-cpu-t2 = value; } }
+                                CurveStepper { horizontal-stretch: 1; label: @tr("D2"); value: root.curve-cpu-d2; lower: 20; upper: 100; step: 5; suffix: "%"; enabled: root.curve-available && !root.busy && root.curve-cpu-d2 <= root.curve-cpu-d3; changed(value) => { root.curve-cpu-d2 = value; } }
+                            }
+                            HorizontalLayout {
+                                spacing: 7px;
+                                CurveStepper { horizontal-stretch: 1; label: @tr("T3"); value: root.curve-cpu-t3; lower: 21; upper: 99; step: 1; suffix: "°C"; enabled: root.curve-available && !root.busy; changed(value) => { root.curve-cpu-t3 = value; } }
+                                CurveStepper { horizontal-stretch: 1; label: @tr("D3"); value: root.curve-cpu-d3; lower: 20; upper: 100; step: 5; suffix: "%"; enabled: root.curve-available && !root.busy && root.curve-cpu-d3 >= root.curve-cpu-d2; changed(value) => { root.curve-cpu-d3 = value; } }
+                            }
+                        }
+                    }
+
+                    Rectangle {
+                        horizontal-stretch: 1;
+                        border-radius: 12px;
+                        background: Palette.surface-hi;
+                        border-width: 1px;
+                        border-color: Palette.line;
+                        VerticalLayout {
+                            padding: 10px;
+                            spacing: 7px;
+                            Text { text: @tr("GPU CHANNEL"); color: Palette.text-dim; font-family: "Bahnschrift"; font-size: 10px; font-weight: 600; }
+                            HorizontalLayout {
+                                spacing: 7px;
+                                CurveStepper { horizontal-stretch: 1; label: @tr("T2"); value: root.curve-gpu-t2; lower: 20; upper: 98; step: 1; suffix: "°C"; enabled: root.curve-available && !root.busy; changed(value) => { root.curve-gpu-t2 = value; } }
+                                CurveStepper { horizontal-stretch: 1; label: @tr("D2"); value: root.curve-gpu-d2; lower: 20; upper: 100; step: 5; suffix: "%"; enabled: root.curve-available && !root.busy && root.curve-gpu-d2 <= root.curve-gpu-d3; changed(value) => { root.curve-gpu-d2 = value; } }
+                            }
+                            HorizontalLayout {
+                                spacing: 7px;
+                                CurveStepper { horizontal-stretch: 1; label: @tr("T3"); value: root.curve-gpu-t3; lower: 21; upper: 99; step: 1; suffix: "°C"; enabled: root.curve-available && !root.busy; changed(value) => { root.curve-gpu-t3 = value; } }
+                                CurveStepper { horizontal-stretch: 1; label: @tr("D3"); value: root.curve-gpu-d3; lower: 20; upper: 100; step: 5; suffix: "%"; enabled: root.curve-available && !root.busy && root.curve-gpu-d3 >= root.curve-gpu-d2; changed(value) => { root.curve-gpu-d3 = value; } }
+                            }
+                        }
+                    }
+                }
+                HorizontalLayout {
+                    spacing: 12px;
+                    cross-axis-alignment: center;
+                    Text {
+                        text: @tr("Middle nodes are adjustable. T1/D1 and T4/D4 remain firmware-owned. Writes block 14, select Custom (6), verify block 13, and restore the prior table when verification differs.");
+                        color: Palette.text-faint;
+                        font-family: "Bahnschrift";
+                        font-size: 9px;
+                        wrap: word-wrap;
+                        horizontal-stretch: 1;
+                    }
+                    StageButton {
+                        width: 210px;
+                        text: root.busy ? @tr("Writing curve…") : @tr("Apply custom curve");
+                        primary: true;
+                        enabled: !root.busy && root.curve-available && (
+                            root.curve-cpu-t2 != root.curve-current-cpu-t2
+                            || root.curve-cpu-d2 != root.curve-current-cpu-d2
+                            || root.curve-cpu-t3 != root.curve-current-cpu-t3
+                            || root.curve-cpu-d3 != root.curve-current-cpu-d3
+                            || root.curve-gpu-t2 != root.curve-current-gpu-t2
+                            || root.curve-gpu-d2 != root.curve-current-gpu-d2
+                            || root.curve-gpu-t3 != root.curve-current-gpu-t3
+                            || root.curve-gpu-d3 != root.curve-current-gpu-d3
+                        );
+                        clicked => { root.apply-fan-curve(); }
+                    }
+                }
+            }
+        }
+    }
+}

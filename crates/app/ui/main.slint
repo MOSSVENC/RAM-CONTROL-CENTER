@@ -1,0 +1,927 @@
+import { Palette } from "theme.slint";
+export { Palette }
+import {
+    ChromeButton,
+    ChoiceChip,
+    CurveStepper,
+    DataLabel,
+    DataValue,
+    FanOption,
+    FanReadout,
+    FieldInput,
+    Hairline,
+    InfoRow,
+    MetricBar,
+    MicroLabel,
+    NavGlyph,
+    NavItem,
+    PowerOption,
+    ReadoutRow,
+    SectionTitle,
+    SignalDot,
+    StageButton,
+    ToggleStatusRow,
+} from "components.slint";
+import { QuietDialog } from "dialogs/quiet.slint";
+import { FlexiKeyEditor } from "dialogs/flexikey_editor.slint";
+import { OverviewPage } from "pages/overview.slint";
+import { PerformancePage } from "pages/performance.slint";
+import { CoolingPage } from "pages/cooling.slint";
+import { BatteryPage } from "pages/battery.slint";
+import { SystemPage } from "pages/system.slint";
+import { SettingsPage } from "pages/settings.slint";
+import { LightingPage } from "pages/lighting.slint";
+import { InputIoPage } from "pages/input_io.slint";
+import { FanCurvePage } from "pages/fan_curve.slint";
+import { FlexiKeyPage } from "pages/flexikey.slint";
+import { DisplayCarePage } from "pages/display_care.slint";
+
+export component MainWindow inherits Window {
+    title: @tr("NEO CONTROL");
+    icon: @image-url("../../../assets/neo_control_logo.svg");
+    width: 1180px;
+    height: 820px;
+    background: Palette.base-gradient;
+    default-font-family: "Bahnschrift";
+    default-font-size: 13px;
+
+    in property <int> selected-page: 0;
+    in-out property <int> requested-power-mode: 2;
+    in-out property <int> requested-fan-mode: 0;
+    in property <bool> busy: false;
+    in-out property <bool> language-zh: true;
+    in-out property <float> page-opacity: 1.0;
+    in-out property <float> theme-flash: 0.0;
+    in-out property <bool> quiet-dialog-open: false;
+    in property <bool> transport-ready: false;
+    in property <string> transport-label: @tr("Connecting to DCHU");
+    in property <string> transport-detail: @tr("Opening the signed AcpiBridge device");
+    in property <string> status-message: "";
+    in property <int> status-tone: 0;
+
+    in property <string> cpu-temp: "--°C";
+    in property <string> gpu-temp: "--°C";
+    in property <string> cpu-rpm: "----";
+    in property <string> gpu-rpm: "----";
+    in property <string> fan3-rpm: "----";
+    in property <string> fan4-rpm: "----";
+    in property <string> fan3-temp: "--";
+    in property <string> fan4-temp: "--";
+    in property <string> cpu-duty: "--";
+    in property <string> gpu-duty: "--";
+    in property <string> fan3-duty: "--";
+    in property <string> fan4-duty: "--";
+    in property <int> cpu-load: 0;
+    in property <int> gpu-load: 0;
+    in property <int> gpu-memory-load: 0;
+    in property <int> memory-load: 0;
+    in property <int> disk-load: 0;
+    in property <string> cpu-clock: "--";
+    in property <string> cpu-clock-max: "--";
+    in property <string> gpu-clock: "--";
+    in property <string> gpu-clock-max: "--";
+    in property <string> memory-text: @tr("--");
+    in property <string> disk-text: @tr("--");
+    in property <string> gpu-memory-text: @tr("--");
+    in property <int> power-mode: 2;
+    in property <string> power-label: @tr("Performance");
+    in property <bool> power-quiet-supported: false;
+    in property <bool> power-saving-supported: false;
+    in property <bool> power-performance-supported: true;
+    in property <bool> power-entertainment-supported: true;
+    in property <int> fan-mode: 0;
+    in property <string> fan-label: @tr("Automatic");
+    in property <bool> slow-fan-active: false;
+    in property <bool> turbo-fan-active: false;
+    in property <bool> slow-fan-supported: false;
+    in property <bool> turbo-fan-supported: false;
+    in property <bool> turbo-fan-eligible: false;
+    in property <bool> curve-available: false;
+    in property <bool> rpm-fan-control: false;
+    in property <int> fan-offset-current: 0;
+    in-out property <int> fan-offset-requested: 0;
+    in property <string> curve-current-text: @tr("Reading runtime table");
+    in property <string> rpm-curve-text: @tr("Reading ten-point fan table");
+    in property <bool> rpm-editable: false;
+    in-out property <int> rpm-cpu-temp-0: 0;
+    in-out property <int> rpm-cpu-temp-1: 0;
+    in-out property <int> rpm-cpu-temp-2: 0;
+    in-out property <int> rpm-cpu-temp-3: 0;
+    in-out property <int> rpm-cpu-temp-4: 0;
+    in-out property <int> rpm-cpu-temp-5: 0;
+    in-out property <int> rpm-cpu-temp-6: 0;
+    in-out property <int> rpm-cpu-temp-7: 0;
+    in-out property <int> rpm-cpu-temp-8: 0;
+    in-out property <int> rpm-cpu-temp-9: 0;
+    in-out property <int> rpm-cpu-rpm-0: 0;
+    in-out property <int> rpm-cpu-rpm-1: 0;
+    in-out property <int> rpm-cpu-rpm-2: 0;
+    in-out property <int> rpm-cpu-rpm-3: 0;
+    in-out property <int> rpm-cpu-rpm-4: 0;
+    in-out property <int> rpm-cpu-rpm-5: 0;
+    in-out property <int> rpm-cpu-rpm-6: 0;
+    in-out property <int> rpm-cpu-rpm-7: 0;
+    in-out property <int> rpm-cpu-rpm-8: 0;
+    in-out property <int> rpm-cpu-rpm-9: 0;
+    in-out property <int> rpm-gpu-temp-0: 0;
+    in-out property <int> rpm-gpu-temp-1: 0;
+    in-out property <int> rpm-gpu-temp-2: 0;
+    in-out property <int> rpm-gpu-temp-3: 0;
+    in-out property <int> rpm-gpu-temp-4: 0;
+    in-out property <int> rpm-gpu-temp-5: 0;
+    in-out property <int> rpm-gpu-temp-6: 0;
+    in-out property <int> rpm-gpu-temp-7: 0;
+    in-out property <int> rpm-gpu-temp-8: 0;
+    in-out property <int> rpm-gpu-temp-9: 0;
+    in-out property <int> rpm-gpu-rpm-0: 0;
+    in-out property <int> rpm-gpu-rpm-1: 0;
+    in-out property <int> rpm-gpu-rpm-2: 0;
+    in-out property <int> rpm-gpu-rpm-3: 0;
+    in-out property <int> rpm-gpu-rpm-4: 0;
+    in-out property <int> rpm-gpu-rpm-5: 0;
+    in-out property <int> rpm-gpu-rpm-6: 0;
+    in-out property <int> rpm-gpu-rpm-7: 0;
+    in-out property <int> rpm-gpu-rpm-8: 0;
+    in-out property <int> rpm-gpu-rpm-9: 0;
+    in-out property <int> curve-cpu-t2: 60;
+    in-out property <int> curve-cpu-d2: 45;
+    in-out property <int> curve-cpu-t3: 80;
+    in-out property <int> curve-cpu-d3: 65;
+    in-out property <int> curve-gpu-t2: 60;
+    in-out property <int> curve-gpu-d2: 40;
+    in-out property <int> curve-gpu-t3: 80;
+    in-out property <int> curve-gpu-d3: 60;
+    in property <int> curve-current-cpu-t2: 60;
+    in property <int> curve-current-cpu-d2: 45;
+    in property <int> curve-current-cpu-t3: 80;
+    in property <int> curve-current-cpu-d3: 65;
+    in property <int> curve-current-gpu-t2: 60;
+    in property <int> curve-current-gpu-d2: 40;
+    in property <int> curve-current-gpu-t3: 80;
+    in property <int> curve-current-gpu-d3: 60;
+    in property <string> capabilities-text: @tr("--");
+    in property <string> platform-text: @tr("--");
+    in property <string> transport-device-path: "Not located";
+    in property <string> renderer-text: "检测中";
+
+    in property <bool> battery-present: false;
+    in property <int> battery-percent: 0;
+    in property <string> battery-status-text: @tr("--");
+    in property <string> battery-ac-text: @tr("--");
+    in property <string> battery-time-text: @tr("--");
+    in property <string> battery-capacity-text: @tr("--");
+    in property <string> battery-rate-text: @tr("--");
+
+    in property <string> toggle-fn-text: @tr("Not initialized");
+    in property <string> toggle-win-text: @tr("Not initialized");
+    in property <string> toggle-swap-text: @tr("Not initialized");
+    in property <string> toggle-hotkeys-text: @tr("Not initialized");
+    in property <string> toggle-copilot-text: @tr("Not initialized");
+    in property <bool> toggle-fn-value: false;
+    in property <bool> toggle-fn-known: false;
+    in property <bool> toggle-win-value: false;
+    in property <bool> toggle-win-known: false;
+    in property <bool> toggle-swap-value: false;
+    in property <bool> toggle-swap-known: false;
+    in property <bool> toggle-hotkeys-value: false;
+    in property <bool> toggle-hotkeys-known: false;
+    in property <bool> toggle-copilot-value: false;
+    in property <bool> toggle-copilot-known: false;
+    in property <string> extended-api-text: @tr("Unavailable");
+    in property <string> gpu-switch-text: @tr("Unavailable");
+    in property <int> gpu-current-mode: 0;
+    in property <bool> gpu-igpu-supported: false;
+    in property <bool> gpu-dgpu-supported: false;
+    in property <bool> gpu-mshybrid-supported: false;
+    in property <bool> gpu-dynamic-supported: false;
+    in property <string> flexi-mode-text: @tr("Unavailable");
+    in property <string> flexi-start-text: @tr("--");
+    in property <string> flexi-stop-text: @tr("--");
+    in property <string> flexi-ranges-text: @tr("--");
+    in property <bool> flexi-ready: false;
+    in property <int> flexi-mode: 0;
+    in-out property <int> requested-flexi-mode: 0;
+    in-out property <int> flexi-start-choice: 70;
+    in-out property <int> flexi-stop-choice: 80;
+
+    in property <bool> rgb-available: false;
+    in property <bool> rgb-enabled: false;
+    in property <int> rgb-brightness: 4;
+    in property <int> rgb-effect: 8;
+    in property <int> rgb-red: 0;
+    in property <int> rgb-green: 0;
+    in property <int> rgb-blue: 200;
+    in property <bool> rgb-boot-effect: false;
+    in property <bool> rgb-sleep-enabled: true;
+    in property <int> rgb-sleep-hours: 0;
+    in property <int> rgb-sleep-minutes: 0;
+    in property <int> rgb-sleep-seconds: 30;
+    in-out property <int> rgb-requested-red: 0;
+    in-out property <int> rgb-requested-green: 0;
+    in-out property <int> rgb-requested-blue: 200;
+    in-out property <int> rgb-requested-brightness: 4;
+    in-out property <int> rgb-requested-hours: 0;
+    in-out property <int> rgb-requested-minutes: 0;
+    in-out property <int> rgb-requested-seconds: 30;
+    in-out property <bool> rgb-requested-sleep-enabled: true;
+    in property <bool> rgb-sync-selection: false;
+    in property <bool> camera-enabled: false;
+    in property <bool> camera-known: false;
+    in property <bool> touchpad-enabled: false;
+    in property <bool> touchpad-known: false;
+    in property <bool> airplane-enabled: false;
+    in property <bool> airplane-known: false;
+    in property <bool> low-refresh-supported: false;
+    in property <bool> low-refresh-eligible: false;
+    in property <bool> low-refresh-enabled: false;
+    in property <bool> low-refresh-known: false;
+    in property <bool> startup-enabled: false;
+    in property <bool> display-care-available: false;
+    in property <bool> display-care-panel-oled: false;
+    in property <bool> taskbar-auto-hide: false;
+    in property <bool> taskbar-transparency: false;
+    in property <bool> display-dark-mode: false;
+    in property <bool> screen-saver-enabled: false;
+    in property <int> screen-saver-type: 0;
+    in property <int> monitor-ac-minutes: 10;
+    in property <int> monitor-dc-minutes: 10;
+    in property <int> screen-saver-minutes: 10;
+    in-out property <int> monitor-ac-requested: 10;
+    in-out property <int> monitor-dc-requested: 10;
+    in-out property <bool> screen-saver-requested-enabled: false;
+    in-out property <int> screen-saver-requested-type: 0;
+    in-out property <int> screen-saver-requested-minutes: 10;
+    in property <[string]> flexikey-profile-names: [];
+    in property <int> flexikey-active-index: -1;
+    in property <string> flexikey-active-title: "FlexiKey";
+    in property <string> flexikey-summary: "";
+    in property <string> flexikey-status: "";
+    in property <string> flexikey-engine-status: "";
+    in property <string> flexikey-path: "";
+    in-out property <string> flexikey-profile-name: "";
+    in-out property <bool> flexikey-delete-armed: false;
+    in property <[string]> flexikey-binding-labels: [];
+    in property <bool> flexikey-keyboard-enabled: true;
+    in property <bool> flexikey-mouse-enabled: true;
+    in-out property <bool> flexikey-editor-open: false;
+    in-out property <int> flexikey-editor-binding-index: -1;
+    in-out property <int> flexikey-editor-device: 1;
+    in-out property <string> flexikey-editor-key-code: "";
+    in-out property <string> flexikey-editor-key-name: "";
+    in-out property <int> flexikey-editor-action: 1;
+    in-out property <string> flexikey-editor-value: "";
+    in-out property <string> flexikey-editor-status: "";
+    in-out property <bool> flexikey-capture-armed: false;
+    in property <bool> caps-supported: true;
+    in property <bool> num-supported: true;
+    in property <bool> scroll-supported: true;
+    in property <int> display-brightness: 50;
+    in-out property <int> display-brightness-requested: 50;
+    in property <int> blue-light-level: 0;
+    in-out property <int> blue-light-requested: 0;
+    in property <int> audio-volume: 50;
+    in-out property <int> audio-volume-requested: 50;
+    in property <bool> audio-muted: false;
+    in property <bool> audio-known: false;
+    in property <bool> anti-dust-supported: false;
+    in property <bool> anti-dust-running: false;
+    in-out property <bool> anti-dust-enabled: false;
+    in-out property <bool> anti-dust-resume: true;
+    in-out property <int> anti-dust-day: 6;
+    in-out property <int> anti-dust-hour: 0;
+
+    callback select-page(int);
+    callback apply-power(int);
+    callback apply-fan(int);
+    callback set-quick-toggle(int, bool);
+    callback apply-low-refresh(bool);
+    callback set-startup(bool);
+    callback set-display-toggle(int, bool);
+    callback apply-monitor-timeouts(int, int);
+    callback apply-screen-saver(bool, int, int);
+    callback reload-flexikey();
+    callback select-flexikey-profile(int);
+    callback new-flexikey-profile();
+    callback rename-flexikey-profile(string);
+    callback delete-flexikey-profile();
+    callback set-flexikey-device-enabled(int, bool);
+    callback open-flexikey-editor(int);
+    callback close-flexikey-editor();
+    callback save-flexikey-editor(int, int, string, string, int, string);
+    callback delete-flexikey-binding(int);
+    callback capture-flexikey-trigger();
+    callback cancel-flexikey-capture();
+    callback apply-fan-curve();
+    callback refresh-now();
+    callback clear-status();
+    callback set-language(bool);
+    callback set-theme(bool);
+    callback apply-quiet(bool);
+    callback cancel-quiet();
+    callback apply-gpu-mode(int);
+    callback apply-flexi-charger(int, int, int);
+    callback apply-rgb-brightness(int);
+    callback apply-rgb-color(int, int, int);
+    callback apply-rgb-effect(int);
+    callback apply-rgb-sleep-timer(bool, int, int, int);
+    callback apply-rgb-boot-effect(bool);
+    callback apply-camera(bool);
+    callback apply-touchpad(bool);
+    callback apply-airplane(bool);
+    callback send-lock-key(int);
+    callback apply-brightness(int);
+    callback apply-blue-light(int);
+    callback apply-volume(int);
+    callback apply-mute(bool);
+    callback apply-slow-fan(bool);
+    callback apply-turbo-fan(bool);
+    callback apply-rpm-curve();
+    callback apply-fan-offset(int);
+    callback run-anti-dust();
+    callback apply-anti-dust-schedule(bool, bool, int, int);
+
+    HorizontalLayout {
+        Rectangle {
+            width: 188px;
+            background: Palette.rail-gradient;
+            border-width: 1px;
+            border-color: Palette.line;
+
+            VerticalLayout {
+                padding-left: 16px;
+                padding-right: 16px;
+                padding-top: 18px;
+                padding-bottom: 16px;
+                spacing: 5px;
+
+                HorizontalLayout {
+                    height: 52px;
+                    spacing: 10px;
+                    cross-axis-alignment: center;
+                    Image {
+                        width: 34px;
+                        height: 34px;
+                        source: @image-url("../../../assets/neo_control_logo.svg");
+                        image-fit: contain;
+                    }
+                    VerticalLayout {
+                        spacing: 1px;
+                        alignment: center;
+                        Text {
+                            text: @tr("NEO");
+                            color: Palette.text;
+                            font-family: "Bahnschrift";
+                            font-size: 15px;
+                            font-weight: 600;
+                            letter-spacing: 1.2px;
+                        }
+                        Text {
+                            text: @tr("CONTROL");
+                            color: Palette.text-dim;
+                            font-family: "Cascadia Mono";
+                            font-size: 9px;
+                            letter-spacing: 1.6px;
+                        }
+                    }
+                }
+
+                Rectangle { height: 10px; }
+                HorizontalLayout {
+                    padding-left: 12px;
+                    MicroLabel { text: @tr("WORKSPACE"); }
+                }
+                Rectangle { height: 3px; }
+                NavItem { label: @tr("Overview"); glyph: 0; selected: root.selected-page == 0; clicked => { root.select-page(0); } }
+                NavItem { label: @tr("Performance"); glyph: 1; selected: root.selected-page == 1; clicked => { root.select-page(1); } }
+                NavItem { label: @tr("Cooling"); glyph: 2; selected: root.selected-page == 2; clicked => { root.select-page(2); } }
+                NavItem { label: @tr("Fan curve"); glyph: 2; selected: root.selected-page == 8; clicked => { root.select-page(8); } }
+                NavItem { label: @tr("Battery"); glyph: 3; selected: root.selected-page == 3; clicked => { root.select-page(3); } }
+                NavItem { label: @tr("System"); glyph: 4; selected: root.selected-page == 4; clicked => { root.select-page(4); } }
+                NavItem { label: @tr("Lighting"); glyph: 6; selected: root.selected-page == 6; clicked => { root.select-page(6); } }
+                NavItem { label: @tr("FlexiKey"); glyph: 7; selected: root.selected-page == 9; clicked => { root.select-page(9); } }
+                NavItem { label: @tr("Input & I/O"); glyph: 7; selected: root.selected-page == 7; clicked => { root.select-page(7); } }
+                NavItem { label: @tr("Display care"); glyph: 8; selected: root.selected-page == 10; clicked => { root.select-page(10); } }
+                Rectangle { height: 12px; }
+                NavItem { label: @tr("Settings"); glyph: 5; selected: root.selected-page == 5; clicked => { root.select-page(5); } }
+
+                Rectangle { vertical-stretch: 1; }
+
+                Rectangle {
+                    height: 82px;
+                    border-radius: 9px;
+                    background: Palette.surface-hi;
+                    border-width: 1px;
+                    border-color: Palette.line;
+                    VerticalLayout {
+                        padding: 11px;
+                        spacing: 7px;
+                        HorizontalLayout {
+                            spacing: 7px;
+                            cross-axis-alignment: center;
+                            SignalDot { active: root.transport-ready; tone: root.transport-ready ? Palette.green : Palette.amber; }
+                            Text {
+                                text: root.transport-label;
+                                color: Palette.text-dim;
+                                font-family: "Bahnschrift";
+                                font-size: 11px;
+                                font-weight: 500;
+                                overflow: elide;
+                            }
+                        }
+                        Text {
+                            text: root.transport-detail;
+                            color: Palette.text-faint;
+                            font-family: "Bahnschrift";
+                            font-size: 10px;
+                            wrap: word-wrap;
+                            max-lines: 2;
+                        }
+                    }
+                }
+            }
+        }
+
+        Rectangle {
+            background: Palette.base;
+
+
+            VerticalLayout {
+                spacing: 0;
+
+                Rectangle {
+                    height: 62px;
+                    background: Palette.rail-gradient;
+
+                    Text {
+                        text: @tr("NEO CONTROL");
+                        color: Palette.text;
+                        font-family: "Bahnschrift";
+                        font-size: 17px;
+                        font-weight: 500;
+                        letter-spacing: 2.4px;
+                        horizontal-alignment: center;
+                        vertical-alignment: center;
+                    }
+
+                    HorizontalLayout {
+                        x: 22px;
+                        y: 0;
+                        height: parent.height;
+                        spacing: 8px;
+                        cross-axis-alignment: center;
+                        SignalDot { active: root.transport-ready; tone: root.transport-ready ? Palette.green : Palette.amber; }
+                        MicroLabel {
+                            text: root.transport-ready ? @tr("LOCAL HARDWARE") : @tr("HARDWARE OFFLINE");
+                            color: root.transport-ready ? Palette.green : Palette.amber;
+                        }
+                    }
+
+                    HorizontalLayout {
+                        x: parent.width - 130px;
+                        y: 0;
+                        width: 112px;
+                        height: parent.height;
+                        spacing: 8px;
+                        alignment: end;
+
+                        ChromeButton {
+                            width: 104px;
+                            emphasized: true;
+                            enabled: !root.busy;
+                            text: root.busy
+                                ? (root.language-zh ? "刷新中" : "Working")
+                                : (root.language-zh ? "刷新" : "Refresh");
+                            clicked => { root.refresh-now(); }
+                        }
+                    }
+                }
+
+                Hairline {}
+
+                Rectangle {
+                    if root.status-message != "" : Rectangle {
+                        height: 34px;
+                        background: root.status-tone == 2 ? Palette.red-soft : (root.status-tone == 1 ? Palette.green-soft : Palette.panel-hover);
+                        border-width: 1px;
+                        border-color: root.status-tone == 2 ? Palette.red : (root.status-tone == 1 ? Palette.green : Palette.line);
+                        HorizontalLayout {
+                            padding-left: 24px;
+                            padding-right: 18px;
+                            spacing: 10px;
+                            cross-axis-alignment: center;
+                            SignalDot {
+                                width: 5px;
+                                height: 5px;
+                                border-radius: 3px;
+                                tone: root.status-tone == 2 ? Palette.red : (root.status-tone == 1 ? Palette.green : Palette.cyan);
+                            }
+                            Text {
+                                text: root.status-message;
+                                color: Palette.text-dim;
+                                font-family: "Bahnschrift";
+                                font-size: 11px;
+                                vertical-alignment: center;
+                                overflow: elide;
+                                horizontal-stretch: 1;
+                            }
+                            Rectangle {
+                                width: 54px;
+                                height: 24px;
+                                Text {
+                                    text: @tr("Dismiss");
+                                    color: Palette.text-faint;
+                                    font-family: "Bahnschrift";
+                                    font-size: 10px;
+                                    horizontal-alignment: right;
+                                    vertical-alignment: center;
+                                }
+                                TouchArea {
+                                    mouse-cursor: pointer;
+                                    clicked => { root.clear-status(); }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                Rectangle {
+                    clip: true;
+                    opacity: root.page-opacity;
+                    animate opacity { duration: 220ms; easing: ease-in-out; }
+                    VerticalLayout {
+                        padding-left: 28px;
+                        padding-right: 28px;
+                        padding-top: 24px;
+                        padding-bottom: 24px;
+                        spacing: 18px;
+
+                        // ------------------------------------------------- Overview
+                        if root.selected-page == 0 : OverviewPage {
+                            selected-page: root.selected-page;
+                            transport-ready: root.transport-ready;
+                            cpu-temp: root.cpu-temp;
+                            gpu-temp: root.gpu-temp;
+                            cpu-rpm: root.cpu-rpm;
+                            gpu-rpm: root.gpu-rpm;
+                            fan3-rpm: root.fan3-rpm;
+                            fan4-rpm: root.fan4-rpm;
+                            fan3-temp: root.fan3-temp;
+                            fan4-temp: root.fan4-temp;
+                            cpu-duty: root.cpu-duty;
+                            gpu-duty: root.gpu-duty;
+                            fan3-duty: root.fan3-duty;
+                            fan4-duty: root.fan4-duty;
+                            cpu-load: root.cpu-load;
+                            gpu-load: root.gpu-load;
+                            gpu-memory-load: root.gpu-memory-load;
+                            memory-load: root.memory-load;
+                            disk-load: root.disk-load;
+                            cpu-clock: root.cpu-clock;
+                            cpu-clock-max: root.cpu-clock-max;
+                            gpu-clock: root.gpu-clock;
+                            gpu-clock-max: root.gpu-clock-max;
+                            memory-text: root.memory-text;
+                            disk-text: root.disk-text;
+                            gpu-memory-text: root.gpu-memory-text;
+                            power-label: root.power-label;
+                            fan-label: root.fan-label;
+                            capabilities-text: root.capabilities-text;
+                            platform-text: root.platform-text;
+                        }
+
+                        // ------------------------------------------------- Performance
+                        if root.selected-page == 1 : PerformancePage {
+                            selected-page: root.selected-page;
+                            requested-power-mode <=> root.requested-power-mode;
+                            busy: root.busy;
+                            cpu-temp: root.cpu-temp;
+                            cpu-clock: root.cpu-clock;
+                            power-mode: root.power-mode;
+                            power-label: root.power-label;
+                            power-quiet-supported: root.power-quiet-supported;
+                            power-saving-supported: root.power-saving-supported;
+                            power-performance-supported: root.power-performance-supported;
+                            power-entertainment-supported: root.power-entertainment-supported;
+                            apply-power(a0) => { root.apply-power(a0); }
+                        }
+
+                        // ------------------------------------------------- Cooling
+                        if root.selected-page == 2 : CoolingPage {
+                            selected-page: root.selected-page;
+                            requested-fan-mode <=> root.requested-fan-mode;
+                            busy: root.busy;
+                            transport-ready: root.transport-ready;
+                            cpu-temp: root.cpu-temp;
+                            gpu-temp: root.gpu-temp;
+                            cpu-rpm: root.cpu-rpm;
+                            gpu-rpm: root.gpu-rpm;
+                            fan3-rpm: root.fan3-rpm;
+                            fan4-rpm: root.fan4-rpm;
+                            fan3-temp: root.fan3-temp;
+                            fan4-temp: root.fan4-temp;
+                            cpu-duty: root.cpu-duty;
+                            gpu-duty: root.gpu-duty;
+                            fan3-duty: root.fan3-duty;
+                            fan4-duty: root.fan4-duty;
+                            fan-mode: root.fan-mode;
+                            fan-label: root.fan-label;
+                            slow-fan-active: root.slow-fan-active;
+                            turbo-fan-active: root.turbo-fan-active;
+                            slow-fan-supported: root.slow-fan-supported;
+                            turbo-fan-supported: root.turbo-fan-supported;
+                            turbo-fan-eligible: root.turbo-fan-eligible;
+                            curve-available: root.curve-available;
+                            rpm-fan-control: root.rpm-fan-control;
+                            curve-current-text: root.curve-current-text;
+                            rpm-curve-text: root.rpm-curve-text;
+                            curve-cpu-t2 <=> root.curve-cpu-t2;
+                            curve-cpu-d2 <=> root.curve-cpu-d2;
+                            curve-cpu-t3 <=> root.curve-cpu-t3;
+                            curve-cpu-d3 <=> root.curve-cpu-d3;
+                            curve-gpu-t2 <=> root.curve-gpu-t2;
+                            curve-gpu-d2 <=> root.curve-gpu-d2;
+                            curve-gpu-t3 <=> root.curve-gpu-t3;
+                            curve-gpu-d3 <=> root.curve-gpu-d3;
+                            curve-current-cpu-t2: root.curve-current-cpu-t2;
+                            curve-current-cpu-d2: root.curve-current-cpu-d2;
+                            curve-current-cpu-t3: root.curve-current-cpu-t3;
+                            curve-current-cpu-d3: root.curve-current-cpu-d3;
+                            curve-current-gpu-t2: root.curve-current-gpu-t2;
+                            curve-current-gpu-d2: root.curve-current-gpu-d2;
+                            curve-current-gpu-t3: root.curve-current-gpu-t3;
+                            curve-current-gpu-d3: root.curve-current-gpu-d3;
+                            anti-dust-supported: root.anti-dust-supported;
+                            anti-dust-running: root.anti-dust-running;
+                            anti-dust-enabled <=> root.anti-dust-enabled;
+                            anti-dust-resume <=> root.anti-dust-resume;
+                            anti-dust-day <=> root.anti-dust-day;
+                            anti-dust-hour <=> root.anti-dust-hour;
+                            apply-fan(a0) => { root.apply-fan(a0); }
+                            apply-fan-curve() => { root.apply-fan-curve(); }
+                            apply-slow-fan(a0) => { root.apply-slow-fan(a0); }
+                            apply-turbo-fan(a0) => { root.apply-turbo-fan(a0); }
+                            run-anti-dust() => { root.run-anti-dust(); }
+                            apply-anti-dust-schedule(a0, a1, a2, a3) => { root.apply-anti-dust-schedule(a0, a1, a2, a3); }
+                        }
+
+
+                        // ------------------------------------------------- Battery
+                        if root.selected-page == 3 : BatteryPage {
+                            selected-page: root.selected-page;
+                            busy: root.busy;
+                            battery-present: root.battery-present;
+                            battery-percent: root.battery-percent;
+                            battery-status-text: root.battery-status-text;
+                            battery-ac-text: root.battery-ac-text;
+                            battery-time-text: root.battery-time-text;
+                            battery-capacity-text: root.battery-capacity-text;
+                            battery-rate-text: root.battery-rate-text;
+                            flexi-mode-text: root.flexi-mode-text;
+                            flexi-ranges-text: root.flexi-ranges-text;
+                            flexi-ready: root.flexi-ready;
+                            requested-flexi-mode <=> root.requested-flexi-mode;
+                            flexi-start-choice <=> root.flexi-start-choice;
+                            flexi-stop-choice <=> root.flexi-stop-choice;
+                            apply-flexi-charger(a0, a1, a2) => { root.apply-flexi-charger(a0, a1, a2); }
+                        }
+
+                        // ------------------------------------------------- System
+                        if root.selected-page == 4 : SystemPage {
+                            selected-page: root.selected-page;
+                            busy: root.busy;
+                            transport-ready: root.transport-ready;
+                            power-label: root.power-label;
+                            capabilities-text: root.capabilities-text;
+                            platform-text: root.platform-text;
+                            transport-device-path: root.transport-device-path;
+                            toggle-fn-value: root.toggle-fn-value;
+                            toggle-fn-known: root.toggle-fn-known;
+                            toggle-win-value: root.toggle-win-value;
+                            toggle-win-known: root.toggle-win-known;
+                            toggle-swap-value: root.toggle-swap-value;
+                            toggle-swap-known: root.toggle-swap-known;
+                            toggle-hotkeys-value: root.toggle-hotkeys-value;
+                            toggle-hotkeys-known: root.toggle-hotkeys-known;
+                            toggle-copilot-value: root.toggle-copilot-value;
+                            toggle-copilot-known: root.toggle-copilot-known;
+                            extended-api-text: root.extended-api-text;
+                            gpu-switch-text: root.gpu-switch-text;
+                            gpu-current-mode: root.gpu-current-mode;
+                            gpu-dgpu-supported: root.gpu-dgpu-supported;
+                            gpu-mshybrid-supported: root.gpu-mshybrid-supported;
+                            gpu-dynamic-supported: root.gpu-dynamic-supported;
+                            low-refresh-supported: root.low-refresh-supported;
+                            low-refresh-eligible: root.low-refresh-eligible;
+                            low-refresh-enabled: root.low-refresh-enabled;
+                            low-refresh-known: root.low-refresh-known;
+                            set-quick-toggle(a0, a1) => { root.set-quick-toggle(a0, a1); }
+                            apply-low-refresh(a0) => { root.apply-low-refresh(a0); }
+                            apply-gpu-mode(a0) => { root.apply-gpu-mode(a0); }
+                        }
+
+                        // ------------------------------------------------- Settings
+                        if root.selected-page == 5 : SettingsPage {
+                            selected-page: root.selected-page;
+                            language-zh <=> root.language-zh;
+                            renderer-text: root.renderer-text;
+                            startup-enabled: root.startup-enabled;
+                            set-startup(a0) => { root.set-startup(a0); }
+                            set-language(a0) => { root.set-language(a0); }
+                            set-theme(a0) => { root.set-theme(a0); }
+                        }
+
+                        // ------------------------------------------------- Lighting
+                        if root.selected-page == 6 : LightingPage {
+                            selected-page: root.selected-page;
+                            busy: root.busy;
+                            rgb-available: root.rgb-available;
+                            rgb-enabled: root.rgb-enabled;
+                            rgb-brightness: root.rgb-brightness;
+                            rgb-effect: root.rgb-effect;
+                            rgb-boot-effect: root.rgb-boot-effect;
+                            rgb-requested-red <=> root.rgb-requested-red;
+                            rgb-requested-green <=> root.rgb-requested-green;
+                            rgb-requested-blue <=> root.rgb-requested-blue;
+                            rgb-requested-hours <=> root.rgb-requested-hours;
+                            rgb-requested-minutes <=> root.rgb-requested-minutes;
+                            rgb-requested-seconds <=> root.rgb-requested-seconds;
+                            rgb-requested-sleep-enabled <=> root.rgb-requested-sleep-enabled;
+                            apply-rgb-brightness(a0) => { root.apply-rgb-brightness(a0); }
+                            apply-rgb-color(a0, a1, a2) => { root.apply-rgb-color(a0, a1, a2); }
+                            apply-rgb-effect(a0) => { root.apply-rgb-effect(a0); }
+                            apply-rgb-sleep-timer(a0, a1, a2, a3) => { root.apply-rgb-sleep-timer(a0, a1, a2, a3); }
+                            apply-rgb-boot-effect(a0) => { root.apply-rgb-boot-effect(a0); }
+                        }
+
+                        // ------------------------------------------------- Input and I/O
+                        if root.selected-page == 7 : InputIoPage {
+                            selected-page: root.selected-page;
+                            busy: root.busy;
+                            camera-enabled: root.camera-enabled;
+                            camera-known: root.camera-known;
+                            touchpad-enabled: root.touchpad-enabled;
+                            touchpad-known: root.touchpad-known;
+                            airplane-enabled: root.airplane-enabled;
+                            airplane-known: root.airplane-known;
+                            caps-supported: root.caps-supported;
+                            num-supported: root.num-supported;
+                            scroll-supported: root.scroll-supported;
+                            display-brightness: root.display-brightness;
+                            display-brightness-requested <=> root.display-brightness-requested;
+                            blue-light-level: root.blue-light-level;
+                            blue-light-requested <=> root.blue-light-requested;
+                            audio-volume: root.audio-volume;
+                            audio-volume-requested <=> root.audio-volume-requested;
+                            audio-muted: root.audio-muted;
+                            audio-known: root.audio-known;
+                            apply-camera(a0) => { root.apply-camera(a0); }
+                            apply-touchpad(a0) => { root.apply-touchpad(a0); }
+                            apply-airplane(a0) => { root.apply-airplane(a0); }
+                            send-lock-key(a0) => { root.send-lock-key(a0); }
+                            apply-brightness(a0) => { root.apply-brightness(a0); }
+                            apply-blue-light(a0) => { root.apply-blue-light(a0); }
+                            apply-volume(a0) => { root.apply-volume(a0); }
+                            apply-mute(a0) => { root.apply-mute(a0); }
+                        }
+
+                        // ------------------------------------------------- Display care
+                        if root.selected-page == 10 : DisplayCarePage {
+                            selected-page: root.selected-page;
+                            busy: root.busy;
+                            display-care-available: root.display-care-available;
+                            display-care-panel-oled: root.display-care-panel-oled;
+                            taskbar-auto-hide: root.taskbar-auto-hide;
+                            taskbar-transparency: root.taskbar-transparency;
+                            display-dark-mode: root.display-dark-mode;
+                            monitor-ac-minutes: root.monitor-ac-minutes;
+                            monitor-dc-minutes: root.monitor-dc-minutes;
+                            monitor-ac-requested <=> root.monitor-ac-requested;
+                            monitor-dc-requested <=> root.monitor-dc-requested;
+                            screen-saver-requested-enabled <=> root.screen-saver-requested-enabled;
+                            screen-saver-requested-type <=> root.screen-saver-requested-type;
+                            screen-saver-requested-minutes <=> root.screen-saver-requested-minutes;
+                            set-display-toggle(a0, a1) => { root.set-display-toggle(a0, a1); }
+                            apply-monitor-timeouts(a0, a1) => { root.apply-monitor-timeouts(a0, a1); }
+                            apply-screen-saver(a0, a1, a2) => { root.apply-screen-saver(a0, a1, a2); }
+                        }
+
+                        // ------------------------------------------------- Ten-point fan curve
+                        if root.selected-page == 8 : FanCurvePage {
+                            selected-page: root.selected-page;
+                            busy: root.busy;
+                            fan-offset-current: root.fan-offset-current;
+                            fan-offset-requested <=> root.fan-offset-requested;
+                            rpm-editable: root.rpm-editable;
+                            rpm-cpu-temp-0 <=> root.rpm-cpu-temp-0;
+                            rpm-cpu-temp-1 <=> root.rpm-cpu-temp-1;
+                            rpm-cpu-temp-2 <=> root.rpm-cpu-temp-2;
+                            rpm-cpu-temp-3 <=> root.rpm-cpu-temp-3;
+                            rpm-cpu-temp-4 <=> root.rpm-cpu-temp-4;
+                            rpm-cpu-temp-5 <=> root.rpm-cpu-temp-5;
+                            rpm-cpu-temp-6 <=> root.rpm-cpu-temp-6;
+                            rpm-cpu-temp-7 <=> root.rpm-cpu-temp-7;
+                            rpm-cpu-temp-8 <=> root.rpm-cpu-temp-8;
+                            rpm-cpu-temp-9 <=> root.rpm-cpu-temp-9;
+                            rpm-cpu-rpm-0 <=> root.rpm-cpu-rpm-0;
+                            rpm-cpu-rpm-1 <=> root.rpm-cpu-rpm-1;
+                            rpm-cpu-rpm-2 <=> root.rpm-cpu-rpm-2;
+                            rpm-cpu-rpm-3 <=> root.rpm-cpu-rpm-3;
+                            rpm-cpu-rpm-4 <=> root.rpm-cpu-rpm-4;
+                            rpm-cpu-rpm-5 <=> root.rpm-cpu-rpm-5;
+                            rpm-cpu-rpm-6 <=> root.rpm-cpu-rpm-6;
+                            rpm-cpu-rpm-7 <=> root.rpm-cpu-rpm-7;
+                            rpm-cpu-rpm-8 <=> root.rpm-cpu-rpm-8;
+                            rpm-cpu-rpm-9 <=> root.rpm-cpu-rpm-9;
+                            rpm-gpu-temp-0 <=> root.rpm-gpu-temp-0;
+                            rpm-gpu-temp-1 <=> root.rpm-gpu-temp-1;
+                            rpm-gpu-temp-2 <=> root.rpm-gpu-temp-2;
+                            rpm-gpu-temp-3 <=> root.rpm-gpu-temp-3;
+                            rpm-gpu-temp-4 <=> root.rpm-gpu-temp-4;
+                            rpm-gpu-temp-5 <=> root.rpm-gpu-temp-5;
+                            rpm-gpu-temp-6 <=> root.rpm-gpu-temp-6;
+                            rpm-gpu-temp-7 <=> root.rpm-gpu-temp-7;
+                            rpm-gpu-temp-8 <=> root.rpm-gpu-temp-8;
+                            rpm-gpu-temp-9 <=> root.rpm-gpu-temp-9;
+                            rpm-gpu-rpm-0 <=> root.rpm-gpu-rpm-0;
+                            rpm-gpu-rpm-1 <=> root.rpm-gpu-rpm-1;
+                            rpm-gpu-rpm-2 <=> root.rpm-gpu-rpm-2;
+                            rpm-gpu-rpm-3 <=> root.rpm-gpu-rpm-3;
+                            rpm-gpu-rpm-4 <=> root.rpm-gpu-rpm-4;
+                            rpm-gpu-rpm-5 <=> root.rpm-gpu-rpm-5;
+                            rpm-gpu-rpm-6 <=> root.rpm-gpu-rpm-6;
+                            rpm-gpu-rpm-7 <=> root.rpm-gpu-rpm-7;
+                            rpm-gpu-rpm-8 <=> root.rpm-gpu-rpm-8;
+                            rpm-gpu-rpm-9 <=> root.rpm-gpu-rpm-9;
+                            apply-rpm-curve() => { root.apply-rpm-curve(); }
+                            apply-fan-offset(a0) => { root.apply-fan-offset(a0); }
+                        }
+
+                        // ------------------------------------------------- FlexiKey
+                        if root.selected-page == 9 : FlexiKeyPage {
+                            selected-page: root.selected-page;
+                            flexikey-profile-names: root.flexikey-profile-names;
+                            flexikey-active-index: root.flexikey-active-index;
+                            flexikey-active-title: root.flexikey-active-title;
+                            flexikey-summary: root.flexikey-summary;
+                            flexikey-status: root.flexikey-status;
+                            flexikey-engine-status: root.flexikey-engine-status;
+                            flexikey-path: root.flexikey-path;
+                            flexikey-profile-name <=> root.flexikey-profile-name;
+                            flexikey-delete-armed <=> root.flexikey-delete-armed;
+                            flexikey-binding-labels: root.flexikey-binding-labels;
+                            flexikey-keyboard-enabled: root.flexikey-keyboard-enabled;
+                            flexikey-mouse-enabled: root.flexikey-mouse-enabled;
+                            reload-flexikey() => { root.reload-flexikey(); }
+                            select-flexikey-profile(a0) => { root.select-flexikey-profile(a0); }
+                            new-flexikey-profile() => { root.new-flexikey-profile(); }
+                            rename-flexikey-profile(a0) => { root.rename-flexikey-profile(a0); }
+                            delete-flexikey-profile() => { root.delete-flexikey-profile(); }
+                            set-flexikey-device-enabled(a0, a1) => { root.set-flexikey-device-enabled(a0, a1); }
+                            open-flexikey-editor(a0) => { root.open-flexikey-editor(a0); }
+                        }
+
+                        Rectangle { vertical-stretch: 1; }
+                    }
+                }
+            }
+        }
+    }
+
+    Rectangle {
+        x: 0;
+        y: 0;
+        width: parent.width;
+        height: parent.height;
+        background: Palette.dark ? #12151E : #E8ECF3;
+        opacity: root.theme-flash;
+        visible: root.theme-flash > 0.001;
+        animate opacity { duration: 250ms; easing: ease-in-out; }
+    }
+
+    QuietDialog {
+        quiet-dialog-open <=> root.quiet-dialog-open;
+        apply-quiet(disable) => { root.apply-quiet(disable); }
+        cancel-quiet => { root.cancel-quiet(); }
+    }
+
+    FlexiKeyEditor {
+        flexikey-editor-open <=> root.flexikey-editor-open;
+        flexikey-editor-binding-index <=> root.flexikey-editor-binding-index;
+        flexikey-editor-device <=> root.flexikey-editor-device;
+        flexikey-editor-key-code <=> root.flexikey-editor-key-code;
+        flexikey-editor-key-name <=> root.flexikey-editor-key-name;
+        flexikey-editor-action <=> root.flexikey-editor-action;
+        flexikey-editor-value <=> root.flexikey-editor-value;
+        flexikey-editor-status <=> root.flexikey-editor-status;
+        flexikey-capture-armed <=> root.flexikey-capture-armed;
+        close-flexikey-editor => { root.close-flexikey-editor(); }
+        save-flexikey-editor(index, device, key-code, key-name, action, value) => {
+            root.save-flexikey-editor(index, device, key-code, key-name, action, value);
+        }
+        delete-flexikey-binding(index) => { root.delete-flexikey-binding(index); }
+        capture-flexikey-trigger => { root.capture-flexikey-trigger(); }
+        cancel-flexikey-capture => { root.cancel-flexikey-capture(); }
+    }
+
+
+}

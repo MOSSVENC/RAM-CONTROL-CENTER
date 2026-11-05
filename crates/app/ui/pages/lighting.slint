@@ -1,0 +1,167 @@
+import { Palette } from "../theme.slint";
+import {
+    ChromeButton, ChoiceChip, CurveStepper, DataLabel, DataValue, FanOption, FanReadout,
+    FieldInput, Hairline, InfoRow, MetricBar, MicroLabel, NavGlyph, NavItem, PowerOption,
+    ReadoutRow, SectionTitle, SignalDot, StageButton, ToggleStatusRow,
+} from "../components.slint";
+
+                        export component LightingPage inherits VerticalLayout {
+    in property <int> selected-page: 0;
+    in property <bool> busy: false;
+    in property <bool> rgb-available: false;
+    in property <bool> rgb-enabled: false;
+    in property <int> rgb-brightness: 4;
+    in property <int> rgb-effect: 8;
+    in property <bool> rgb-boot-effect: false;
+    in-out property <int> rgb-requested-red: 0;
+    in-out property <int> rgb-requested-green: 0;
+    in-out property <int> rgb-requested-blue: 200;
+    in-out property <int> rgb-requested-hours: 0;
+    in-out property <int> rgb-requested-minutes: 0;
+    in-out property <int> rgb-requested-seconds: 30;
+    in-out property <bool> rgb-requested-sleep-enabled: true;
+    callback apply-rgb-brightness(int);
+    callback apply-rgb-color(int, int, int);
+    callback apply-rgb-effect(int);
+    callback apply-rgb-sleep-timer(bool, int, int, int);
+    callback apply-rgb-boot-effect(bool);
+
+    spacing: 18px;
+
+    VerticalLayout {
+        spacing: 3px;
+        Text {
+            text: @tr("Lighting");
+            color: Palette.text;
+            font-family: "Bahnschrift";
+            font-size: 27px;
+            font-weight: 600;
+        }
+        Text {
+            text: @tr("15-color keyboard, sleep timer, and boot effect, driven through the signed AcpiBridge transport.");
+            color: Palette.text-dim;
+            font-family: "Microsoft YaHei UI";
+            font-size: 12px;
+        }
+    }
+
+    if !root.rgb-available : Rectangle {
+        height: 150px;
+        border-radius: 16px;
+        background: Palette.surface-gradient;
+        border-width: 1px;
+        border-color: Palette.line;
+        VerticalLayout {
+            padding: 24px;
+            spacing: 9px;
+            Text { text: @tr("Keyboard lighting is not available"); color: Palette.text; font-family: "Bahnschrift"; font-size: 18px; font-weight: 600; }
+            Text { text: @tr("The platform did not report the 15-color keyboard capability."); color: Palette.text-dim; font-family: "Microsoft YaHei UI"; font-size: 12px; wrap: word-wrap; }
+        }
+    }
+
+    if root.rgb-available : HorizontalLayout {
+        spacing: 18px;
+        vertical-stretch: 1;
+
+        Rectangle {
+            horizontal-stretch: 1;
+            border-radius: 16px;
+            background: Palette.surface-gradient;
+            border-width: 1px;
+            border-color: Palette.line;
+            VerticalLayout {
+                padding: 22px;
+                spacing: 12px;
+                SectionTitle { text: @tr("Color bench"); }
+                Hairline {}
+                Rectangle {
+                    height: 112px;
+                    border-radius: 12px;
+                    background: rgb(root.rgb-requested-red, root.rgb-requested-green, root.rgb-requested-blue);
+                    border-width: 1px;
+                    border-color: Palette.line-hi;
+                    Text {
+                        text: root.rgb-enabled ? @tr("LIVE") : @tr("OFF");
+                        color: white;
+                        font-family: "Cascadia Mono";
+                        font-size: 11px;
+                        letter-spacing: 1.2px;
+                        x: 12px;
+                        y: 10px;
+                    }
+                }
+                CurveStepper { label: "R"; value: root.rgb-requested-red; lower: 0; upper: 255; step: 5; changed(v) => { root.rgb-requested-red = v; } }
+                CurveStepper { label: "G"; value: root.rgb-requested-green; lower: 0; upper: 255; step: 5; changed(v) => { root.rgb-requested-green = v; } }
+                CurveStepper { label: "B"; value: root.rgb-requested-blue; lower: 0; upper: 255; step: 5; changed(v) => { root.rgb-requested-blue = v; } }
+                StageButton {
+                    text: @tr("Apply keyboard color");
+                    primary: true;
+                    enabled: !root.busy;
+                    clicked => { root.apply-rgb-color(root.rgb-requested-red, root.rgb-requested-green, root.rgb-requested-blue); }
+                }
+            }
+        }
+
+        Rectangle {
+            width: 430px;
+            border-radius: 16px;
+            background: Palette.surface-gradient;
+            border-width: 1px;
+            border-color: Palette.line;
+            VerticalLayout {
+                padding: 22px;
+                spacing: 11px;
+                SectionTitle { text: @tr("Backlight behavior"); }
+                Hairline {}
+                MicroLabel { text: @tr("BRIGHTNESS"); }
+                HorizontalLayout {
+                    spacing: 7px;
+                    for level in [0, 1, 2, 3, 4] : ChromeButton {
+                        width: 64px;
+                        emphasized: root.rgb-brightness == level;
+                        text: level == 0 ? @tr("OFF") : level;
+                        enabled: !root.busy;
+                        clicked => { root.apply-rgb-brightness(level); }
+                    }
+                    Rectangle { horizontal-stretch: 1; }
+                }
+                MicroLabel { text: @tr("EFFECT"); }
+                HorizontalLayout {
+                    spacing: 7px;
+                    ChromeButton { width: 118px; emphasized: root.rgb-effect == 8; text: @tr("Static"); enabled: !root.busy; clicked => { root.apply-rgb-effect(8); } }
+                    ChromeButton { width: 118px; emphasized: root.rgb-effect == 2; text: @tr("Breathe"); enabled: !root.busy; clicked => { root.apply-rgb-effect(2); } }
+                    ChromeButton { width: 118px; emphasized: root.rgb-effect == 3; text: @tr("Cycle"); enabled: !root.busy; clicked => { root.apply-rgb-effect(3); } }
+                    Rectangle { horizontal-stretch: 1; }
+                }
+                ToggleStatusRow {
+                    label: @tr("Override boot effect");
+                    value: root.rgb-boot-effect;
+                    known: true;
+                    busy: root.busy;
+                    toggled(enabled) => { root.apply-rgb-boot-effect(enabled); }
+                }
+                Hairline {}
+                MicroLabel { text: @tr("SLEEP TIMER"); }
+                HorizontalLayout {
+                    spacing: 7px;
+                    ChromeButton { width: 112px; emphasized: root.rgb-requested-sleep-enabled; text: @tr("Enabled"); clicked => { root.rgb-requested-sleep-enabled = true; } }
+                    ChromeButton { width: 112px; emphasized: !root.rgb-requested-sleep-enabled; text: @tr("Disabled"); clicked => { root.rgb-requested-sleep-enabled = false; } }
+                    Rectangle { horizontal-stretch: 1; }
+                }
+                HorizontalLayout {
+                    spacing: 7px;
+                    CurveStepper { horizontal-stretch: 1; label: "H"; value: root.rgb-requested-hours; lower: 0; upper: 1; step: 1; changed(v) => { root.rgb-requested-hours = v; } }
+                    CurveStepper { horizontal-stretch: 1; label: "M"; value: root.rgb-requested-minutes; lower: 0; upper: 59; step: 1; changed(v) => { root.rgb-requested-minutes = v; } }
+                    CurveStepper { horizontal-stretch: 1; label: "S"; value: root.rgb-requested-seconds; lower: 0; upper: 59; step: 1; changed(v) => { root.rgb-requested-seconds = v; } }
+                }
+                StageButton {
+                    text: @tr("Apply sleep timer");
+                    primary: false;
+                    enabled: !root.busy;
+                    clicked => { root.apply-rgb-sleep-timer(root.rgb-requested-sleep-enabled, root.rgb-requested-hours, root.rgb-requested-minutes, root.rgb-requested-seconds); }
+                }
+                Rectangle { vertical-stretch: 1; }
+            }
+        }
+    }
+}

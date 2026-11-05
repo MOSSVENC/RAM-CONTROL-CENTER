@@ -1,0 +1,223 @@
+import { Palette } from "../theme.slint";
+import {
+    ChromeButton, ChoiceChip, CurveStepper, DataLabel, DataValue, FanOption, FanReadout,
+    FieldInput, Hairline, InfoRow, MetricBar, MicroLabel, NavGlyph, NavItem, PowerOption,
+    ReadoutRow, SectionTitle, SignalDot, StageButton, ToggleStatusRow,
+} from "../components.slint";
+
+                        export component InputIoPage inherits VerticalLayout {
+    in property <int> selected-page: 0;
+    in property <bool> busy: false;
+    in property <bool> camera-enabled: false;
+    in property <bool> camera-known: false;
+    in property <bool> touchpad-enabled: false;
+    in property <bool> touchpad-known: false;
+    in property <bool> airplane-enabled: false;
+    in property <bool> airplane-known: false;
+    in property <bool> caps-supported: true;
+    in property <bool> num-supported: true;
+    in property <bool> scroll-supported: true;
+    in property <int> display-brightness: 50;
+    in-out property <int> display-brightness-requested: 50;
+    in property <int> blue-light-level: 0;
+    in-out property <int> blue-light-requested: 0;
+    in property <int> audio-volume: 50;
+    in-out property <int> audio-volume-requested: 50;
+    in property <bool> audio-muted: false;
+    in property <bool> audio-known: false;
+    callback apply-camera(bool);
+    callback apply-touchpad(bool);
+    callback apply-airplane(bool);
+    callback send-lock-key(int);
+    callback apply-brightness(int);
+    callback apply-blue-light(int);
+    callback apply-volume(int);
+    callback apply-mute(bool);
+
+    spacing: 18px;
+    alignment: start;
+
+    VerticalLayout {
+        spacing: 3px;
+        Text {
+            text: @tr("Input & I/O");
+            color: Palette.text;
+            font-family: "Bahnschrift";
+            font-size: 27px;
+            font-weight: 600;
+        }
+        Text {
+            text: @tr("Camera, touchpad, and lock-key controls exposed by CC4.0.");
+            color: Palette.text-dim;
+            font-family: "Microsoft YaHei UI";
+            font-size: 12px;
+        }
+    }
+
+    HorizontalLayout {
+        spacing: 18px;
+        vertical-stretch: 1;
+
+        Rectangle {
+            horizontal-stretch: 1;
+            border-radius: 16px;
+            background: Palette.surface-gradient;
+            border-width: 1px;
+            border-color: Palette.line;
+            VerticalLayout {
+                padding: 22px;
+                spacing: 10px;
+                SectionTitle { text: @tr("Devices"); }
+                Hairline {}
+                ToggleStatusRow {
+                    label: @tr("Camera");
+                    value: root.camera-enabled;
+                    known: root.camera-known;
+                    busy: root.busy;
+                    toggled(enabled) => { root.apply-camera(enabled); }
+                }
+                ToggleStatusRow {
+                    label: @tr("Touchpad");
+                    value: root.touchpad-enabled;
+                    known: root.touchpad-known;
+                    busy: root.busy;
+                    toggled(enabled) => { root.apply-touchpad(enabled); }
+                }
+                ToggleStatusRow {
+                    label: @tr("Airplane mode");
+                    value: root.airplane-enabled;
+                    known: root.airplane-known;
+                    busy: root.busy;
+                    toggled(enabled) => { root.apply-airplane(enabled); }
+                }
+                Text {
+                    text: @tr("Camera and touchpad state are read back from the vendor setting pages after each write.");
+                    color: Palette.text-faint;
+                    font-family: "Microsoft YaHei UI";
+                    font-size: 10px;
+                    wrap: word-wrap;
+                }
+                Rectangle { vertical-stretch: 1; }
+            }
+        }
+
+        Rectangle {
+            horizontal-stretch: 1;
+            border-radius: 16px;
+            background: Palette.surface-gradient;
+            border-width: 1px;
+            border-color: Palette.line;
+            VerticalLayout {
+                padding: 22px;
+                spacing: 12px;
+                SectionTitle { text: @tr("Lock keys"); }
+                Hairline {}
+                Text {
+                    text: @tr("Send the same lock-key transitions as the factory control center.");
+                    color: Palette.text-dim;
+                    font-family: "Microsoft YaHei UI";
+                    font-size: 11px;
+                    wrap: word-wrap;
+                }
+                HorizontalLayout {
+                    spacing: 9px;
+                    ChromeButton { text: "Caps Lock"; emphasized: false; enabled: !root.busy && root.caps-supported; clicked => { root.send-lock-key(20); } }
+                    ChromeButton { text: "Num Lock"; emphasized: false; enabled: !root.busy && root.num-supported; clicked => { root.send-lock-key(144); } }
+                    ChromeButton { text: "Scroll Lock"; emphasized: false; enabled: !root.busy && root.scroll-supported; clicked => { root.send-lock-key(145); } }
+                    Rectangle { horizontal-stretch: 1; }
+                }
+                Rectangle { vertical-stretch: 1; }
+            }
+        }
+    }
+
+    HorizontalLayout {
+        spacing: 18px;
+        vertical-stretch: 1;
+
+        Rectangle {
+            horizontal-stretch: 1;
+            border-radius: 16px;
+            background: Palette.surface-gradient;
+            border-width: 1px;
+            border-color: Palette.line;
+            VerticalLayout {
+                padding: 22px;
+                spacing: 9px;
+                SectionTitle { text: @tr("Display"); }
+                Hairline {}
+                CurveStepper {
+                    label: @tr("BRIGHTNESS");
+                    value: root.display-brightness-requested;
+                    lower: 0;
+                    upper: 100;
+                    step: 5;
+                    suffix: "%";
+                    enabled: !root.busy;
+                    changed(v) => { root.display-brightness-requested = v; }
+                }
+                StageButton {
+                    text: @tr("Apply brightness");
+                    primary: false;
+                    enabled: !root.busy && root.display-brightness-requested != root.display-brightness;
+                    clicked => { root.apply-brightness(root.display-brightness-requested); }
+                }
+                CurveStepper {
+                    label: @tr("BLUE LIGHT");
+                    value: root.blue-light-requested;
+                    lower: 0;
+                    upper: 10;
+                    step: 1;
+                    suffix: "";
+                    enabled: !root.busy;
+                    changed(v) => { root.blue-light-requested = v; }
+                }
+                StageButton {
+                    text: @tr("Apply blue-light filter");
+                    primary: false;
+                    enabled: !root.busy && root.blue-light-requested != root.blue-light-level;
+                    clicked => { root.apply-blue-light(root.blue-light-requested); }
+                }
+                Rectangle { vertical-stretch: 1; }
+            }
+        }
+
+        Rectangle {
+            horizontal-stretch: 1;
+            border-radius: 16px;
+            background: Palette.surface-gradient;
+            border-width: 1px;
+            border-color: Palette.line;
+            VerticalLayout {
+                padding: 22px;
+                spacing: 9px;
+                SectionTitle { text: @tr("Audio"); }
+                Hairline {}
+                CurveStepper {
+                    label: @tr("VOLUME");
+                    value: root.audio-volume-requested;
+                    lower: 0;
+                    upper: 100;
+                    step: 2;
+                    suffix: "%";
+                    enabled: !root.busy;
+                    changed(v) => { root.audio-volume-requested = v; }
+                }
+                StageButton {
+                    text: @tr("Apply volume");
+                    primary: false;
+                    enabled: !root.busy && root.audio-known && root.audio-volume-requested != root.audio-volume;
+                    clicked => { root.apply-volume(root.audio-volume-requested); }
+                }
+                ToggleStatusRow {
+                    label: @tr("Mute");
+                    value: root.audio-muted;
+                    known: root.audio-known;
+                    busy: root.busy;
+                    toggled(enabled) => { root.apply-mute(enabled); }
+                }
+                Rectangle { vertical-stretch: 1; }
+            }
+        }
+    }
+}

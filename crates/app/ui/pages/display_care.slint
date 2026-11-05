@@ -1,0 +1,273 @@
+import { Palette } from "../theme.slint";
+import {
+    ChromeButton, ChoiceChip, CurveStepper, DataLabel, DataValue, FanOption, FanReadout,
+    FieldInput, Hairline, InfoRow, MetricBar, MicroLabel, NavGlyph, NavItem, PowerOption,
+    ReadoutRow, SectionTitle, SignalDot, StageButton, ToggleStatusRow,
+} from "../components.slint";
+
+                        export component DisplayCarePage inherits VerticalLayout {
+    in property <int> selected-page: 0;
+    in property <bool> busy: false;
+    in property <bool> display-care-available: false;
+    in property <bool> display-care-panel-oled: false;
+    in property <bool> taskbar-auto-hide: false;
+    in property <bool> taskbar-transparency: false;
+    in property <bool> display-dark-mode: false;
+    in property <int> monitor-ac-minutes: 10;
+    in property <int> monitor-dc-minutes: 10;
+    in-out property <int> monitor-ac-requested: 10;
+    in-out property <int> monitor-dc-requested: 10;
+    in-out property <bool> screen-saver-requested-enabled: false;
+    in-out property <int> screen-saver-requested-type: 0;
+    in-out property <int> screen-saver-requested-minutes: 10;
+    callback set-display-toggle(int, bool);
+    callback apply-monitor-timeouts(int, int);
+    callback apply-screen-saver(bool, int, int);
+
+    spacing: 18px;
+
+    VerticalLayout {
+        spacing: 3px;
+        Text {
+            text: @tr("Display care");
+            color: Palette.text;
+            font-family: "Bahnschrift";
+            font-size: 27px;
+            font-weight: 600;
+        }
+        Text {
+            text: @tr("Windows presence, screen timeout, and screen-saver controls recovered from the CC4.0 OLED page.");
+            color: Palette.text-dim;
+            font-family: "Microsoft YaHei UI";
+            font-size: 12px;
+        }
+    }
+
+    HorizontalLayout {
+        spacing: 18px;
+        vertical-stretch: 1;
+
+        Rectangle {
+            width: 390px;
+            border-radius: 16px;
+            background: Palette.surface-gradient;
+            border-width: 1px;
+            border-color: Palette.line;
+            VerticalLayout {
+                padding: 22px;
+                spacing: 9px;
+                HorizontalLayout {
+                    SectionTitle { text: @tr("Windows surface"); }
+                    Rectangle { horizontal-stretch: 1; }
+                    Rectangle {
+                        width: root.display-care-panel-oled ? 58px : 44px;
+                        height: 24px;
+                        border-radius: 12px;
+                        background: root.display-care-panel-oled ? Palette.green-soft : Palette.track;
+                        Text {
+                            text: root.display-care-panel-oled ? "OLED" : "LCD";
+                            color: root.display-care-panel-oled ? Palette.green : Palette.text-faint;
+                            font-family: "Cascadia Mono";
+                            font-size: 9px;
+                            horizontal-alignment: center;
+                            vertical-alignment: center;
+                        }
+                    }
+                }
+                Hairline {}
+                Text {
+                    text: @tr("These changes are applied immediately and read back from Windows.");
+                    color: Palette.text-faint;
+                    font-family: "Microsoft YaHei UI";
+                    font-size: 10px;
+                    wrap: word-wrap;
+                }
+                ToggleStatusRow {
+                    label: @tr("Automatically hide taskbar");
+                    value: root.taskbar-auto-hide;
+                    known: root.display-care-available;
+                    busy: root.busy;
+                    toggled(enabled) => { root.set-display-toggle(0, enabled); }
+                }
+                ToggleStatusRow {
+                    label: @tr("Taskbar transparency");
+                    value: root.taskbar-transparency;
+                    known: root.display-care-available;
+                    busy: root.busy;
+                    toggled(enabled) => { root.set-display-toggle(1, enabled); }
+                }
+                ToggleStatusRow {
+                    label: @tr("Dark appearance");
+                    value: root.display-dark-mode;
+                    known: root.display-care-available;
+                    busy: root.busy;
+                    toggled(enabled) => { root.set-display-toggle(2, enabled); }
+                }
+                Rectangle { height: 4px; }
+                Text {
+                    text: root.display-care-panel-oled
+                        ? @tr("The panel reports OLED. Static taskbar elements and long display-on sessions are the main burn-in risks.")
+                        : @tr("The panel reports LCD. Pixel shifting and OLED refresh routines are not exposed; the Windows protection controls remain available.");
+                    color: Palette.text-faint;
+                    font-family: "Microsoft YaHei UI";
+                    font-size: 10px;
+                    wrap: word-wrap;
+                }
+                Rectangle { vertical-stretch: 1; }
+                Text {
+                    text: @tr("CC4.0 stores these preferences in AppSettings offsets 45–47 and applies the corresponding Windows state itself.");
+                    color: Palette.text-faint;
+                    font-family: "Microsoft YaHei UI";
+                    font-size: 9px;
+                    wrap: word-wrap;
+                }
+            }
+        }
+
+        Rectangle {
+            horizontal-stretch: 1;
+            border-radius: 16px;
+            background: Palette.surface-gradient;
+            border-width: 1px;
+            border-color: Palette.line;
+            VerticalLayout {
+                padding: 22px;
+                spacing: 10px;
+                SectionTitle { text: @tr("Timing & screen saver"); }
+                Hairline {}
+                Text {
+                    text: @tr("Monitor timeout");
+                    color: Palette.text;
+                    font-family: "Microsoft YaHei UI";
+                    font-size: 12px;
+                    font-weight: 600;
+                }
+                HorizontalLayout {
+                    spacing: 8px;
+                    CurveStepper {
+                        horizontal-stretch: 1;
+                        label: @tr("AC");
+                        value: root.monitor-ac-requested;
+                        lower: 0;
+                        upper: 300;
+                        step: 5;
+                        suffix: " min";
+                        enabled: root.display-care-available && !root.busy;
+                        changed(v) => { root.monitor-ac-requested = v; }
+                    }
+                    CurveStepper {
+                        horizontal-stretch: 1;
+                        label: @tr("BATTERY");
+                        value: root.monitor-dc-requested;
+                        lower: 0;
+                        upper: 300;
+                        step: 5;
+                        suffix: " min";
+                        enabled: root.display-care-available && !root.busy;
+                        changed(v) => { root.monitor-dc-requested = v; }
+                    }
+                }
+                Text {
+                    text: @tr("A value of 0 means the display never turns off automatically.");
+                    color: Palette.text-faint;
+                    font-family: "Microsoft YaHei UI";
+                    font-size: 9px;
+                }
+                StageButton {
+                    text: @tr("Apply monitor timeouts");
+                    primary: false;
+                    enabled: root.display-care-available && !root.busy
+                        && (root.monitor-ac-requested != root.monitor-ac-minutes || root.monitor-dc-requested != root.monitor-dc-minutes);
+                    clicked => { root.apply-monitor-timeouts(root.monitor-ac-requested, root.monitor-dc-requested); }
+                }
+                Hairline {}
+                ToggleStatusRow {
+                    label: @tr("Screen saver");
+                    value: root.screen-saver-requested-enabled;
+                    known: root.display-care-available;
+                    busy: root.busy;
+                    toggled(enabled) => {
+                        root.screen-saver-requested-enabled = enabled;
+                        if (enabled && root.screen-saver-requested-type == 0) {
+                            root.screen-saver-requested-type = 2;
+                        }
+                    }
+                }
+                HorizontalLayout {
+                    spacing: 6px;
+                    ChoiceChip {
+                        text: @tr("None");
+                        selected: root.screen-saver-requested-type == 0;
+                        clicked => {
+                            root.screen-saver-requested-type = 0;
+                            root.screen-saver-requested-enabled = false;
+                        }
+                    }
+                    ChoiceChip {
+                        text: @tr("Blank");
+                        selected: root.screen-saver-requested-type == 2;
+                        clicked => { root.screen-saver-requested-type = 2; }
+                    }
+                    ChoiceChip {
+                        text: @tr("Bubbles");
+                        selected: root.screen-saver-requested-type == 3;
+                        clicked => { root.screen-saver-requested-type = 3; }
+                    }
+                    ChoiceChip {
+                        text: @tr("Mystify");
+                        selected: root.screen-saver-requested-type == 4;
+                        clicked => { root.screen-saver-requested-type = 4; }
+                    }
+                }
+                HorizontalLayout {
+                    spacing: 6px;
+                    ChoiceChip {
+                        text: @tr("Photos");
+                        selected: root.screen-saver-requested-type == 5;
+                        clicked => { root.screen-saver-requested-type = 5; }
+                    }
+                    ChoiceChip {
+                        text: @tr("Ribbons");
+                        selected: root.screen-saver-requested-type == 6;
+                        clicked => { root.screen-saver-requested-type = 6; }
+                    }
+                    ChoiceChip {
+                        text: @tr("3D Text");
+                        selected: root.screen-saver-requested-type == 1;
+                        clicked => { root.screen-saver-requested-type = 1; }
+                    }
+                    Rectangle { horizontal-stretch: 1; }
+                }
+                HorizontalLayout {
+                    spacing: 12px;
+                    CurveStepper {
+                        horizontal-stretch: 1;
+                        label: @tr("WAIT");
+                        value: root.screen-saver-requested-minutes;
+                        lower: 0;
+                        upper: 120;
+                        step: 1;
+                        suffix: " min";
+                        enabled: root.display-care-available && !root.busy;
+                        changed(v) => { root.screen-saver-requested-minutes = v; }
+                    }
+                    StageButton {
+                        width: 206px;
+                        primary: true;
+                        text: @tr("Apply screen saver");
+                        enabled: root.display-care-available && !root.busy;
+                        clicked => { root.apply-screen-saver(root.screen-saver-requested-enabled, root.screen-saver-requested-type, root.screen-saver-requested-minutes); }
+                    }
+                }
+                Rectangle { vertical-stretch: 1; }
+                Text {
+                    text: @tr("CC4.0 uses the Windows screen-saver list and persists the selected mode at AppSettings offset 48. The timeout is written to both Windows and the desktop registry.");
+                    color: Palette.text-faint;
+                    font-family: "Microsoft YaHei UI";
+                    font-size: 9px;
+                    wrap: word-wrap;
+                }
+            }
+        }
+    }
+}
