@@ -11,6 +11,7 @@ mod formatting;
 mod input;
 mod localization;
 mod runtime_state;
+mod service_handle;
 mod smoke;
 mod system_controls;
 mod telemetry;

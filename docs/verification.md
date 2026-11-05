@@ -418,6 +418,9 @@ driver-level route if it is needed for compatibility.
 - The latest motion revision passes the compile, Clippy and test gate. Native
   frame tracing is the remaining runtime confirmation and is kept separate from
   the visual claim.
+- `scripts/check-unsafe.sh` fails if a new source file gains an `unsafe` token
+  or any allowlisted FFI file exceeds its current ceiling. The current total is
+  109.
 
 Thermal command 12 still takes roughly 330 ms at the firmware level. It runs on
 the hardware worker and does not block the UI thread.

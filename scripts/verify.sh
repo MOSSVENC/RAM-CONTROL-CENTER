@@ -17,6 +17,9 @@ export PATH="$PWD/.cargo:$PATH"
 echo "==> rustfmt"
 cargo fmt --all -- --check
 
+echo "==> unsafe boundary"
+./scripts/check-unsafe.sh
+
 echo "==> host tests"
 cargo test --workspace
 

@@ -19,9 +19,8 @@ pub struct DisplayCareState {
 #[cfg(windows)]
 pub fn display_care_state() -> Result<DisplayCareState, String> {
     let (monitor_ac_minutes, monitor_dc_minutes) = read_monitor_timeouts()?;
-    let screen_saver_enabled = read_screen_saver_active()?;
+    let (screen_saver_enabled, screen_saver_minutes) = read_screen_saver_parameters()?;
     let screen_saver_type = read_screen_saver_type()?;
-    let screen_saver_minutes = read_screen_saver_timeout_minutes()?;
     Ok(DisplayCareState {
         taskbar_auto_hide: read_taskbar_auto_hide()?,
         taskbar_transparency: read_registry_dword(
@@ -163,9 +162,8 @@ pub fn set_screen_saver(enabled: bool, screen_saver_type: u8, minutes: u32) -> R
     }
     let previous = display_care_state()?;
     set_screen_saver_raw(enabled, screen_saver_type, minutes)?;
-    let actual_enabled = read_screen_saver_active()?;
+    let (actual_enabled, actual_minutes) = read_screen_saver_parameters()?;
     let actual_type = read_screen_saver_type()?;
-    let actual_minutes = read_screen_saver_timeout_minutes()?;
     if actual_enabled == enabled && actual_type == screen_saver_type && actual_minutes == minutes {
         return Ok(());
     }
@@ -295,48 +293,40 @@ fn write_monitor_timeouts_raw(ac: u32, dc: u32) -> Result<(), String> {
 }
 
 #[cfg(windows)]
-fn read_screen_saver_active() -> Result<bool, String> {
+fn read_screen_saver_parameters() -> Result<(bool, u32), String> {
     use windows_sys::Win32::UI::WindowsAndMessaging::{
-        SPI_GETSCREENSAVEACTIVE, SystemParametersInfoW,
+        SPI_GETSCREENSAVEACTIVE, SPI_GETSCREENSAVETIMEOUT, SystemParametersInfoW,
     };
 
     let mut active = 0_i32;
-    let ok = unsafe {
-        SystemParametersInfoW(
-            SPI_GETSCREENSAVEACTIVE,
-            0,
-            (&mut active as *mut i32).cast(),
-            0,
-        )
-    };
-    if ok == 0 {
-        return read_registry_string("Control Panel\\Desktop", "ScreenSaveActive")
-            .map(|value| value.as_deref() == Some("1"));
-    }
-    Ok(active != 0)
-}
-
-#[cfg(windows)]
-fn read_screen_saver_timeout_minutes() -> Result<u32, String> {
-    use windows_sys::Win32::UI::WindowsAndMessaging::{
-        SPI_GETSCREENSAVETIMEOUT, SystemParametersInfoW,
-    };
-
     let mut seconds = 0_u32;
-    let ok = unsafe {
-        SystemParametersInfoW(
-            SPI_GETSCREENSAVETIMEOUT,
-            0,
-            (&mut seconds as *mut u32).cast(),
-            0,
+    let (active_ok, timeout_ok) = unsafe {
+        (
+            SystemParametersInfoW(
+                SPI_GETSCREENSAVEACTIVE,
+                0,
+                (&mut active as *mut i32).cast(),
+                0,
+            ),
+            SystemParametersInfoW(
+                SPI_GETSCREENSAVETIMEOUT,
+                0,
+                (&mut seconds as *mut u32).cast(),
+                0,
+            ),
         )
     };
-    if ok == 0 {
-        seconds = read_registry_string("Control Panel\\Desktop", "ScreenSaveTimeOut")?
+    let enabled = if active_ok == 0 {
+        read_registry_string(r"Control Panel\Desktop", "ScreenSaveActive")?.as_deref() == Some("1")
+    } else {
+        active != 0
+    };
+    if timeout_ok == 0 {
+        seconds = read_registry_string(r"Control Panel\Desktop", "ScreenSaveTimeOut")?
             .and_then(|value| value.parse::<u32>().ok())
             .unwrap_or(0);
     }
-    Ok(seconds / 60)
+    Ok((enabled, seconds / 60))
 }
 
 #[cfg(windows)]
@@ -408,20 +398,20 @@ fn set_screen_saver_raw(enabled: bool, screen_saver_type: u8, minutes: u32) -> R
         "ScreenSaveTimeOut",
         &seconds.to_string(),
     )?;
-    let active_ok = unsafe {
-        SystemParametersInfoW(
-            SPI_SETSCREENSAVEACTIVE,
-            u32::from(enabled),
-            std::ptr::null_mut(),
-            SPIF_SENDWININICHANGE,
-        )
-    };
-    let timeout_ok = unsafe {
-        SystemParametersInfoW(
-            SPI_SETSCREENSAVETIMEOUT,
-            seconds,
-            std::ptr::null_mut(),
-            SPIF_SENDWININICHANGE,
+    let (active_ok, timeout_ok) = unsafe {
+        (
+            SystemParametersInfoW(
+                SPI_SETSCREENSAVEACTIVE,
+                u32::from(enabled),
+                std::ptr::null_mut(),
+                SPIF_SENDWININICHANGE,
+            ),
+            SystemParametersInfoW(
+                SPI_SETSCREENSAVETIMEOUT,
+                seconds,
+                std::ptr::null_mut(),
+                SPIF_SENDWININICHANGE,
+            ),
         )
     };
     if active_ok == 0 || timeout_ok == 0 {

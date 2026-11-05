@@ -34,6 +34,7 @@ worker/             power/fan, RGB, input, I/O controls and snapshot sampling
 ui_update.rs        typed update snapshot -> Slint property application
 flexikey_ui.rs      FlexiKey page/editor state and profile persistence
 system_controls/    audio, display, display-care, radio and registry helpers
+service_handle.rs   shared service-control-manager RAII handle
 smoke.rs            reversible transport/control smoke commands
 ```
 
@@ -71,8 +72,10 @@ ACPI responses use the `AeoB` frame header and typed descriptors. The parser
 rejects truncated headers, truncated descriptors, short integer records and
 output buffers that received fewer bytes than requested.
 
-`windows_backend.rs` keeps handle lifecycle, raw IOCTL/settings access and shared
-rollback helpers. Its domain modules contain only the typed platform operations:
+`win_device.rs` is the common signed-device open/ioctl/close boundary used by
+both AcpiBridge and HKKbdFltr. `windows_backend.rs` keeps DCHU frame assembly,
+settings access and shared rollback helpers. Its domain modules contain only
+the typed platform operations:
 
 ```text
 windows_backend/telemetry.rs       command 12/13, platform and capabilities

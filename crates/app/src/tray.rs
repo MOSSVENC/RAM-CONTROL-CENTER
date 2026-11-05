@@ -183,12 +183,16 @@ mod platform {
     impl SingleInstance {
         pub fn acquire() -> Result<Option<Self>, String> {
             let name = wide(MUTEX_NAME);
-            let handle = unsafe { CreateMutexW(ptr::null(), 1, name.as_ptr()) };
+            let (handle, already_exists) = unsafe {
+                let handle = CreateMutexW(ptr::null(), 1, name.as_ptr());
+                let already_exists = !handle.is_null() && GetLastError() == ERROR_ALREADY_EXISTS;
+                (handle, already_exists)
+            };
             if handle.is_null() {
                 return Err(last_error("CreateMutexW"));
             }
-            if unsafe { GetLastError() } == ERROR_ALREADY_EXISTS {
-                unsafe { CloseHandle(handle) };
+            if already_exists {
+                close_handle(handle);
                 for _ in 0..20 {
                     if signal_existing() {
                         return Ok(None);
@@ -203,9 +207,7 @@ mod platform {
 
     impl Drop for SingleInstance {
         fn drop(&mut self) {
-            if !self.handle.is_null() {
-                unsafe { CloseHandle(self.handle) };
-            }
+            close_handle(self.handle);
         }
     }
 
@@ -312,7 +314,7 @@ mod platform {
             context.window = window as usize;
         }
         if !add_icon(window) {
-            unsafe { DestroyWindow(window) };
+            destroy_window(window);
             return Err(last_error("Shell_NotifyIconW(NIM_ADD)"));
         }
         let _ = ready.send(Ok(window as usize));
@@ -356,7 +358,7 @@ mod platform {
         }
         match message {
             WM_CLOSE => {
-                unsafe { DestroyWindow(hwnd) };
+                destroy_window(hwnd);
                 0
             }
             WM_DESTROY => {
@@ -411,14 +413,12 @@ mod platform {
         let mut data = notify_data(hwnd, icon);
         let tip_len = tip.len().min(data.szTip.len());
         data.szTip[..tip_len].copy_from_slice(&tip[..tip_len]);
-        unsafe { Shell_NotifyIconW(NIM_ADD, &data) != 0 }
+        notify_icon(NIM_ADD, &data)
     }
 
     fn remove_icon(hwnd: HWND) {
         let data = notify_data(hwnd, ptr::null_mut());
-        unsafe {
-            Shell_NotifyIconW(NIM_DELETE, &data);
-        }
+        notify_icon(NIM_DELETE, &data);
     }
 
     fn notify_data(hwnd: HWND, icon: HICON) -> NOTIFYICONDATAW {
@@ -465,6 +465,20 @@ mod platform {
         unsafe { DefWindowProcW(hwnd, message, wparam, lparam) }
     }
 
+    fn destroy_window(hwnd: HWND) {
+        unsafe { DestroyWindow(hwnd) };
+    }
+
+    fn notify_icon(action: u32, data: &NOTIFYICONDATAW) -> bool {
+        unsafe { Shell_NotifyIconW(action, data) != 0 }
+    }
+
+    fn close_handle(handle: HANDLE) {
+        if !handle.is_null() {
+            unsafe { CloseHandle(handle) };
+        }
+    }
+
     fn show_ui(context: &Mutex<TrayContext>) {
         let (ui, main_window) = context
             .lock()
@@ -484,11 +498,10 @@ mod platform {
 
     fn signal_existing() -> bool {
         let class_name = wide(WINDOW_CLASS);
-        let window = unsafe { FindWindowW(class_name.as_ptr(), ptr::null()) };
-        if window.is_null() {
-            return false;
+        unsafe {
+            let window = FindWindowW(class_name.as_ptr(), ptr::null());
+            !window.is_null() && PostMessageW(window, SHOW_MESSAGE, 0, 0) != 0
         }
-        unsafe { PostMessageW(window, SHOW_MESSAGE, 0, 0) != 0 }
     }
 
     fn load_icon() -> (HICON, bool) {

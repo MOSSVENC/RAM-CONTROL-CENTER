@@ -8,10 +8,10 @@ vendor package; no BIOS, EC, driver or vendor binary was modified for them.
 | Dimension | Score | Reading |
 |---|---:|---|
 | Protocol-layer cohesion | 9.0 / 10 | One transport boundary with typed telemetry, power/fan, RGB, GPU, charging, input and quick-toggle modules |
-| OS-integration cohesion | 8.7 / 10 | Boot, tray, telemetry, input and display concerns have named modules; Win32 handles and resources are wrapped behind domain helpers |
+| OS-integration cohesion | 8.8 / 10 | Boot, tray, telemetry, input and display concerns have named modules; Win32 handles and resources are wrapped behind RAII helpers |
 | App/UI cohesion | 8.5 / 10 | Startup orchestration, worker, callbacks, controls, pages and dialogs are separated; the latest motion path still needs native-frame confirmation |
 | Module coupling | 9.2 / 10 | Crate graph is acyclic; worker commands, UI updates and page callback boundaries are typed |
-| Maintainability | 9.0 / 10 | Hardware worker is split by responsibility, resource cleanup uses RAII, CI and hardware smoke gates exist; FlexiKey and raw FFI remain the largest modules |
+| Maintainability | 9.1 / 10 | Hardware worker and native resource lifetimes are split by responsibility; an unsafe ratchet prevents new FFI escape points |
 | Portability | 8.0 / 10 | Capability-driven UI and an ACPI-device override support other CC4.0 models; model offsets and validation remain machine-specific |
 | Overall | **8.9 / 10** | Strong boundary architecture, green native CI, repeatable verification and a documented compatibility path |
 
@@ -23,13 +23,13 @@ and the unavoidable low-level Windows/FFI surface.
 ## Code metrics
 
 ```text
-total measured lines       19,539
-Rust lines                 13,740
+total measured lines       19,504
+Rust lines                 13,705
 Slint lines                 4,736
 translation lines           1,063
-Rust source modules            44
+Rust source modules            46
 Slint source modules           16
-unsafe token occurrences      129
+unsafe token occurrences      109
 test functions                 42
 host-executed tests            39
 ```
@@ -123,9 +123,10 @@ Remaining debt:
 - `flexikey_ui.rs` is 1,213 lines; its editor/profile state is the next
   candidate for functional split. The hardware worker is now 330 lines plus
   five focused submodules.
-- There are 129 `unsafe` token occurrences. They are localized around Windows
-  IOCTL/FFI, but `telemetry.rs` (27), `tray.rs` (26), `boot_service.rs` (17)
-  and `flexikey_engine.rs` (10) remain the largest clusters.
+- There are 109 `unsafe` token occurrences. They are localized around Windows
+  IOCTL/FFI, with `telemetry.rs` (26), `tray.rs` (21), `boot_service.rs` (13)
+  and `flexikey_engine.rs` (10) as the largest clusters. `scripts/check-unsafe.sh`
+  fails on a new file or any per-file count increase.
 - The automated suite covers protocol encoding and app-side logic. Live
   AcpiBridge/EC behavior is exercised by `scripts/hardware-smoke.ps1`, which
   cannot run on a generic CI runner.
@@ -138,6 +139,7 @@ Remaining debt:
 
 ```text
 cargo fmt --all -- --check
+./scripts/check-unsafe.sh
 cargo test --workspace
 cargo clippy --workspace --all-targets \
   --target x86_64-pc-windows-gnu -- -D warnings

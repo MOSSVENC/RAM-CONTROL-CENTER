@@ -311,18 +311,21 @@ mod windows_impl {
     }
 
     fn formatted_value(counter: PDH_HCOUNTER) -> Option<f64> {
-        let mut value = PDH_FMT_COUNTERVALUE::default();
-        let mut counter_type = 0_u32;
-        let status = unsafe {
-            PdhGetFormattedCounterValue(counter, PDH_FMT_DOUBLE, &mut counter_type, &mut value)
+        let value = unsafe {
+            let mut value = PDH_FMT_COUNTERVALUE::default();
+            let mut counter_type = 0_u32;
+            let status =
+                PdhGetFormattedCounterValue(counter, PDH_FMT_DOUBLE, &mut counter_type, &mut value);
+            if status != 0
+                || (value.CStatus != PDH_CSTATUS_VALID_DATA
+                    && value.CStatus != PDH_CSTATUS_NEW_DATA)
+            {
+                None
+            } else {
+                Some(value.Anonymous.doubleValue)
+            }
         };
-        if status != 0
-            || (value.CStatus != PDH_CSTATUS_VALID_DATA && value.CStatus != PDH_CSTATUS_NEW_DATA)
-        {
-            return None;
-        }
-        let value = unsafe { value.Anonymous.doubleValue };
-        value.is_finite().then_some(value)
+        value.filter(|value| value.is_finite())
     }
 
     #[repr(C)]
@@ -373,6 +376,13 @@ mod windows_impl {
     }
 
     type Device = *mut c_void;
+    type NvmlUtilizationFn = unsafe extern "system" fn(Device, *mut NvmlUtilization) -> i32;
+    type NvmlTemperatureFn = unsafe extern "system" fn(Device, i32, *mut u32) -> i32;
+    type NvmlClockFn = unsafe extern "system" fn(Device, i32, *mut u32) -> i32;
+    type NvmlMemoryFn = unsafe extern "system" fn(Device, *mut NvmlMemory) -> i32;
+    type NvmlInitFn = unsafe extern "system" fn() -> i32;
+    type NvmlCountFn = unsafe extern "system" fn(*mut u32) -> i32;
+    type NvmlHandleFn = unsafe extern "system" fn(u32, *mut Device) -> i32;
 
     struct ModuleHandle(HMODULE);
 
@@ -393,21 +403,20 @@ mod windows_impl {
     struct Nvml {
         _module: ModuleHandle,
         device: Device,
-        get_utilization: unsafe extern "system" fn(Device, *mut NvmlUtilization) -> i32,
-        get_temperature: unsafe extern "system" fn(Device, i32, *mut u32) -> i32,
-        get_clock: unsafe extern "system" fn(Device, i32, *mut u32) -> i32,
-        get_memory: unsafe extern "system" fn(Device, *mut NvmlMemory) -> i32,
+        get_utilization: NvmlUtilizationFn,
+        get_temperature: NvmlTemperatureFn,
+        get_clock: NvmlClockFn,
+        get_memory: NvmlMemoryFn,
     }
 
     impl Nvml {
         fn open() -> Option<Self> {
             let module = load_nvml()?;
             unsafe {
-                let init: Option<unsafe extern "system" fn() -> i32> =
-                    symbol(module.raw(), b"nvmlInit_v2\0");
-                let get_count: Option<unsafe extern "system" fn(*mut u32) -> i32> =
+                let init: Option<NvmlInitFn> = symbol(module.raw(), b"nvmlInit_v2\0");
+                let get_count: Option<NvmlCountFn> =
                     symbol(module.raw(), b"nvmlDeviceGetCount_v2\0");
-                let get_handle: Option<unsafe extern "system" fn(u32, *mut Device) -> i32> =
+                let get_handle: Option<NvmlHandleFn> =
                     symbol(module.raw(), b"nvmlDeviceGetHandleByIndex_v2\0");
                 let get_utilization = symbol(module.raw(), b"nvmlDeviceGetUtilizationRates\0")?;
                 let get_temperature = symbol(module.raw(), b"nvmlDeviceGetTemperature\0")?;

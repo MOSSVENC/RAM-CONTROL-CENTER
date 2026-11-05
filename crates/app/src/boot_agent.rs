@@ -224,12 +224,9 @@ pub fn run() -> i32 {
 
 #[cfg(windows)]
 fn ensure_acpi_bridge_service() -> Result<(), String> {
+    use crate::service_handle::{ScHandle, error_code};
     use std::os::windows::ffi::OsStrExt;
-    use windows_sys::Win32::Foundation::GetLastError;
-    use windows_sys::Win32::System::Services::{
-        CloseServiceHandle, OpenSCManagerW, OpenServiceW, SC_MANAGER_CONNECT, SERVICE_START,
-        StartServiceW,
-    };
+    use windows_sys::Win32::System::Services::{SC_MANAGER_CONNECT, SERVICE_START, StartServiceW};
 
     const ERROR_SERVICE_ALREADY_RUNNING: u32 = 1056;
 
@@ -241,27 +238,17 @@ fn ensure_acpi_bridge_service() -> Result<(), String> {
     }
 
     let manager_name = wide("AcpiBridge");
-    let manager = unsafe { OpenSCManagerW(std::ptr::null(), std::ptr::null(), SC_MANAGER_CONNECT) };
-    if manager.is_null() {
-        return Err(format!(
-            "OpenSCManagerW failed: {}",
-            std::io::Error::last_os_error()
-        ));
-    }
-
-    let service = unsafe { OpenServiceW(manager, manager_name.as_ptr(), SERVICE_START) };
-    if service.is_null() {
-        let error = std::io::Error::last_os_error();
-        unsafe { CloseServiceHandle(manager) };
-        return Err(format!("OpenServiceW(AcpiBridge) failed: {error}"));
-    }
-
-    let started = unsafe { StartServiceW(service, 0, std::ptr::null()) };
-    let code = unsafe { GetLastError() };
-    unsafe {
-        CloseServiceHandle(service);
-        CloseServiceHandle(manager);
-    }
+    let manager = ScHandle::open_manager(SC_MANAGER_CONNECT)?;
+    let service = manager
+        .open_service(&manager_name, SERVICE_START)
+        .map_err(|code| {
+            format!(
+                "OpenServiceW(AcpiBridge) failed: {} (code {code})",
+                std::io::Error::from_raw_os_error(code as i32)
+            )
+        })?;
+    let started = unsafe { StartServiceW(service.raw(), 0, std::ptr::null()) };
+    let code = error_code();
     if started != 0 || code == ERROR_SERVICE_ALREADY_RUNNING {
         return Ok(());
     }

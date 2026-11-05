@@ -10,6 +10,8 @@ use std::fmt;
 
 mod flexikey;
 mod keyboard_filter;
+#[cfg(windows)]
+mod win_device;
 pub use flexikey::{
     FlexiKeyAction, FlexiKeyBinding, FlexiKeyDevice, FlexiKeyError, FlexiKeyProfile, FlexiKeyStore,
     MacroStep, MacroStepKind,

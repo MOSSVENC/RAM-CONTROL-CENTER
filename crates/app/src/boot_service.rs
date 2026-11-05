@@ -16,23 +16,22 @@ mod platform {
     use windows_sys::Win32::Foundation::ERROR_SERVICE_SPECIFIC_ERROR;
     use windows_sys::Win32::Foundation::{
         ERROR_SERVICE_ALREADY_RUNNING, ERROR_SERVICE_DOES_NOT_EXIST, ERROR_SERVICE_EXISTS,
-        GetLastError,
     };
     use windows_sys::Win32::Storage::FileSystem::DELETE;
     use windows_sys::Win32::System::Services::{
-        ChangeServiceConfig2W, ChangeServiceConfigW, CloseServiceHandle, ControlService,
-        CreateServiceW, DeleteService, OpenSCManagerW, OpenServiceW, RegisterServiceCtrlHandlerExW,
-        SC_ACTION, SC_ACTION_RESTART, SC_HANDLE, SC_MANAGER_CONNECT, SC_MANAGER_CREATE_SERVICE,
-        SERVICE_ALL_ACCESS, SERVICE_AUTO_START, SERVICE_CHANGE_CONFIG, SERVICE_CONFIG_DESCRIPTION,
-        SERVICE_CONFIG_FAILURE_ACTIONS, SERVICE_CONFIG_FAILURE_ACTIONS_FLAG, SERVICE_CONTROL_STOP,
-        SERVICE_DESCRIPTIONW, SERVICE_ERROR_NORMAL, SERVICE_FAILURE_ACTIONS_FLAG,
-        SERVICE_FAILURE_ACTIONSW, SERVICE_QUERY_STATUS, SERVICE_RUNNING, SERVICE_START,
-        SERVICE_START_PENDING, SERVICE_STATUS, SERVICE_STATUS_HANDLE, SERVICE_STOP,
-        SERVICE_STOPPED, SERVICE_TABLE_ENTRYW, SERVICE_WIN32_OWN_PROCESS, SetServiceStatus,
-        StartServiceCtrlDispatcherW, StartServiceW,
+        ChangeServiceConfig2W, ChangeServiceConfigW, ControlService, CreateServiceW, DeleteService,
+        RegisterServiceCtrlHandlerExW, SC_ACTION, SC_ACTION_RESTART, SC_MANAGER_CONNECT,
+        SC_MANAGER_CREATE_SERVICE, SERVICE_ALL_ACCESS, SERVICE_AUTO_START, SERVICE_CHANGE_CONFIG,
+        SERVICE_CONFIG_DESCRIPTION, SERVICE_CONFIG_FAILURE_ACTIONS,
+        SERVICE_CONFIG_FAILURE_ACTIONS_FLAG, SERVICE_CONTROL_STOP, SERVICE_DESCRIPTIONW,
+        SERVICE_ERROR_NORMAL, SERVICE_FAILURE_ACTIONS_FLAG, SERVICE_FAILURE_ACTIONSW,
+        SERVICE_QUERY_STATUS, SERVICE_RUNNING, SERVICE_START, SERVICE_START_PENDING,
+        SERVICE_STATUS, SERVICE_STATUS_HANDLE, SERVICE_STOP, SERVICE_STOPPED, SERVICE_TABLE_ENTRYW,
+        SERVICE_WIN32_OWN_PROCESS, SetServiceStatus, StartServiceCtrlDispatcherW, StartServiceW,
     };
 
     use crate::boot_agent;
+    use crate::service_handle::{ScHandle, error_code};
 
     const SERVICE_NAME: &str = "NeoControlBoot";
     const SERVICE_DISPLAY_NAME: &str = "Neo Control Boot Agent";
@@ -40,38 +39,6 @@ mod platform {
         "Applies the persisted Neo Control power policy before the user shell starts.";
     const SERVICE_DEPENDENCY: &str = "AcpiBridge";
     const SERVICE_WAIT_MS: u32 = 120_000;
-
-    struct ScHandle(SC_HANDLE);
-
-    impl ScHandle {
-        fn open_manager(access: u32) -> Result<Self, String> {
-            let handle = unsafe { OpenSCManagerW(ptr::null(), ptr::null(), access) };
-            Self::owned(handle).ok_or_else(|| last_error("OpenSCManagerW"))
-        }
-
-        fn open_service(&self, name: &[u16], access: u32) -> Result<Self, u32> {
-            let handle = unsafe { OpenServiceW(self.0, name.as_ptr(), access) };
-            if handle.is_null() {
-                Err(error_code())
-            } else {
-                Ok(Self(handle))
-            }
-        }
-
-        fn owned(handle: SC_HANDLE) -> Option<Self> {
-            (!handle.is_null()).then_some(Self(handle))
-        }
-
-        fn raw(&self) -> SC_HANDLE {
-            self.0
-        }
-    }
-
-    impl Drop for ScHandle {
-        fn drop(&mut self) {
-            unsafe { CloseServiceHandle(self.0) };
-        }
-    }
 
     pub fn run_dispatcher() -> i32 {
         let mut name = wide(SERVICE_NAME);
@@ -386,16 +353,8 @@ mod platform {
         output
     }
 
-    fn error_code() -> u32 {
-        unsafe { GetLastError() }
-    }
-
     fn last_error(operation: &str) -> String {
-        let code = error_code();
-        format!(
-            "{operation} failed: {} (code {code})",
-            std::io::Error::from_raw_os_error(code as i32)
-        )
+        crate::service_handle::last_error(operation)
     }
 }
 

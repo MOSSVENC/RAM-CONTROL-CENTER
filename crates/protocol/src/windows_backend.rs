@@ -1,15 +1,7 @@
-use std::os::windows::ffi::OsStrExt;
 use std::thread;
 use std::time::{Duration, Instant};
 
-use windows_sys::Win32::Foundation::{
-    CloseHandle, GENERIC_READ, GENERIC_WRITE, HANDLE, INVALID_HANDLE_VALUE,
-};
-use windows_sys::Win32::Storage::FileSystem::{
-    CreateFileW, FILE_SHARE_READ, FILE_SHARE_WRITE, OPEN_EXISTING,
-};
-use windows_sys::Win32::System::IO::DeviceIoControl;
-
+use crate::win_device::WinDevice;
 use crate::{DchuError, FanMode, PowerMode, QuickToggle, Result};
 
 mod charging;
@@ -33,21 +25,13 @@ const ACPI_READ_GUID: [u8; 16] = [
 ];
 
 pub struct Dchu {
-    handle: HANDLE,
+    device: WinDevice,
     path: String,
 }
 
 impl std::fmt::Debug for Dchu {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("Dchu").field("path", &self.path).finish()
-    }
-}
-
-impl Drop for Dchu {
-    fn drop(&mut self) {
-        if self.handle != INVALID_HANDLE_VALUE && !self.handle.is_null() {
-            unsafe { CloseHandle(self.handle) };
-        }
     }
 }
 
@@ -58,8 +42,8 @@ impl Dchu {
             .map(|value| value.trim().to_owned())
             .filter(|value| !value.is_empty())
             .unwrap_or_else(|| DEVICE_PATH.to_owned());
-        let handle = open_device(&path)?;
-        Ok(Self { handle, path })
+        let device = WinDevice::open(&path, 0, "CreateFileW(AcpiBridge)")?;
+        Ok(Self { device, path })
     }
 
     pub fn path(&self) -> &str {
@@ -138,25 +122,12 @@ impl Dchu {
         request[4..6].copy_from_slice(&address.to_le_bytes());
         request[6..8].copy_from_slice(&length.to_le_bytes());
         request[8..8 + payload.len()].copy_from_slice(payload);
-        let mut returned = 0_u32;
-        let ok = unsafe {
-            DeviceIoControl(
-                self.handle,
-                IOCTL_ACPI_SETTINGS,
-                request.as_ptr().cast(),
-                request.len() as u32,
-                std::ptr::null_mut(),
-                0,
-                &mut returned,
-                std::ptr::null_mut(),
-            )
-        };
-        if ok == 0 {
-            return Err(DchuError::Status {
-                operation: "DeviceIoControl(0x32240C write)",
-                code: std::io::Error::last_os_error().raw_os_error().unwrap_or(-1),
-            });
-        }
+        self.ioctl(
+            IOCTL_ACPI_SETTINGS,
+            &request,
+            &mut [],
+            "DeviceIoControl(0x32240C write)",
+        )?;
         Ok(())
     }
 
@@ -164,25 +135,12 @@ impl Dchu {
         let mut request = [0_u8; 12];
         request[4..8].copy_from_slice(&0x1000_0000_u32.to_le_bytes());
         let mut output = [0_u8; SETTINGS_BUFFER_LEN];
-        let mut returned = 0_u32;
-        let ok = unsafe {
-            DeviceIoControl(
-                self.handle,
-                IOCTL_ACPI_SETTINGS,
-                request.as_ptr().cast(),
-                request.len() as u32,
-                output.as_mut_ptr().cast(),
-                output.len() as u32,
-                &mut returned,
-                std::ptr::null_mut(),
-            )
-        };
-        if ok == 0 {
-            return Err(DchuError::Status {
-                operation: "DeviceIoControl(0x32240C read)",
-                code: std::io::Error::last_os_error().raw_os_error().unwrap_or(-1),
-            });
-        }
+        let returned = self.ioctl(
+            IOCTL_ACPI_SETTINGS,
+            &request,
+            &mut output,
+            "DeviceIoControl(0x32240C read)",
+        )?;
         if returned as usize != SETTINGS_BUFFER_LEN {
             return Err(DchuError::ControlFailed {
                 operation: "read ACPI settings",
@@ -213,27 +171,24 @@ impl Dchu {
         request[34..34 + payload.len()].copy_from_slice(payload);
 
         let mut response = [0_u8; ACPI_RESPONSE_LEN];
-        let mut returned = 0_u32;
-        let ok = unsafe {
-            DeviceIoControl(
-                self.handle,
-                IOCTL_ACPI_DCHU,
-                request.as_ptr().cast(),
-                request.len() as u32,
-                response.as_mut_ptr().cast(),
-                response.len() as u32,
-                &mut returned,
-                std::ptr::null_mut(),
-            )
-        };
-        if ok == 0 {
-            return Err(DchuError::Status {
-                operation: "DeviceIoControl(0x322400)",
-                code: std::io::Error::last_os_error().raw_os_error().unwrap_or(-1),
-            });
-        }
+        let returned = self.ioctl(
+            IOCTL_ACPI_DCHU,
+            &request,
+            &mut response,
+            "DeviceIoControl(0x322400)",
+        )?;
         parse_acpi_payload(&response, returned, output)?;
         Ok(())
+    }
+
+    fn ioctl(
+        &self,
+        code: u32,
+        input: &[u8],
+        output: &mut [u8],
+        operation: &'static str,
+    ) -> Result<u32> {
+        self.device.ioctl(code, input, output, operation)
     }
 
     fn apply_power_mode(&self, mode: u8) -> Result<()> {
@@ -337,31 +292,6 @@ impl Dchu {
             ),
         }
     }
-}
-
-fn open_device(path: &str) -> Result<HANDLE> {
-    let wide = std::ffi::OsStr::new(path)
-        .encode_wide()
-        .chain(std::iter::once(0))
-        .collect::<Vec<_>>();
-    let handle = unsafe {
-        CreateFileW(
-            wide.as_ptr(),
-            GENERIC_READ | GENERIC_WRITE,
-            FILE_SHARE_READ | FILE_SHARE_WRITE,
-            std::ptr::null(),
-            OPEN_EXISTING,
-            0,
-            std::ptr::null_mut(),
-        )
-    };
-    if handle == INVALID_HANDLE_VALUE {
-        return Err(DchuError::Status {
-            operation: "CreateFileW(AcpiBridge)",
-            code: std::io::Error::last_os_error().raw_os_error().unwrap_or(-1),
-        });
-    }
-    Ok(handle)
 }
 
 fn parse_acpi_payload(response: &[u8], returned: u32, output: &mut [u8]) -> Result<usize> {

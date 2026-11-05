@@ -157,54 +157,26 @@ pub fn encode_filter_macro_removal(trigger: &[FilterRecord]) -> Vec<u8> {
 
 #[cfg(windows)]
 mod platform {
-    use std::os::windows::ffi::OsStrExt;
-
-    use windows_sys::Win32::Foundation::{
-        CloseHandle, GENERIC_READ, GENERIC_WRITE, HANDLE, INVALID_HANDLE_VALUE,
-    };
-    use windows_sys::Win32::Storage::FileSystem::{
-        CreateFileW, FILE_SHARE_READ, FILE_SHARE_WRITE, OPEN_EXISTING,
-    };
-    use windows_sys::Win32::System::IO::DeviceIoControl;
-
     use super::{
         FilterMacro, FilterRecord, IOCTL_ADD_FILTER_MACRO, IOCTL_CLEAR_FILTER_MACRO,
         IOCTL_ENABLE_FILTER, IOCTL_ENABLE_USB_DEVICE, encode_filter_macro, trigger_variants,
         validate_macros,
     };
+    use crate::win_device::WinDevice;
     use crate::{DchuError, Result};
 
     pub const DEVICE_PATH: &str = r"\\.\{2dc8164f-3a23-4d71-9fa6-91f9ead88613}";
 
     #[derive(Debug)]
     pub struct KeyboardFilter {
-        handle: HANDLE,
+        device: WinDevice,
     }
 
     impl KeyboardFilter {
         pub fn open() -> Result<Self> {
-            let wide = std::ffi::OsStr::new(DEVICE_PATH)
-                .encode_wide()
-                .chain(std::iter::once(0))
-                .collect::<Vec<_>>();
-            let handle = unsafe {
-                CreateFileW(
-                    wide.as_ptr(),
-                    GENERIC_READ | GENERIC_WRITE,
-                    FILE_SHARE_READ | FILE_SHARE_WRITE,
-                    std::ptr::null(),
-                    OPEN_EXISTING,
-                    0x80,
-                    std::ptr::null_mut(),
-                )
-            };
-            if handle == INVALID_HANDLE_VALUE {
-                return Err(DchuError::Status {
-                    operation: "CreateFileW(HKKbdFltr)",
-                    code: std::io::Error::last_os_error().raw_os_error().unwrap_or(-1),
-                });
-            }
-            Ok(Self { handle })
+            Ok(Self {
+                device: WinDevice::open(DEVICE_PATH, 0x80, "CreateFileW(HKKbdFltr)")?,
+            })
         }
 
         pub fn set_enabled(&self, enabled: bool) -> Result<()> {
@@ -285,36 +257,8 @@ mod platform {
         }
 
         fn ioctl(&self, code: u32, input: &[u8], operation: &'static str) -> Result<()> {
-            let mut returned = 0_u32;
-            let ok = unsafe {
-                DeviceIoControl(
-                    self.handle,
-                    code,
-                    if input.is_empty() {
-                        std::ptr::null()
-                    } else {
-                        input.as_ptr().cast()
-                    },
-                    input.len() as u32,
-                    std::ptr::null_mut(),
-                    0,
-                    &mut returned,
-                    std::ptr::null_mut(),
-                )
-            };
-            if ok == 0 {
-                return Err(DchuError::Status {
-                    operation,
-                    code: std::io::Error::last_os_error().raw_os_error().unwrap_or(-1),
-                });
-            }
+            self.device.ioctl(code, input, &mut [], operation)?;
             Ok(())
-        }
-    }
-
-    impl Drop for KeyboardFilter {
-        fn drop(&mut self) {
-            unsafe { CloseHandle(self.handle) };
         }
     }
 }
