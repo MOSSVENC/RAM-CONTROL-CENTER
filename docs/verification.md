@@ -428,12 +428,11 @@ background handle        median 62.9 ms   range 62.1–64.0 ms
 hooks + tray + worker    median 466.9 ms  range 447.9–496.7 ms
 ```
 
-Ten extracted pages were captured at the production size: Overview,
-Performance, Cooling, Fan curve, Battery, Lighting, FlexiKey, Input & I/O,
-Display care and Settings. They retained live telemetry, Chinese labels, the
-central `NEO CONTROL` title, GPU composition and the existing animations. No
-captured page was blank or clipped. The System page compiled through the same
-typed component boundary but was not separately screenshotted in this pass.
+All eleven extracted pages were captured at the production size: Overview,
+Performance, Cooling, Fan curve, Battery, System, Lighting, FlexiKey,
+Input & I/O, Display care and Settings. They retained live telemetry, Chinese
+labels, the central `NEO CONTROL` title, GPU composition and the existing
+animations. No captured page was blank or clipped.
 
 
 ## Backend/control module split

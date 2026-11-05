@@ -247,13 +247,12 @@ Startup ratios are reported only where a paired measurement was possible.
 ## Runtime regression check
 
 The refactored Release build was deployed to
-`C:\ProgramData\NeoControl\neo-control.exe`. Ten page components were captured
-and reviewed at the production 1180×820 size: overview, performance, cooling,
-fan curve, battery, lighting, FlexiKey, input/output, display care and settings.
-They rendered with live telemetry and the original theme. The Settings page
-still reports GPU composition and the centered uppercase `NEO CONTROL` title.
-The System page was compiled through the same typed page boundary but was not
-separately screenshotted in this pass.
+`C:\ProgramData\NeoControl\neo-control.exe`. All eleven page components were
+captured and reviewed at the production 1180×820 size: overview, performance,
+cooling, fan curve, battery, system, lighting, FlexiKey, input/output, display
+care and settings. They rendered with live telemetry and the original theme.
+The Settings page still reports GPU composition and the centered uppercase
+`NEO CONTROL` title.
 
 After the backend/control split, the hardware smoke suite again exercised live
 telemetry, camera/touchpad/airplane restore, Windows display care and DCHU
