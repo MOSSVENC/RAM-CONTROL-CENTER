@@ -277,11 +277,12 @@ Neo Control uses the recovered page 2 keyboard state layout and the initialized
 - RGB brightness, color, effects, sleep timer and boot effect have been
   exercised through the direct transport.
 
-This is a user-mode DLL crash, not a BIOS/EC write. No firmware was modified.
+The diagnostic crash was confined to a user-mode process; firmware remained
+unchanged.
 
 ## Critical correction: `SetDCHU_DataEx` and encoded key 302
 
-See `docs/research/il-corrections.md` for the verified IL evidence.
+The verified IL evidence is summarized by the corrections below.
 
 - `SetDCHU_DataEx` requires a full 256-byte output landing buffer.
 - The value `302` is not a DCHU command. It is `page 1 * 256 + offset 46`,
@@ -315,5 +316,5 @@ The signed keyboard filter is a separate device:
 \\.\{2dc8164f-3a23-4d71-9fa6-91f9ead88613}
 ```
 
-Its IOCTLs and 16-byte collection frames are documented in
-`docs/research/keyboard-filter.md`.
+The implemented IOCTLs and 16-byte collection frames are documented in
+[`docs/verification.md`](verification.md).
