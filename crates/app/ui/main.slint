@@ -51,6 +51,7 @@ export component MainWindow inherits Window {
     in property <bool> busy: false;
     in-out property <bool> language-zh: true;
     in-out property <float> page-opacity: 1.0;
+    in-out property <float> page-shift: 0.0;
     in-out property <float> theme-flash: 0.0;
     in-out property <bool> quiet-dialog-open: false;
     in property <bool> transport-ready: false;
@@ -548,12 +549,19 @@ export component MainWindow inherits Window {
                     clip: true;
                     opacity: root.page-opacity;
                     animate opacity { duration: 180ms; easing: cubic-bezier(0.22, 1, 0.36, 1); }
-                    VerticalLayout {
-                        padding-left: 28px;
-                        padding-right: 28px;
-                        padding-top: 24px;
-                        padding-bottom: 24px;
-                        spacing: 18px;
+                    page-surface := Rectangle {
+                        x: root.page-shift * 1px;
+                        width: parent.width;
+                        height: parent.height;
+                        animate x { duration: 180ms; easing: cubic-bezier(0.22, 1, 0.36, 1); }
+                        VerticalLayout {
+                            width: parent.width;
+                            height: parent.height;
+                            padding-left: 28px;
+                            padding-right: 28px;
+                            padding-top: 24px;
+                            padding-bottom: 24px;
+                            spacing: 18px;
 
                         // ------------------------------------------------- Overview
                         if root.selected-page == 0 : OverviewPage {
@@ -881,6 +889,7 @@ export component MainWindow inherits Window {
                         }
 
                         Rectangle { vertical-stretch: 1; }
+                        }
                     }
                 }
             }

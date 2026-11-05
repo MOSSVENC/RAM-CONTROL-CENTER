@@ -187,7 +187,7 @@ CC40 plus two DLLs       33,246,592 bytes
 Current Neo Control:
 
 ```text
-neo-control.exe          10,765,312 bytes
+neo-control.exe          10,759,168 bytes
 ```
 
 ```text

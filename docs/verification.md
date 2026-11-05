@@ -13,8 +13,8 @@ target/x86_64-pc-windows-gnu/release/neo-dchu-probe.exe
 Last successful Release cross-build after the final audit fixes:
 
 ```text
-neo-control.exe        10,765,312 bytes
-sha256                 b8950248abf982402bf14f2fcb79bc0b50917fe1a601ea3bc664184d3119884a
+neo-control.exe        10,759,168 bytes
+sha256                 b4866417be6ef9089d9c6c87dbefdf63aa207e6adfb9b53f1877fc74a85c673e
 neo-dchu-probe.exe     about 346 KB
 ```
 
