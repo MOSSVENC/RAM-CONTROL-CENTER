@@ -29,7 +29,8 @@ concerns are isolated behind named modules:
 ```text
 main.rs             process entry and top-level composition
 ui_callbacks.rs     Slint callback -> typed WorkerCommand wiring
-worker.rs           AcpiBridge discovery, command dispatch and telemetry loop
+worker.rs           worker state machine, command dispatch, retry and UI handoff
+worker/             power/fan, RGB, input, I/O controls and snapshot sampling
 ui_update.rs        typed update snapshot -> Slint property application
 flexikey_ui.rs      FlexiKey page/editor state and profile persistence
 system_controls/    audio, display, display-care, radio and registry helpers

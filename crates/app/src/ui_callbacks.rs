@@ -23,10 +23,24 @@ static PAGE_EPOCH: AtomicU64 = AtomicU64::new(0);
 static THEME_EPOCH: AtomicU64 = AtomicU64::new(0);
 
 const PAGE_FADE_MS: u64 = 180;
-const PAGE_SETTLE_MS: u64 = 16;
+const PAGE_ENTER_DELAY_MS: u64 = 1;
 const PAGE_SLIDE_PX: f32 = 14.0;
 const THEME_COVER_MS: u64 = 190;
 const THEME_HOLD_MS: u64 = 24;
+
+fn enter_page(ui: &MainWindow, epoch: u64) {
+    ui.set_page_shift(PAGE_SLIDE_PX);
+    ui.set_page_opacity(0.0);
+    let weak = ui.as_weak();
+    slint::Timer::single_shot(Duration::from_millis(PAGE_ENTER_DELAY_MS), move || {
+        if PAGE_EPOCH.load(Ordering::Relaxed) == epoch
+            && let Some(ui) = weak.upgrade()
+        {
+            ui.set_page_opacity(1.0);
+            ui.set_page_shift(0.0);
+        }
+    });
+}
 
 pub(crate) fn wire_ui(
     ui: &MainWindow,
@@ -55,16 +69,7 @@ pub(crate) fn wire_ui(
                 return;
             };
             ui.set_selected_page(page);
-            ui.set_page_shift(PAGE_SLIDE_PX);
-            let weak_for_fade_in = ui.as_weak();
-            slint::Timer::single_shot(Duration::from_millis(PAGE_SETTLE_MS), move || {
-                if PAGE_EPOCH.load(Ordering::Relaxed) == epoch
-                    && let Some(ui) = weak_for_fade_in.upgrade()
-                {
-                    ui.set_page_opacity(1.0);
-                    ui.set_page_shift(0.0);
-                }
-            });
+            enter_page(&ui, epoch);
         });
     });
 
@@ -96,17 +101,8 @@ pub(crate) fn wire_ui(
                 return;
             };
             ui.set_language_zh(zh);
-            ui.set_page_shift(PAGE_SLIDE_PX);
             render_flexikey(&ui, &flexikey_state_for_fade.borrow());
-            let weak_for_fade_in = ui.as_weak();
-            slint::Timer::single_shot(Duration::from_millis(PAGE_SETTLE_MS), move || {
-                if PAGE_EPOCH.load(Ordering::Relaxed) == epoch
-                    && let Some(ui) = weak_for_fade_in.upgrade()
-                {
-                    ui.set_page_opacity(1.0);
-                    ui.set_page_shift(0.0);
-                }
-            });
+            enter_page(&ui, epoch);
             let _ = tx.send(WorkerCommand::Refresh);
         });
     });

@@ -332,20 +332,28 @@ mod platform {
         }
     }
 
+    fn call_next_hook(code: i32, wparam: WPARAM, lparam: LPARAM) -> LRESULT {
+        unsafe { CallNextHookEx(ptr::null_mut(), code, wparam, lparam) }
+    }
+
+    fn map_virtual_key(code: u32, mode: u32) -> u32 {
+        unsafe { MapVirtualKeyW(code, mode) }
+    }
+
     unsafe extern "system" fn keyboard_hook(code: i32, wparam: WPARAM, lparam: LPARAM) -> LRESULT {
         if code < 0 {
-            return unsafe { CallNextHookEx(ptr::null_mut(), code, wparam, lparam) };
+            return call_next_hook(code, wparam, lparam);
         }
         let message = wparam as u32;
         let down = message == WM_KEYDOWN || message == WM_SYSKEYDOWN;
         let up = message == WM_KEYUP || message == WM_SYSKEYUP;
         if !down && !up {
-            return unsafe { CallNextHookEx(ptr::null_mut(), code, wparam, lparam) };
+            return call_next_hook(code, wparam, lparam);
         }
 
         let keyboard = unsafe { &*(lparam as *const KBDLLHOOKSTRUCT) };
         if keyboard.flags & LLKHF_INJECTED != 0 && keyboard.dwExtraInfo == INJECTION_MAGIC {
-            return unsafe { CallNextHookEx(ptr::null_mut(), code, wparam, lparam) };
+            return call_next_hook(code, wparam, lparam);
         }
         let key = cc40_key_code(keyboard);
         if down
@@ -361,14 +369,14 @@ mod platform {
             return 1;
         }
         let Some(engine) = ENGINE.get() else {
-            return unsafe { CallNextHookEx(ptr::null_mut(), code, wparam, lparam) };
+            return call_next_hook(code, wparam, lparam);
         };
         let Ok(mut engine) = engine.lock() else {
-            return unsafe { CallNextHookEx(ptr::null_mut(), code, wparam, lparam) };
+            return call_next_hook(code, wparam, lparam);
         };
         let Some(action) = engine.keyboard_actions.get(&key).cloned() else {
             drop(engine);
-            return unsafe { CallNextHookEx(ptr::null_mut(), code, wparam, lparam) };
+            return call_next_hook(code, wparam, lparam);
         };
         if down {
             if engine.keyboard_down.insert(key) {
@@ -391,7 +399,7 @@ mod platform {
 
     unsafe extern "system" fn mouse_hook(code: i32, wparam: WPARAM, lparam: LPARAM) -> LRESULT {
         if code < 0 {
-            return unsafe { CallNextHookEx(ptr::null_mut(), code, wparam, lparam) };
+            return call_next_hook(code, wparam, lparam);
         }
         let message = wparam as u32;
         let down = matches!(
@@ -403,7 +411,7 @@ mod platform {
             WM_LBUTTONUP | WM_RBUTTONUP | WM_MBUTTONUP | WM_XBUTTONUP
         );
         if !down && !up {
-            return unsafe { CallNextHookEx(ptr::null_mut(), code, wparam, lparam) };
+            return call_next_hook(code, wparam, lparam);
         }
         let mouse = unsafe { &*(lparam as *const MSLLHOOKSTRUCT) };
         if matches!(message, WM_XBUTTONDOWN | WM_XBUTTONUP) {
@@ -413,7 +421,7 @@ mod platform {
             ));
         }
         let Some(button) = super::cc40_mouse_code(message, mouse.mouseData) else {
-            return unsafe { CallNextHookEx(ptr::null_mut(), code, wparam, lparam) };
+            return call_next_hook(code, wparam, lparam);
         };
         if down
             && capture_down(CapturedTrigger {
@@ -428,14 +436,14 @@ mod platform {
             return 1;
         }
         let Some(engine) = ENGINE.get() else {
-            return unsafe { CallNextHookEx(ptr::null_mut(), code, wparam, lparam) };
+            return call_next_hook(code, wparam, lparam);
         };
         let Ok(mut engine) = engine.lock() else {
-            return unsafe { CallNextHookEx(ptr::null_mut(), code, wparam, lparam) };
+            return call_next_hook(code, wparam, lparam);
         };
         let Some(action) = engine.mouse_actions.get(&button).cloned() else {
             drop(engine);
-            return unsafe { CallNextHookEx(ptr::null_mut(), code, wparam, lparam) };
+            return call_next_hook(code, wparam, lparam);
         };
         if down {
             if engine.mouse_down.insert(button) {
@@ -615,12 +623,12 @@ mod platform {
             }
         };
 
-        let mapped = unsafe { MapVirtualKeyW(u32::from(virtual_key), MAPVK_VK_TO_VSC_EX) };
+        let mapped = map_virtual_key(u32::from(virtual_key), MAPVK_VK_TO_VSC_EX);
         let (scan_code, extended) = if mapped & 0xff00 == 0xe000 {
             ((mapped & 0xff) as u16, true)
         } else {
             let scan_code = (mapped & 0xff) as u16;
-            let fallback = unsafe { MapVirtualKeyW(u32::from(virtual_key), MAPVK_VK_TO_VSC) };
+            let fallback = map_virtual_key(u32::from(virtual_key), MAPVK_VK_TO_VSC);
             let scan_code = if scan_code == 0 {
                 (fallback & 0xff) as u16
             } else {
@@ -697,7 +705,7 @@ mod platform {
     fn send_scan_key(key: u16, up: bool) -> Result<(), String> {
         let extended = key >= 0xe000;
         let scan = if extended { key & 0xff } else { key };
-        let virtual_key = unsafe { MapVirtualKeyW(u32::from(scan), MAPVK_VSC_TO_VK_EX) } as u16;
+        let virtual_key = map_virtual_key(u32::from(scan), MAPVK_VSC_TO_VK_EX) as u16;
         let mut flags = 0;
         if extended {
             flags |= KEYEVENTF_EXTENDEDKEY;

@@ -20,11 +20,6 @@ mod platform {
         CloseHandle, ERROR_ALREADY_EXISTS, GetLastError, HANDLE, HWND, RECT,
     };
     use windows_sys::Win32::System::LibraryLoader::GetModuleHandleW;
-    use windows_sys::Win32::System::Registry::{
-        HKEY_CURRENT_USER, KEY_QUERY_VALUE, KEY_SET_VALUE, REG_OPTION_NON_VOLATILE, REG_SZ,
-        RegCloseKey, RegCreateKeyExW, RegDeleteValueW, RegOpenKeyExW, RegQueryValueExW,
-        RegSetValueExW,
-    };
     use windows_sys::Win32::System::Threading::CreateMutexW;
     use windows_sys::Win32::UI::Shell::{
         NIF_ICON, NIF_MESSAGE, NIF_TIP, NIM_ADD, NIM_DELETE, NOTIFYICONDATAW, NOTIFYICONDATAW_0,
@@ -71,15 +66,13 @@ mod platform {
             return;
         }
         let window = window as HWND;
-        let mut rect = RECT::default();
-        let (width, height) = unsafe {
-            if GetWindowRect(window, &mut rect) != 0 {
+        unsafe {
+            let mut rect = RECT::default();
+            let (width, height) = if GetWindowRect(window, &mut rect) != 0 {
                 (rect.right - rect.left, rect.bottom - rect.top)
             } else {
                 (1180, 820)
-            }
-        };
-        unsafe {
+            };
             SetWindowPos(
                 window,
                 ptr::null_mut(),
@@ -114,19 +107,17 @@ mod platform {
             return;
         }
         let window = window as HWND;
-        let mut rect = RECT::default();
-        let (width, height) = unsafe {
-            if GetWindowRect(window, &mut rect) != 0 {
+        unsafe {
+            let mut rect = RECT::default();
+            let (width, height) = if GetWindowRect(window, &mut rect) != 0 {
                 (rect.right - rect.left, rect.bottom - rect.top)
             } else {
                 (1180, 820)
-            }
-        };
-        let screen_width = unsafe { GetSystemMetrics(SM_CXSCREEN) };
-        let screen_height = unsafe { GetSystemMetrics(SM_CYSCREEN) };
-        let x = ((screen_width - width) / 2).max(0);
-        let y = ((screen_height - height) / 2).max(0);
-        unsafe {
+            };
+            let screen_width = GetSystemMetrics(SM_CXSCREEN);
+            let screen_height = GetSystemMetrics(SM_CYSCREEN);
+            let x = ((screen_width - width) / 2).max(0);
+            let y = ((screen_height - height) / 2).max(0);
             SetWindowPos(window, HWND_TOP, x, y, width, height, SWP_SHOWWINDOW);
             ShowWindow(window, SW_RESTORE);
             ShowWindow(window, SW_SHOW);
@@ -167,118 +158,22 @@ mod platform {
         if executable.contains('"') {
             return Err("the executable path contains a quote".to_owned());
         }
-        let command = format!("\"{executable}\" --background");
-        let key_name = wide(RUN_KEY_PATH);
-        let value_name = wide(RUN_VALUE_NAME);
-        let mut key = ptr::null_mut();
-        let status = unsafe {
-            RegCreateKeyExW(
-                HKEY_CURRENT_USER,
-                key_name.as_ptr(),
-                0,
-                ptr::null(),
-                REG_OPTION_NON_VOLATILE,
-                KEY_SET_VALUE,
-                ptr::null(),
-                &mut key,
-                ptr::null_mut(),
-            )
-        };
-        if status != 0 {
-            return Err(format!(
-                "RegCreateKeyExW failed: {} (code {status})",
-                std::io::Error::from_raw_os_error(status as i32)
-            ));
-        }
-        let bytes = command
-            .encode_utf16()
-            .chain(std::iter::once(0))
-            .flat_map(u16::to_le_bytes)
-            .collect::<Vec<_>>();
-        let status = unsafe {
-            RegSetValueExW(
-                key,
-                value_name.as_ptr(),
-                0,
-                REG_SZ,
-                bytes.as_ptr(),
-                bytes.len() as u32,
-            )
-        };
-        unsafe { RegCloseKey(key) };
-        if status != 0 {
-            return Err(format!(
-                "RegSetValueExW failed: {} (code {status})",
-                std::io::Error::from_raw_os_error(status as i32)
-            ));
-        }
-        Ok(())
+        crate::system_controls::registry::write_registry_string(
+            RUN_KEY_PATH,
+            RUN_VALUE_NAME,
+            &format!("\"{executable}\" --background"),
+        )
     }
 
     pub fn uninstall_startup() -> Result<(), String> {
-        let key_name = wide(RUN_KEY_PATH);
-        let value_name = wide(RUN_VALUE_NAME);
-        let mut key = ptr::null_mut();
-        let status = unsafe {
-            RegOpenKeyExW(
-                HKEY_CURRENT_USER,
-                key_name.as_ptr(),
-                0,
-                KEY_SET_VALUE,
-                &mut key,
-            )
-        };
-        if status == 2 {
-            return Ok(());
-        }
-        if status != 0 {
-            return Err(format!(
-                "RegOpenKeyExW failed: {} (code {status})",
-                std::io::Error::from_raw_os_error(status as i32)
-            ));
-        }
-        let status = unsafe { RegDeleteValueW(key, value_name.as_ptr()) };
-        unsafe { RegCloseKey(key) };
-        if status != 0 && status != 2 {
-            return Err(format!(
-                "RegDeleteValueW failed: {} (code {status})",
-                std::io::Error::from_raw_os_error(status as i32)
-            ));
-        }
-        Ok(())
+        crate::system_controls::registry::delete_registry_value(RUN_KEY_PATH, RUN_VALUE_NAME)
     }
 
     pub fn startup_enabled() -> bool {
-        let key_name = wide(RUN_KEY_PATH);
-        let value_name = wide(RUN_VALUE_NAME);
-        let mut key = ptr::null_mut();
-        let status = unsafe {
-            RegOpenKeyExW(
-                HKEY_CURRENT_USER,
-                key_name.as_ptr(),
-                0,
-                KEY_QUERY_VALUE,
-                &mut key,
-            )
-        };
-        if status != 0 {
-            return false;
-        }
-        let mut kind = 0;
-        let mut bytes = [0_u8; 1024];
-        let mut length = bytes.len() as u32;
-        let status = unsafe {
-            RegQueryValueExW(
-                key,
-                value_name.as_ptr(),
-                ptr::null(),
-                &mut kind,
-                bytes.as_mut_ptr(),
-                &mut length,
-            )
-        };
-        unsafe { RegCloseKey(key) };
-        status == 0 && kind == REG_SZ && length > 2
+        crate::system_controls::registry::read_registry_string(RUN_KEY_PATH, RUN_VALUE_NAME)
+            .ok()
+            .flatten()
+            .is_some_and(|value| !value.is_empty())
     }
 
     pub struct SingleInstance {
@@ -353,31 +248,36 @@ mod platform {
     ) -> Result<(), String> {
         let class_name = wide(WINDOW_CLASS);
         let title = wide(WINDOW_TITLE);
-        let module = unsafe { GetModuleHandleW(ptr::null()) };
         let icon = load_icon();
+        let taskbar_name = wide("TaskbarCreated");
         let window_class = WNDCLASSW {
             style: 0,
             lpfnWndProc: Some(window_proc),
             cbClsExtra: 0,
             cbWndExtra: 0,
-            hInstance: module,
+            hInstance: std::ptr::null_mut(),
             hIcon: icon.0,
             hCursor: ptr::null_mut(),
             hbrBackground: ptr::null_mut(),
             lpszMenuName: ptr::null(),
             lpszClassName: class_name.as_ptr(),
         };
-        let registered = unsafe { RegisterClassW(&window_class) };
+        let (module, registered, taskbar_created) = unsafe {
+            let module = GetModuleHandleW(ptr::null());
+            let mut window_class = window_class;
+            window_class.hInstance = module;
+            (
+                module,
+                RegisterClassW(&window_class),
+                RegisterWindowMessageW(taskbar_name.as_ptr()),
+            )
+        };
         if registered == 0 {
             let error = last_error("RegisterClassW");
             if !error.contains("1410") {
                 return Err(error);
             }
         }
-        let taskbar_created = {
-            let name = wide("TaskbarCreated");
-            unsafe { RegisterWindowMessageW(name.as_ptr()) }
-        };
         let context = TrayContext {
             window: 0,
             main_window,
@@ -419,13 +319,16 @@ mod platform {
 
         let mut message = windows_sys::Win32::UI::WindowsAndMessaging::MSG::default();
         loop {
-            let result = unsafe { GetMessageW(&mut message, ptr::null_mut(), 0, 0) };
+            let result = unsafe {
+                let result = GetMessageW(&mut message, ptr::null_mut(), 0, 0);
+                if result > 0 {
+                    TranslateMessage(&message);
+                    DispatchMessageW(&message);
+                }
+                result
+            };
             if result <= 0 {
                 break;
-            }
-            unsafe {
-                TranslateMessage(&message);
-                DispatchMessageW(&message);
             }
         }
         let _ = slint::invoke_from_event_loop(|| {
@@ -441,7 +344,7 @@ mod platform {
         lparam: isize,
     ) -> isize {
         let Some(context) = CONTEXT.get() else {
-            return unsafe { DefWindowProcW(hwnd, message, wparam, lparam) };
+            return default_window_proc(hwnd, message, wparam, lparam);
         };
         let is_taskbar_created = context
             .lock()
@@ -458,14 +361,16 @@ mod platform {
             }
             WM_DESTROY => {
                 remove_icon(hwnd);
-                if let Ok(mut context) = context.lock()
-                    && context.owns_icon
-                    && context.icon != 0
-                {
-                    unsafe { DestroyIcon(context.icon as HICON) };
-                    context.icon = 0;
+                unsafe {
+                    if let Ok(mut context) = context.lock()
+                        && context.owns_icon
+                        && context.icon != 0
+                    {
+                        DestroyIcon(context.icon as HICON);
+                        context.icon = 0;
+                    }
+                    PostQuitMessage(0);
                 }
-                unsafe { PostQuitMessage(0) };
                 0
             }
             SHOW_MESSAGE => {
@@ -491,7 +396,7 @@ mod platform {
                 }
                 0
             }
-            _ => unsafe { DefWindowProcW(hwnd, message, wparam, lparam) },
+            _ => default_window_proc(hwnd, message, wparam, lparam),
         }
     }
 
@@ -530,13 +435,13 @@ mod platform {
     }
 
     fn show_menu(hwnd: HWND) {
-        let menu = unsafe { CreatePopupMenu() };
-        if menu.is_null() {
-            return;
-        }
         let open = wide("打开 Neo Control");
         let exit = wide("退出");
         unsafe {
+            let menu = CreatePopupMenu();
+            if menu.is_null() {
+                return;
+            }
             AppendMenuW(menu, MF_STRING, MENU_OPEN, open.as_ptr());
             AppendMenuW(menu, MF_STRING, MENU_EXIT, exit.as_ptr());
             let mut point = Default::default();
@@ -554,6 +459,10 @@ mod platform {
             PostMessageW(hwnd, WM_COMMAND, command, 0);
             DestroyMenu(menu);
         }
+    }
+
+    fn default_window_proc(hwnd: HWND, message: u32, wparam: usize, lparam: isize) -> isize {
+        unsafe { DefWindowProcW(hwnd, message, wparam, lparam) }
     }
 
     fn show_ui(context: &Mutex<TrayContext>) {

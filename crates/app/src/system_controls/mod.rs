@@ -1,10 +1,12 @@
 mod audio;
 mod display;
 mod display_care;
+#[cfg(windows)]
+mod power;
 mod radio;
 
 #[cfg(windows)]
-mod registry;
+pub(crate) mod registry;
 
 pub use audio::{AudioState, audio_state, set_audio_mute, set_audio_volume};
 pub use display::{screen_brightness, set_blue_light_filter, set_screen_brightness};

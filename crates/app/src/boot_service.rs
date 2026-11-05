@@ -22,7 +22,7 @@ mod platform {
     use windows_sys::Win32::System::Services::{
         ChangeServiceConfig2W, ChangeServiceConfigW, CloseServiceHandle, ControlService,
         CreateServiceW, DeleteService, OpenSCManagerW, OpenServiceW, RegisterServiceCtrlHandlerExW,
-        SC_ACTION, SC_ACTION_RESTART, SC_MANAGER_CONNECT, SC_MANAGER_CREATE_SERVICE,
+        SC_ACTION, SC_ACTION_RESTART, SC_HANDLE, SC_MANAGER_CONNECT, SC_MANAGER_CREATE_SERVICE,
         SERVICE_ALL_ACCESS, SERVICE_AUTO_START, SERVICE_CHANGE_CONFIG, SERVICE_CONFIG_DESCRIPTION,
         SERVICE_CONFIG_FAILURE_ACTIONS, SERVICE_CONFIG_FAILURE_ACTIONS_FLAG, SERVICE_CONTROL_STOP,
         SERVICE_DESCRIPTIONW, SERVICE_ERROR_NORMAL, SERVICE_FAILURE_ACTIONS_FLAG,
@@ -41,6 +41,38 @@ mod platform {
     const SERVICE_DEPENDENCY: &str = "AcpiBridge";
     const SERVICE_WAIT_MS: u32 = 120_000;
 
+    struct ScHandle(SC_HANDLE);
+
+    impl ScHandle {
+        fn open_manager(access: u32) -> Result<Self, String> {
+            let handle = unsafe { OpenSCManagerW(ptr::null(), ptr::null(), access) };
+            Self::owned(handle).ok_or_else(|| last_error("OpenSCManagerW"))
+        }
+
+        fn open_service(&self, name: &[u16], access: u32) -> Result<Self, u32> {
+            let handle = unsafe { OpenServiceW(self.0, name.as_ptr(), access) };
+            if handle.is_null() {
+                Err(error_code())
+            } else {
+                Ok(Self(handle))
+            }
+        }
+
+        fn owned(handle: SC_HANDLE) -> Option<Self> {
+            (!handle.is_null()).then_some(Self(handle))
+        }
+
+        fn raw(&self) -> SC_HANDLE {
+            self.0
+        }
+    }
+
+    impl Drop for ScHandle {
+        fn drop(&mut self) {
+            unsafe { CloseServiceHandle(self.0) };
+        }
+    }
+
     pub fn run_dispatcher() -> i32 {
         let mut name = wide(SERVICE_NAME);
         let table = [
@@ -56,7 +88,7 @@ mod platform {
 
         let started = unsafe { StartServiceCtrlDispatcherW(table.as_ptr()) };
         if started == 0 {
-            let code = unsafe { GetLastError() };
+            let code = error_code();
             eprintln!(
                 "could not connect to the Windows service dispatcher: {} (code {code})",
                 std::io::Error::from_raw_os_error(code as i32)
@@ -145,20 +177,10 @@ mod platform {
         let dependency = wide_multi(&[SERVICE_DEPENDENCY]);
         let command_line_wide = wide(&command_line);
 
-        let manager = unsafe {
-            OpenSCManagerW(
-                ptr::null(),
-                ptr::null(),
-                SC_MANAGER_CREATE_SERVICE | SC_MANAGER_CONNECT,
-            )
-        };
-        if manager.is_null() {
-            return Err(last_error("OpenSCManagerW"));
-        }
-
-        let mut service = unsafe {
+        let manager = ScHandle::open_manager(SC_MANAGER_CREATE_SERVICE | SC_MANAGER_CONNECT)?;
+        let created = unsafe {
             CreateServiceW(
-                manager,
+                manager.raw(),
                 service_name.as_ptr(),
                 display_name.as_ptr(),
                 SERVICE_ALL_ACCESS,
@@ -173,36 +195,30 @@ mod platform {
                 ptr::null(),
             )
         };
-
-        if service.is_null() {
-            let code = unsafe { GetLastError() };
+        let service = if let Some(service) = ScHandle::owned(created) {
+            service
+        } else {
+            let code = error_code();
             if code != ERROR_SERVICE_EXISTS {
-                unsafe { CloseServiceHandle(manager) };
                 return Err(format!(
                     "CreateServiceW failed: {} (code {code})",
                     std::io::Error::from_raw_os_error(code as i32)
                 ));
             }
-
-            service = unsafe {
-                OpenServiceW(
-                    manager,
-                    service_name.as_ptr(),
+            let service = manager
+                .open_service(
+                    &service_name,
                     SERVICE_CHANGE_CONFIG | SERVICE_START | SERVICE_QUERY_STATUS,
                 )
-            };
-            if service.is_null() {
-                let code = unsafe { GetLastError() };
-                unsafe { CloseServiceHandle(manager) };
-                return Err(format!(
-                    "OpenServiceW failed: {} (code {code})",
-                    std::io::Error::from_raw_os_error(code as i32)
-                ));
-            }
-
+                .map_err(|code| {
+                    format!(
+                        "OpenServiceW failed: {} (code {code})",
+                        std::io::Error::from_raw_os_error(code as i32)
+                    )
+                })?;
             let changed = unsafe {
                 ChangeServiceConfigW(
-                    service,
+                    service.raw(),
                     SERVICE_WIN32_OWN_PROCESS,
                     SERVICE_AUTO_START,
                     SERVICE_ERROR_NORMAL,
@@ -216,48 +232,37 @@ mod platform {
                 )
             };
             if changed == 0 {
-                let code = unsafe { GetLastError() };
-                close(service, manager);
-                return Err(format!(
-                    "ChangeServiceConfigW failed: {} (code {code})",
-                    std::io::Error::from_raw_os_error(code as i32)
-                ));
+                return Err(last_error("ChangeServiceConfigW"));
             }
-        }
+            service
+        };
 
         let service_description = SERVICE_DESCRIPTIONW {
             lpDescription: description.as_mut_ptr(),
         };
         unsafe {
             ChangeServiceConfig2W(
-                service,
+                service.raw(),
                 SERVICE_CONFIG_DESCRIPTION,
                 (&service_description as *const SERVICE_DESCRIPTIONW).cast(),
             );
         }
 
-        if let Err(error) = configure_failure_actions(service) {
-            close(service, manager);
-            return Err(error);
-        }
+        configure_failure_actions(&service)?;
 
-        let started = unsafe { StartServiceW(service, 0, ptr::null()) };
-        let code = unsafe { GetLastError() };
+        let started = unsafe { StartServiceW(service.raw(), 0, ptr::null()) };
+        let code = error_code();
         if started == 0 && code != ERROR_SERVICE_ALREADY_RUNNING {
-            close(service, manager);
             return Err(format!(
                 "StartServiceW failed: {} (code {code})",
                 std::io::Error::from_raw_os_error(code as i32)
             ));
         }
 
-        close(service, manager);
         Ok(command_line)
     }
 
-    fn configure_failure_actions(
-        service: windows_sys::Win32::System::Services::SC_HANDLE,
-    ) -> Result<(), String> {
+    fn configure_failure_actions(service: &ScHandle) -> Result<(), String> {
         let mut actions = [
             SC_ACTION {
                 Type: SC_ACTION_RESTART,
@@ -281,7 +286,7 @@ mod platform {
         };
         let configured = unsafe {
             ChangeServiceConfig2W(
-                service,
+                service.raw(),
                 SERVICE_CONFIG_FAILURE_ACTIONS,
                 (&failure_actions as *const SERVICE_FAILURE_ACTIONSW).cast(),
             )
@@ -295,7 +300,7 @@ mod platform {
         };
         let configured = unsafe {
             ChangeServiceConfig2W(
-                service,
+                service.raw(),
                 SERVICE_CONFIG_FAILURE_ACTIONS_FLAG,
                 (&failure_flag as *const SERVICE_FAILURE_ACTIONS_FLAG).cast(),
             )
@@ -321,38 +326,31 @@ mod platform {
 
     fn uninstall_inner() -> Result<(), String> {
         let service_name = wide(SERVICE_NAME);
-        let manager = unsafe { OpenSCManagerW(ptr::null(), ptr::null(), SC_MANAGER_CONNECT) };
-        if manager.is_null() {
-            return Err(last_error("OpenSCManagerW"));
-        }
-        let service = unsafe {
-            OpenServiceW(
-                manager,
-                service_name.as_ptr(),
-                DELETE | SERVICE_STOP | SERVICE_QUERY_STATUS,
-            )
-        };
-        if service.is_null() {
-            let code = unsafe { GetLastError() };
-            unsafe { CloseServiceHandle(manager) };
-            if code == ERROR_SERVICE_DOES_NOT_EXIST {
-                return Ok(());
+        let manager = ScHandle::open_manager(SC_MANAGER_CONNECT)?;
+        let service = match manager
+            .open_service(&service_name, DELETE | SERVICE_STOP | SERVICE_QUERY_STATUS)
+        {
+            Ok(service) => service,
+            Err(_) => {
+                let code = error_code();
+                if code == ERROR_SERVICE_DOES_NOT_EXIST {
+                    return Ok(());
+                }
+                return Err(format!(
+                    "OpenServiceW failed: {} (code {code})",
+                    std::io::Error::from_raw_os_error(code as i32)
+                ));
             }
-            return Err(format!(
-                "OpenServiceW failed: {} (code {code})",
-                std::io::Error::from_raw_os_error(code as i32)
-            ));
-        }
+        };
 
         let mut status = SERVICE_STATUS::default();
         unsafe {
-            ControlService(service, SERVICE_CONTROL_STOP, &mut status);
+            ControlService(service.raw(), SERVICE_CONTROL_STOP, &mut status);
             std::thread::sleep(Duration::from_millis(100));
         }
 
-        let deleted = unsafe { DeleteService(service) };
-        let code = unsafe { GetLastError() };
-        close(service, manager);
+        let deleted = unsafe { DeleteService(service.raw()) };
+        let code = error_code();
         if deleted == 0 {
             return Err(format!(
                 "DeleteService failed: {} (code {code})",
@@ -388,22 +386,12 @@ mod platform {
         output
     }
 
-    fn close(
-        service: windows_sys::Win32::System::Services::SC_HANDLE,
-        manager: windows_sys::Win32::System::Services::SC_HANDLE,
-    ) {
-        unsafe {
-            if !service.is_null() {
-                CloseServiceHandle(service);
-            }
-            if !manager.is_null() {
-                CloseServiceHandle(manager);
-            }
-        }
+    fn error_code() -> u32 {
+        unsafe { GetLastError() }
     }
 
     fn last_error(operation: &str) -> String {
-        let code = unsafe { GetLastError() };
+        let code = error_code();
         format!(
             "{operation} failed: {} (code {code})",
             std::io::Error::from_raw_os_error(code as i32)

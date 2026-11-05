@@ -280,13 +280,13 @@ Neo Control uses the recovered page 2 keyboard state layout and the initialized
 The diagnostic crash was confined to a user-mode process; firmware remained
 unchanged.
 
-## Critical correction: `SetDCHU_DataEx` and encoded key 302
+## Verified `SetDCHU_DataEx` and app-settings encoding
 
 The verified IL evidence is summarized by the corrections below.
 
 - `SetDCHU_DataEx` requires a full 256-byte output landing buffer.
-- The value `302` is not a DCHU command. It is `page 1 * 256 + offset 46`,
-  an encoded app-settings key used through `WriteAppSettings(1,46,1,...)`.
+- App-settings keys encode `page * 256 + offset`; `302` resolves to
+  `WriteAppSettings(1, 46, 1, ...)`.
 - FlexiCharger writes are `SetDCHU_DataEx(4,[31,enabled,start,stop],4,out256)`
   followed by `WriteAppSettings(1,46,1,[mode])`.
 

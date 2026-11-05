@@ -261,92 +261,31 @@ fn set_dark_mode_raw(enabled: bool) -> Result<(), String> {
 
 #[cfg(windows)]
 fn read_monitor_timeouts() -> Result<(u32, u32), String> {
-    use windows_sys::Win32::Foundation::LocalFree;
-    use windows_sys::Win32::System::Power::{
-        PowerGetActiveScheme, PowerReadACValueIndex, PowerReadDCValueIndex,
-    };
+    use super::power;
     use windows_sys::core::GUID;
 
     const VIDEO_SUBGROUP: GUID = GUID::from_u128(0x7516b95f_f776_4464_8c53_06167f40cc99);
     const VIDEO_POWERDOWN: GUID = GUID::from_u128(0x3c0bc021_c8a8_4e07_a973_6b14cbcb2b7e);
 
-    unsafe {
-        let mut scheme_ptr: *mut GUID = std::ptr::null_mut();
-        if PowerGetActiveScheme(std::ptr::null_mut(), &mut scheme_ptr) != 0 || scheme_ptr.is_null()
-        {
-            return Err("could not read the active power scheme".to_owned());
-        }
-        let scheme = *scheme_ptr;
-        let mut ac = 0_u32;
-        let mut dc = 0_u32;
-        let ac_result = PowerReadACValueIndex(
-            std::ptr::null_mut(),
-            &scheme,
-            &VIDEO_SUBGROUP,
-            &VIDEO_POWERDOWN,
-            &mut ac,
-        );
-        let dc_result = PowerReadDCValueIndex(
-            std::ptr::null_mut(),
-            &scheme,
-            &VIDEO_SUBGROUP,
-            &VIDEO_POWERDOWN,
-            &mut dc,
-        );
-        LocalFree(scheme_ptr.cast());
-        if ac_result != 0 || dc_result != 0 {
-            return Err("the active power scheme does not expose monitor timeout".to_owned());
-        }
-        Ok((ac / 60, dc / 60))
-    }
+    let (ac, dc) = power::read_pair(&VIDEO_SUBGROUP, &VIDEO_POWERDOWN)
+        .map_err(|_| "the active power scheme does not expose monitor timeout".to_owned())?;
+    Ok((ac / 60, dc / 60))
 }
 
 #[cfg(windows)]
 fn write_monitor_timeout_raw(ac: bool, minutes: u32) -> Result<(), String> {
-    use windows_sys::Win32::Foundation::LocalFree;
-    use windows_sys::Win32::System::Power::{
-        PowerGetActiveScheme, PowerSetActiveScheme, PowerWriteACValueIndex, PowerWriteDCValueIndex,
-    };
+    use super::power;
     use windows_sys::core::GUID;
 
     const VIDEO_SUBGROUP: GUID = GUID::from_u128(0x7516b95f_f776_4464_8c53_06167f40cc99);
     const VIDEO_POWERDOWN: GUID = GUID::from_u128(0x3c0bc021_c8a8_4e07_a973_6b14cbcb2b7e);
     let seconds = minutes.saturating_mul(60);
-
-    unsafe {
-        let mut scheme_ptr: *mut GUID = std::ptr::null_mut();
-        if PowerGetActiveScheme(std::ptr::null_mut(), &mut scheme_ptr) != 0 || scheme_ptr.is_null()
-        {
-            return Err("could not read the active power scheme".to_owned());
-        }
-        let scheme = *scheme_ptr;
-        let result = if ac {
-            PowerWriteACValueIndex(
-                std::ptr::null_mut(),
-                &scheme,
-                &VIDEO_SUBGROUP,
-                &VIDEO_POWERDOWN,
-                seconds,
-            )
-        } else {
-            PowerWriteDCValueIndex(
-                std::ptr::null_mut(),
-                &scheme,
-                &VIDEO_SUBGROUP,
-                &VIDEO_POWERDOWN,
-                seconds,
-            )
-        };
-        if result == 0 {
-            let _ = PowerSetActiveScheme(std::ptr::null_mut(), &scheme);
-        }
-        LocalFree(scheme_ptr.cast());
-        if result == 0 {
-            Ok(())
-        } else {
-            Err("could not update monitor timeout".to_owned())
-        }
-    }
+    let result = if ac {
+        power::write_ac(&VIDEO_SUBGROUP, &VIDEO_POWERDOWN, seconds)
+    } else {
+        power::write_dc(&VIDEO_SUBGROUP, &VIDEO_POWERDOWN, seconds)
+    };
+    result.map_err(|_| "could not update monitor timeout".to_owned())
 }
 
 #[cfg(windows)]

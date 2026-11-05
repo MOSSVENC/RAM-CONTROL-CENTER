@@ -1,5 +1,68 @@
 #[cfg(windows)]
-pub(super) fn read_registry_dword(subkey: &str, value: &str) -> Result<Option<u32>, String> {
+use windows_sys::Win32::System::Registry::HKEY;
+
+#[cfg(windows)]
+struct RegKey(HKEY);
+
+#[cfg(windows)]
+impl RegKey {
+    fn create(subkey: &[u16]) -> Result<Self, u32> {
+        use windows_sys::Win32::System::Registry::{
+            HKEY_CURRENT_USER, KEY_SET_VALUE, REG_OPTION_NON_VOLATILE, RegCreateKeyExW,
+        };
+
+        let mut key = std::ptr::null_mut();
+        let status = unsafe {
+            RegCreateKeyExW(
+                HKEY_CURRENT_USER,
+                subkey.as_ptr(),
+                0,
+                std::ptr::null(),
+                REG_OPTION_NON_VOLATILE,
+                KEY_SET_VALUE,
+                std::ptr::null(),
+                &mut key,
+                std::ptr::null_mut(),
+            )
+        };
+        if status == 0 {
+            Ok(Self(key))
+        } else {
+            Err(status)
+        }
+    }
+
+    fn open(subkey: &[u16], access: u32) -> Result<Self, u32> {
+        use windows_sys::Win32::System::Registry::{HKEY_CURRENT_USER, RegOpenKeyExW};
+
+        let mut key = std::ptr::null_mut();
+        let status =
+            unsafe { RegOpenKeyExW(HKEY_CURRENT_USER, subkey.as_ptr(), 0, access, &mut key) };
+        if status == 0 {
+            Ok(Self(key))
+        } else {
+            Err(status)
+        }
+    }
+
+    fn raw(&self) -> HKEY {
+        self.0
+    }
+}
+
+#[cfg(windows)]
+impl Drop for RegKey {
+    fn drop(&mut self) {
+        use windows_sys::Win32::System::Registry::RegCloseKey;
+
+        if !self.0.is_null() {
+            unsafe { RegCloseKey(self.0) };
+        }
+    }
+}
+
+#[cfg(windows)]
+pub(crate) fn read_registry_dword(subkey: &str, value: &str) -> Result<Option<u32>, String> {
     use windows_sys::Win32::Foundation::{ERROR_FILE_NOT_FOUND, ERROR_SUCCESS};
     use windows_sys::Win32::System::Registry::{HKEY_CURRENT_USER, RRF_RT_REG_DWORD, RegGetValueW};
 
@@ -26,7 +89,7 @@ pub(super) fn read_registry_dword(subkey: &str, value: &str) -> Result<Option<u3
 }
 
 #[cfg(windows)]
-pub(super) fn read_registry_string(subkey: &str, value: &str) -> Result<Option<String>, String> {
+pub(crate) fn read_registry_string(subkey: &str, value: &str) -> Result<Option<String>, String> {
     use windows_sys::Win32::Foundation::{ERROR_FILE_NOT_FOUND, ERROR_SUCCESS};
     use windows_sys::Win32::System::Registry::{HKEY_CURRENT_USER, RRF_RT_REG_SZ, RegGetValueW};
 
@@ -59,34 +122,15 @@ pub(super) fn read_registry_string(subkey: &str, value: &str) -> Result<Option<S
 }
 
 #[cfg(windows)]
-pub(super) fn write_registry_dword(subkey: &str, value: &str, data: u32) -> Result<(), String> {
-    use windows_sys::Win32::System::Registry::{
-        HKEY, KEY_SET_VALUE, REG_DWORD, REG_OPTION_NON_VOLATILE, RegCloseKey, RegCreateKeyExW,
-        RegSetValueExW,
-    };
+pub(crate) fn write_registry_dword(subkey: &str, value: &str, data: u32) -> Result<(), String> {
+    use windows_sys::Win32::System::Registry::{REG_DWORD, RegSetValueExW};
 
-    let subkey = wide(subkey);
+    let key = RegKey::create(&wide(subkey))
+        .map_err(|code| format!("RegCreateKeyExW failed with code {code}"))?;
     let value = wide(value);
-    let mut key: HKEY = std::ptr::null_mut();
-    let result = unsafe {
-        RegCreateKeyExW(
-            windows_sys::Win32::System::Registry::HKEY_CURRENT_USER,
-            subkey.as_ptr(),
-            0,
-            std::ptr::null(),
-            REG_OPTION_NON_VOLATILE,
-            KEY_SET_VALUE,
-            std::ptr::null(),
-            &mut key,
-            std::ptr::null_mut(),
-        )
-    };
-    if result != 0 {
-        return Err(format!("RegCreateKeyExW failed with code {result}"));
-    }
     let result = unsafe {
         RegSetValueExW(
-            key,
+            key.raw(),
             value.as_ptr(),
             0,
             REG_DWORD,
@@ -94,9 +138,6 @@ pub(super) fn write_registry_dword(subkey: &str, value: &str, data: u32) -> Resu
             std::mem::size_of::<u32>() as u32,
         )
     };
-    unsafe {
-        RegCloseKey(key);
-    }
     if result == 0 {
         Ok(())
     } else {
@@ -105,35 +146,16 @@ pub(super) fn write_registry_dword(subkey: &str, value: &str, data: u32) -> Resu
 }
 
 #[cfg(windows)]
-pub(super) fn write_registry_string(subkey: &str, value: &str, data: &str) -> Result<(), String> {
-    use windows_sys::Win32::System::Registry::{
-        HKEY, KEY_SET_VALUE, REG_OPTION_NON_VOLATILE, REG_SZ, RegCloseKey, RegCreateKeyExW,
-        RegSetValueExW,
-    };
+pub(crate) fn write_registry_string(subkey: &str, value: &str, data: &str) -> Result<(), String> {
+    use windows_sys::Win32::System::Registry::{REG_SZ, RegSetValueExW};
 
-    let subkey = wide(subkey);
+    let key = RegKey::create(&wide(subkey))
+        .map_err(|code| format!("RegCreateKeyExW failed with code {code}"))?;
     let value = wide(value);
     let data = wide(data);
-    let mut key: HKEY = std::ptr::null_mut();
-    let result = unsafe {
-        RegCreateKeyExW(
-            windows_sys::Win32::System::Registry::HKEY_CURRENT_USER,
-            subkey.as_ptr(),
-            0,
-            std::ptr::null(),
-            REG_OPTION_NON_VOLATILE,
-            KEY_SET_VALUE,
-            std::ptr::null(),
-            &mut key,
-            std::ptr::null_mut(),
-        )
-    };
-    if result != 0 {
-        return Err(format!("RegCreateKeyExW failed with code {result}"));
-    }
     let result = unsafe {
         RegSetValueExW(
-            key,
+            key.raw(),
             value.as_ptr(),
             0,
             REG_SZ,
@@ -141,9 +163,6 @@ pub(super) fn write_registry_string(subkey: &str, value: &str, data: &str) -> Re
             (data.len() * 2) as u32,
         )
     };
-    unsafe {
-        RegCloseKey(key);
-    }
     if result == 0 {
         Ok(())
     } else {
@@ -152,31 +171,17 @@ pub(super) fn write_registry_string(subkey: &str, value: &str, data: &str) -> Re
 }
 
 #[cfg(windows)]
-pub(super) fn delete_registry_value(subkey: &str, value: &str) -> Result<(), String> {
+pub(crate) fn delete_registry_value(subkey: &str, value: &str) -> Result<(), String> {
     use windows_sys::Win32::Foundation::ERROR_FILE_NOT_FOUND;
-    use windows_sys::Win32::System::Registry::{
-        HKEY, KEY_SET_VALUE, RegCloseKey, RegDeleteValueW, RegOpenKeyExW,
-    };
+    use windows_sys::Win32::System::Registry::{KEY_SET_VALUE, RegDeleteValueW};
 
-    let subkey = wide(subkey);
-    let value = wide(value);
-    let mut key: HKEY = std::ptr::null_mut();
-    let result = unsafe {
-        RegOpenKeyExW(
-            windows_sys::Win32::System::Registry::HKEY_CURRENT_USER,
-            subkey.as_ptr(),
-            0,
-            KEY_SET_VALUE,
-            &mut key,
-        )
+    let key = match RegKey::open(&wide(subkey), KEY_SET_VALUE) {
+        Ok(key) => key,
+        Err(ERROR_FILE_NOT_FOUND) => return Ok(()),
+        Err(code) => return Err(format!("RegOpenKeyExW failed with code {code}")),
     };
-    if result != 0 {
-        return Err(format!("RegOpenKeyExW failed with code {result}"));
-    }
-    let result = unsafe { RegDeleteValueW(key, value.as_ptr()) };
-    unsafe {
-        RegCloseKey(key);
-    }
+    let value = wide(value);
+    let result = unsafe { RegDeleteValueW(key.raw(), value.as_ptr()) };
     match result {
         0 | ERROR_FILE_NOT_FOUND => Ok(()),
         code => Err(format!("RegDeleteValueW failed with code {code}")),
@@ -184,7 +189,7 @@ pub(super) fn delete_registry_value(subkey: &str, value: &str) -> Result<(), Str
 }
 
 #[cfg(windows)]
-pub(super) fn broadcast_setting_change(area: &str) {
+pub(crate) fn broadcast_setting_change(area: &str) {
     use windows_sys::Win32::UI::WindowsAndMessaging::{
         HWND_BROADCAST, SMTO_ABORTIFHUNG, SendMessageTimeoutW, WM_SETTINGCHANGE,
     };
@@ -205,7 +210,7 @@ pub(super) fn broadcast_setting_change(area: &str) {
 }
 
 #[cfg(windows)]
-pub(super) fn wide(value: &str) -> Vec<u16> {
+pub(crate) fn wide(value: &str) -> Vec<u16> {
     use std::os::windows::ffi::OsStrExt as _;
 
     std::ffi::OsStr::new(value)

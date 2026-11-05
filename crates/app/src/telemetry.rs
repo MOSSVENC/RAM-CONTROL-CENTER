@@ -235,8 +235,39 @@ mod windows_impl {
         })
     }
 
+    struct PdhQuery(PDH_HQUERY);
+
+    impl PdhQuery {
+        fn open() -> Option<Self> {
+            let mut query = std::ptr::null_mut();
+            (unsafe { PdhOpenQueryW(std::ptr::null(), 0, &mut query) } == 0).then_some(Self(query))
+        }
+
+        fn add_english_counter(&self, path: &str) -> Option<PDH_HCOUNTER> {
+            let path = path
+                .encode_utf16()
+                .chain(std::iter::once(0))
+                .collect::<Vec<_>>();
+            let mut counter = std::ptr::null_mut();
+            let status = unsafe { PdhAddEnglishCounterW(self.0, path.as_ptr(), 0, &mut counter) };
+            (status == 0).then_some(counter)
+        }
+
+        fn collect(&self) -> bool {
+            unsafe { PdhCollectQueryData(self.0) == 0 }
+        }
+    }
+
+    impl Drop for PdhQuery {
+        fn drop(&mut self) {
+            if !self.0.is_null() {
+                unsafe { PdhCloseQuery(self.0) };
+            }
+        }
+    }
+
     struct CpuFrequencySampler {
-        query: PDH_HQUERY,
+        query: PdhQuery,
         frequency: Option<PDH_HCOUNTER>,
         performance: Option<PDH_HCOUNTER>,
         nominal_mhz: u32,
@@ -245,21 +276,15 @@ mod windows_impl {
     impl CpuFrequencySampler {
         fn open() -> Option<Self> {
             let (_, nominal_mhz) = read_processor_power();
-            let mut query = std::ptr::null_mut();
-            if unsafe { PdhOpenQueryW(std::ptr::null(), 0, &mut query) } != 0 {
-                return None;
-            }
+            let query = PdhQuery::open()?;
             let frequency =
-                add_english_counter(query, r"\Processor Information(_Total)\Processor Frequency");
-            let performance = add_english_counter(
-                query,
-                r"\Processor Information(_Total)\% Processor Performance",
-            );
+                query.add_english_counter(r"\Processor Information(_Total)\Processor Frequency");
+            let performance = query
+                .add_english_counter(r"\Processor Information(_Total)\% Processor Performance");
             if frequency.is_none() && performance.is_none() {
-                unsafe { PdhCloseQuery(query) };
                 return None;
             }
-            unsafe { PdhCollectQueryData(query) };
+            query.collect();
             Some(Self {
                 query,
                 frequency,
@@ -269,7 +294,7 @@ mod windows_impl {
         }
 
         fn sample(&mut self) -> (u32, u32) {
-            if unsafe { PdhCollectQueryData(self.query) } != 0 {
+            if !self.query.collect() {
                 return (0, self.nominal_mhz);
             }
             let frequency = self.frequency.and_then(formatted_value).unwrap_or(0.0);
@@ -283,22 +308,6 @@ mod windows_impl {
             };
             (current, self.nominal_mhz)
         }
-    }
-
-    impl Drop for CpuFrequencySampler {
-        fn drop(&mut self) {
-            unsafe { PdhCloseQuery(self.query) };
-        }
-    }
-
-    fn add_english_counter(query: PDH_HQUERY, path: &str) -> Option<PDH_HCOUNTER> {
-        let path = path
-            .encode_utf16()
-            .chain(std::iter::once(0))
-            .collect::<Vec<_>>();
-        let mut counter = std::ptr::null_mut();
-        let status = unsafe { PdhAddEnglishCounterW(query, path.as_ptr(), 0, &mut counter) };
-        (status == 0).then_some(counter)
     }
 
     fn formatted_value(counter: PDH_HCOUNTER) -> Option<f64> {
@@ -365,8 +374,24 @@ mod windows_impl {
 
     type Device = *mut c_void;
 
+    struct ModuleHandle(HMODULE);
+
+    impl ModuleHandle {
+        fn raw(&self) -> HMODULE {
+            self.0
+        }
+    }
+
+    impl Drop for ModuleHandle {
+        fn drop(&mut self) {
+            if !self.0.is_null() {
+                unsafe { FreeLibrary(self.0) };
+            }
+        }
+    }
+
     struct Nvml {
-        module: HMODULE,
+        _module: ModuleHandle,
         device: Device,
         get_utilization: unsafe extern "system" fn(Device, *mut NvmlUtilization) -> i32,
         get_temperature: unsafe extern "system" fn(Device, i32, *mut u32) -> i32,
@@ -379,32 +404,29 @@ mod windows_impl {
             let module = load_nvml()?;
             unsafe {
                 let init: Option<unsafe extern "system" fn() -> i32> =
-                    symbol(module, b"nvmlInit_v2\0");
+                    symbol(module.raw(), b"nvmlInit_v2\0");
                 let get_count: Option<unsafe extern "system" fn(*mut u32) -> i32> =
-                    symbol(module, b"nvmlDeviceGetCount_v2\0");
+                    symbol(module.raw(), b"nvmlDeviceGetCount_v2\0");
                 let get_handle: Option<unsafe extern "system" fn(u32, *mut Device) -> i32> =
-                    symbol(module, b"nvmlDeviceGetHandleByIndex_v2\0");
-                let get_utilization = symbol(module, b"nvmlDeviceGetUtilizationRates\0")?;
-                let get_temperature = symbol(module, b"nvmlDeviceGetTemperature\0")?;
-                let get_clock = symbol(module, b"nvmlDeviceGetClockInfo\0")?;
-                let get_memory = symbol(module, b"nvmlDeviceGetMemoryInfo\0")?;
+                    symbol(module.raw(), b"nvmlDeviceGetHandleByIndex_v2\0");
+                let get_utilization = symbol(module.raw(), b"nvmlDeviceGetUtilizationRates\0")?;
+                let get_temperature = symbol(module.raw(), b"nvmlDeviceGetTemperature\0")?;
+                let get_clock = symbol(module.raw(), b"nvmlDeviceGetClockInfo\0")?;
+                let get_memory = symbol(module.raw(), b"nvmlDeviceGetMemoryInfo\0")?;
 
                 if init?() != 0 {
-                    FreeLibrary(module);
                     return None;
                 }
                 let mut count = 0_u32;
                 if get_count?(&mut count) != 0 || count == 0 {
-                    FreeLibrary(module);
                     return None;
                 }
                 let mut device = std::ptr::null_mut();
                 if get_handle?(0, &mut device) != 0 || device.is_null() {
-                    FreeLibrary(module);
                     return None;
                 }
                 Some(Self {
-                    module,
+                    _module: module,
                     device,
                     get_utilization,
                     get_temperature,
@@ -441,20 +463,12 @@ mod windows_impl {
         }
     }
 
-    impl Drop for Nvml {
-        fn drop(&mut self) {
-            unsafe {
-                FreeLibrary(self.module);
-            }
-        }
-    }
-
     unsafe fn symbol<T: Copy>(module: HMODULE, name: &[u8]) -> Option<T> {
         let proc = unsafe { GetProcAddress(module, name.as_ptr()) }?;
         Some(unsafe { std::mem::transmute_copy(&proc) })
     }
 
-    fn load_nvml() -> Option<HMODULE> {
+    fn load_nvml() -> Option<ModuleHandle> {
         let mut candidates = vec![
             "nvml.dll".to_owned(),
             r"C:\Program Files\NVIDIA Corporation\NVSMI\nvml.dll".to_owned(),
@@ -477,7 +491,7 @@ mod windows_impl {
                 .collect();
             let module = unsafe { LoadLibraryW(wide.as_mut_ptr()) };
             if !module.is_null() {
-                return Some(module);
+                return Some(ModuleHandle(module));
             }
         }
         None

@@ -410,8 +410,14 @@ driver-level route if it is needed for compatibility.
 ## Renderer
 
 - Slint notifier: `GraphicsAPI::NativeOpenGL`.
-- GPU 3D engine activity was observed while the window was visible.
+- GPU 3D engine activity was observed while the window is visible.
 - UI animation and hardware polling are separated by a worker channel.
+- Page motion uses a 180 ms directional fade/slide. The page content changes
+  only after the outgoing page reaches zero opacity; the incoming page starts
+  from the opposite offset and begins opacity and position in the same UI tick.
+- The latest motion revision passes the compile, Clippy and test gate. Native
+  frame tracing is the remaining runtime confirmation and is kept separate from
+  the visual claim.
 
 Thermal command 12 still takes roughly 330 ms at the firmware level. It runs on
 the hardware worker and does not block the UI thread.
@@ -441,24 +447,26 @@ The protocol transport and app-side Win32 controls were split without changing
 their public APIs:
 
 ```text
-protocol/src/windows_backend.rs             481 lines
-protocol/src/windows_backend/telemetry.rs   109 lines
-protocol/src/windows_backend/power_fan.rs   559 lines
-protocol/src/windows_backend/rgb.rs         233 lines
-protocol/src/windows_backend/gpu.rs          89 lines
-protocol/src/windows_backend/charging.rs    145 lines
-protocol/src/windows_backend/input.rs        70 lines
-protocol/src/windows_backend/quick_toggles.rs 92 lines
+protocol/src/windows_backend.rs               484 lines
+protocol/src/windows_backend/telemetry.rs     109 lines
+protocol/src/windows_backend/power_fan.rs     559 lines
+protocol/src/windows_backend/rgb.rs           233 lines
+protocol/src/windows_backend/gpu.rs            89 lines
+protocol/src/windows_backend/charging.rs      148 lines
+protocol/src/windows_backend/input.rs          70 lines
+protocol/src/windows_backend/quick_toggles.rs  95 lines
 
-app/src/system_controls/mod.rs               15 lines
-app/src/system_controls/audio.rs            107 lines
-app/src/system_controls/display.rs          135 lines
-app/src/system_controls/display_care.rs     526 lines
-app/src/system_controls/radio.rs             85 lines
-app/src/system_controls/registry.rs         215 lines
+app/src/system_controls/mod.rs                 17 lines
+app/src/system_controls/audio.rs              111 lines
+app/src/system_controls/display.rs             96 lines
+app/src/system_controls/power.rs              126 lines
+app/src/system_controls/display_care.rs       465 lines
+app/src/system_controls/radio.rs               85 lines
+app/src/system_controls/registry.rs           220 lines
 ```
 
 `windows_backend.rs` now contains handle lifecycle, raw IOCTL/settings access
 and shared rollback helpers. The domain modules expose the same inherent
 `Dchu` methods, so callers did not gain a new layer. Registry access is behind
-safe helpers used by display-care code.
+safe helpers used by display-care and tray-startup code. Service, registry,
+power-scheme, device-context, PDH and NVML resources now use RAII wrappers.

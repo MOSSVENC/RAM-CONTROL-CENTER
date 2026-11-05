@@ -8,28 +8,28 @@ vendor package; no BIOS, EC, driver or vendor binary was modified for them.
 | Dimension | Score | Reading |
 |---|---:|---|
 | Protocol-layer cohesion | 9.0 / 10 | One transport boundary with typed telemetry, power/fan, RGB, GPU, charging, input and quick-toggle modules |
-| OS-integration cohesion | 8.5 / 10 | Boot, tray, telemetry, input and display concerns have named modules; Win32 access is behind domain helpers |
-| App/UI cohesion | 8.5 / 10 | Startup orchestration, worker, callbacks, controls, pages and dialogs are separated |
-| Module coupling | 9.0 / 10 | Crate graph is acyclic; worker/UI messages and page callback boundaries are typed |
-| Maintainability | 8.5 / 10 | File bloat is resolved, CI and hardware smoke gates exist; FFI remains broad and hardware CI is manual |
+| OS-integration cohesion | 8.7 / 10 | Boot, tray, telemetry, input and display concerns have named modules; Win32 handles and resources are wrapped behind domain helpers |
+| App/UI cohesion | 8.5 / 10 | Startup orchestration, worker, callbacks, controls, pages and dialogs are separated; the latest motion path still needs native-frame confirmation |
+| Module coupling | 9.2 / 10 | Crate graph is acyclic; worker commands, UI updates and page callback boundaries are typed |
+| Maintainability | 9.0 / 10 | Hardware worker is split by responsibility, resource cleanup uses RAII, CI and hardware smoke gates exist; FlexiKey and raw FFI remain the largest modules |
 | Portability | 8.0 / 10 | Capability-driven UI and an ACPI-device override support other CC4.0 models; model offsets and validation remain machine-specific |
-| Overall | **8.8 / 10** | Strong boundary architecture, green native CI, repeatable verification and a documented compatibility path |
+| Overall | **8.9 / 10** | Strong boundary architecture, green native CI, repeatable verification and a documented compatibility path |
 
-This is a sound native implementation. The maintainability debt named in the
-prior report was concentrated in oversized composition and protocol/control
-files. Those files are now split by responsibility while preserving the typed
-protocol boundary.
+This is a sound native implementation. Composition, protocol, control and
+hardware-worker files are split by responsibility while preserving the typed
+protocol boundary. The remaining debt is concentrated in the FlexiKey editor
+and the unavoidable low-level Windows/FFI surface.
 
 ## Code metrics
 
 ```text
-total measured lines       19,400
-Rust lines                 13,613
-Slint lines                 4,724
+total measured lines       19,539
+Rust lines                 13,740
+Slint lines                 4,736
 translation lines           1,063
-Rust source modules            35
+Rust source modules            44
 Slint source modules           16
-unsafe token occurrences      174
+unsafe token occurrences      129
 test functions                 42
 host-executed tests            39
 ```
@@ -46,7 +46,8 @@ crates/app/ui/main.slint       3,959      927
 windows_backend.rs             1,736      481
 largest windows_backend submodule  —      559
 system_controls.rs             1,070      526
-largest app Rust module        4,865    1,483
+worker.rs                      1,483      330
+largest app Rust module        4,865    1,213
 ```
 
 Current application composition:
@@ -54,7 +55,8 @@ Current application composition:
 ```text
 main.rs             process entry and top-level wiring
 ui_callbacks.rs     Slint callback wiring
-worker.rs           serialized hardware command loop
+worker.rs           worker state machine, command dispatch and retry loop
+worker/             power/fan, RGB, input, I/O and snapshot responsibilities
 ui_update.rs        typed UI update model and property application
 flexikey_ui.rs      FlexiKey view/editor/profile integration
 system_controls/    audio, display, display-care, radio and registry helpers
@@ -101,26 +103,29 @@ Strong points:
 - DCHU frame construction, settings access, fan curves, FlexiKey XML and the
   signed keyboard-filter transport live in the protocol crate.
 - The protocol backend's public surface is safe Rust; the raw handle/IOCTL code
-  is confined to one 481-line module.
+  is confined to one 484-line module.
 - Boot policy, native service registration, tray lifecycle, telemetry and
   FlexiKey hooks are separate modules.
 - UI commands are serialized through a typed worker channel; ACPI traffic never
   runs on the renderer thread.
-- Page components use explicit typed properties and callback forwarding; pages
-  no longer reach into one monolithic window body.
-- Win32 registry operations are behind four safe helpers in
-  `system_controls/registry.rs`; display-care code consumes those helpers rather
-  than opening registry keys itself.
+- Page components use explicit typed properties and callback forwarding, with
+  page-local state kept behind each component.
+- Win32 registry operations are behind safe helpers in
+  `system_controls/registry.rs`; display-care and tray startup consume those
+  helpers.
+- Service, registry, power-scheme, device-context, PDH and NVML resources are
+  released through RAII wrappers, including all early-return paths.
 - The application imports no `InsydeDCHU.dll`, `HKFltrLib.dll`, `CC40.exe` or
   `FnKey.exe` as a control backend.
 
 Remaining debt:
 
-- `worker.rs` is 1,483 lines and `flexikey_ui.rs` is 1,213 lines; they are the
-  next candidates for functional split.
-- There are 174 `unsafe` token occurrences. They are localized around the
-  Windows IOCTL/FFI boundary, but `tray.rs` (45), `boot_service.rs` (29),
-  `telemetry.rs` (29) and `flexikey_engine.rs` (23) remain the largest clusters.
+- `flexikey_ui.rs` is 1,213 lines; its editor/profile state is the next
+  candidate for functional split. The hardware worker is now 330 lines plus
+  five focused submodules.
+- There are 129 `unsafe` token occurrences. They are localized around Windows
+  IOCTL/FFI, but `telemetry.rs` (27), `tray.rs` (26), `boot_service.rs` (17)
+  and `flexikey_engine.rs` (10) remain the largest clusters.
 - The automated suite covers protocol encoding and app-side logic. Live
   AcpiBridge/EC behavior is exercised by `scripts/hardware-smoke.ps1`, which
   cannot run on a generic CI runner.
@@ -260,9 +265,9 @@ settings offsets 45-48.
 
 ## Final assessment
 
-The requested maintainability issues are structurally resolved. The entry point
-and Slint window are no longer monolithic, the protocol backend and Win32 system
-controls are split into domain modules, the worker/UI boundary remains typed,
-and automated plus hardware-backed verification are documented. Remaining work
-is narrower: splitting the largest worker/FlexiKey modules, reducing the four
-largest FFI clusters, and adding a hardware runner separate from generic CI.
+Maintainability work is structurally complete for this slice. The entry point,
+Slint window, protocol backend, Win32 system controls and hardware worker are
+split into domain modules, the worker/UI boundary remains typed, and automated
+plus hardware-backed verification are documented. Remaining work is narrower:
+splitting the FlexiKey editor, reviewing the remaining FFI clusters and adding a
+hardware runner separate from generic CI.
