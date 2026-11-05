@@ -52,6 +52,10 @@ export component MainWindow inherits Window {
     in-out property <bool> language-zh: true;
     in-out property <float> page-opacity: 1.0;
     in-out property <float> page-shift: 0.0;
+    in-out property <image> page-snapshot: @image-url("../../../assets/neo_control_logo.svg");
+    in-out property <bool> page-transitioning: false;
+    in-out property <float> page-overlay-opacity: 1.0;
+    in-out property <float> page-overlay-shift: 0.0;
     in-out property <float> theme-flash: 0.0;
     in-out property <bool> quiet-dialog-open: false;
     in property <bool> transport-ready: false;
@@ -343,7 +347,7 @@ export component MainWindow inherits Window {
 
     HorizontalLayout {
         Rectangle {
-            width: 188px;
+            width: 204px;
             background: Palette.rail-gradient;
             border-width: 1px;
             border-color: Palette.line;
@@ -499,8 +503,7 @@ export component MainWindow inherits Window {
 
                 Hairline {}
 
-                Rectangle {
-                    if root.status-message != "" : Rectangle {
+                if root.status-message != "" : Rectangle {
                         height: 34px;
                         background: root.status-tone == 2 ? Palette.red-soft : (root.status-tone == 1 ? Palette.green-soft : Palette.panel-hover);
                         border-width: 1px;
@@ -543,25 +546,31 @@ export component MainWindow inherits Window {
                             }
                         }
                     }
-                }
 
                 Rectangle {
+                    vertical-stretch: 1;
                     clip: true;
                     opacity: root.page-opacity;
-                    animate opacity { duration: 180ms; easing: cubic-bezier(0.22, 1, 0.36, 1); }
+                    animate opacity { duration: 240ms; easing: cubic-bezier(0.22, 1, 0.36, 1); }
                     page-surface := Rectangle {
-                        x: root.page-shift * 1px;
+                        y: root.page-shift * 1px;
                         width: parent.width;
                         height: parent.height;
-                        animate x { duration: 180ms; easing: cubic-bezier(0.22, 1, 0.36, 1); }
-                        VerticalLayout {
+                        animate y { duration: 240ms; easing: cubic-bezier(0.22, 1, 0.36, 1); }
+                        page-scroll := Flickable {
                             width: parent.width;
                             height: parent.height;
-                            padding-left: 28px;
-                            padding-right: 28px;
-                            padding-top: 24px;
-                            padding-bottom: 24px;
-                            spacing: 18px;
+                            content-width: self.width;
+                            content-height: max(self.height, page-layout.preferred-height);
+
+                            page-layout := VerticalLayout {
+                                width: parent.width;
+                                height: max(self.preferred-height, page-scroll.height);
+                                padding-left: 28px;
+                                padding-right: 28px;
+                                padding-top: 24px;
+                                padding-bottom: 24px;
+                                spacing: 18px;
 
                         // ------------------------------------------------- Overview
                         if root.selected-page == 0 : OverviewPage {
@@ -889,10 +898,32 @@ export component MainWindow inherits Window {
                         }
 
                         Rectangle { vertical-stretch: 1; }
+                                }
+                            }
                         }
                     }
                 }
             }
+        }
+
+    Rectangle {
+        x: 204px;
+        y: 0;
+        width: parent.width - 204px;
+        height: parent.height;
+        clip: true;
+        visible: root.page-transitioning;
+        opacity: root.page-overlay-opacity;
+        animate opacity { duration: 240ms; easing: cubic-bezier(0.22, 1, 0.36, 1); }
+
+        Image {
+            x: -204px;
+            y: root.page-overlay-shift * 1px;
+            width: root.width;
+            height: root.height;
+            source: root.page-snapshot;
+            image-fit: fill;
+            animate y { duration: 240ms; easing: cubic-bezier(0.22, 1, 0.36, 1); }
         }
     }
 

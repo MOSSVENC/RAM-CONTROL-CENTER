@@ -412,12 +412,16 @@ driver-level route if it is needed for compatibility.
 - Slint notifier: `GraphicsAPI::NativeOpenGL`.
 - GPU 3D engine activity was observed while the window is visible.
 - UI animation and hardware polling are separated by a worker channel.
-- Page motion uses a 180 ms directional fade/slide. The page content changes
-  only after the outgoing page reaches zero opacity; the incoming page starts
-  from the opposite offset and begins opacity and position in the same UI tick.
-- The latest motion revision passes the compile, Clippy and test gate. Native
-  frame tracing is the remaining runtime confirmation and is kept separate from
-  the visual claim.
+- Page motion captures the outgoing workspace as a snapshot, switches the live
+  page, then fades and lifts the snapshot while the incoming page rises from a
+  24 px offset. The motion uses a 240 ms `cubic-bezier(0.22, 1, 0.36, 1)` curve.
+- The page area uses a Flickable content surface with a viewport-height
+  minimum, so short pages fill the window and tall pages remain scrollable.
+- Debug snapshots at the production 1180×820 size were used to verify the
+  overview, performance, cooling, battery, settings, FlexiKey and display-care
+  layouts after the empty status-container fix. Windows frame tracing remains
+  the final native-runtime confirmation and is kept separate from the visual
+  claim.
 - `scripts/check-unsafe.sh` fails if a new source file gains an `unsafe` token
   or any allowlisted FFI file exceeds its current ceiling. The current total is
   109.

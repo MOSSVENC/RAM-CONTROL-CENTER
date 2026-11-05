@@ -23,9 +23,9 @@ and the unavoidable low-level Windows/FFI surface.
 ## Code metrics
 
 ```text
-total measured lines       19,504
-Rust lines                 13,705
-Slint lines                 4,736
+total measured lines       19,691
+Rust lines                 13,861
+Slint lines                 4,767
 translation lines           1,063
 Rust source modules            46
 Slint source modules           16
