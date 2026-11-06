@@ -5,10 +5,11 @@ use neo_control_protocol::{
 };
 
 use crate::MainWindow;
+use crate::driver_manager::DriverHealth;
 use crate::fan_curve_ui::{set_fan_curve_properties, set_toggle_properties};
 use crate::formatting::{
     format_battery_capacity, format_battery_time, format_bytes, format_clock, format_power_rate,
-    format_threshold_ranges, toggle_value_text,
+    format_temperature_celsius, format_threshold_ranges, toggle_value_text,
 };
 use crate::localization::{localized_fan_label, localized_gpu_label, localized_power_label, tr};
 use crate::system_controls::{AudioState, DisplayCareState};
@@ -40,6 +41,7 @@ pub(crate) struct UiUpdate {
     pub(crate) transport_label: String,
     pub(crate) transport_detail: String,
     pub(crate) transport_device_path: String,
+    pub(crate) driver_health: DriverHealth,
     pub(crate) busy: bool,
     pub(crate) status: Option<(String, i32)>,
     pub(crate) sync_selection: bool,
@@ -77,6 +79,7 @@ impl Default for UiUpdate {
             )
             .to_owned(),
             transport_device_path: tr("Not located", "未找到").to_owned(),
+            driver_health: DriverHealth::default(),
             busy: false,
             status: None,
             sync_selection: false,
@@ -84,12 +87,64 @@ impl Default for UiUpdate {
         }
     }
 }
+pub(crate) fn apply_driver_health(ui: &MainWindow, driver: &DriverHealth) {
+    ui.set_driver_core_ready(driver.core_ready);
+    ui.set_driver_core_installed(driver.core_installed);
+    ui.set_driver_keyboard_ready(driver.keyboard_ready);
+    ui.set_driver_keyboard_installed(driver.keyboard_installed);
+    ui.set_driver_payload_ready(driver.payload_ready);
+    ui.set_driver_keyboard_payload_ready(driver.keyboard_payload_ready);
+    let driver_summary = if !driver.required_missing() {
+        tr("Required driver ready", "必需驱动已就绪")
+    } else if !driver.payload_ready {
+        tr("Driver package missing", "缺少驱动包")
+    } else if driver.core_installed {
+        tr("Driver installed but not responding", "驱动已安装但未响应")
+    } else {
+        tr("Required driver missing", "缺少必需驱动")
+    };
+    let driver_detail = if driver.core_ready {
+        if driver.keyboard_ready {
+            tr(
+                "AcpiBridge is online. The optional keyboard filter is also available.",
+                "AcpiBridge 已在线，可选的键盘过滤器也已就绪。",
+            )
+        } else {
+            tr(
+                "AcpiBridge is online. The current release does not require HKKbdFltr.",
+                "AcpiBridge 已在线，当前版本不需要 HKKbdFltr。",
+            )
+        }
+    } else if driver.payload_ready {
+        tr(
+            "The signed OEM driver package is available next to the application.",
+            "应用目录中已找到签名的原厂驱动包。",
+        )
+    } else {
+        tr(
+            "Put the signed AcpiBridge package in the drivers folder.",
+            "请将签名的 AcpiBridge 驱动包放入 drivers 文件夹。",
+        )
+    };
+    ui.set_driver_summary(driver_summary.into());
+    ui.set_driver_detail(driver_detail.into());
+    ui.set_driver_payload_path(
+        if driver.payload_path.as_os_str().is_empty() {
+            tr("Not located", "未找到").to_owned()
+        } else {
+            driver.payload_path.display().to_string()
+        }
+        .into(),
+    );
+}
+
 pub(crate) fn apply_update(ui: &MainWindow, update: UiUpdate) {
     let system = &update.system;
     ui.set_transport_ready(update.transport_ready);
     ui.set_transport_label(update.transport_label.into());
     ui.set_transport_detail(update.transport_detail.into());
     ui.set_transport_device_path(update.transport_device_path.into());
+    apply_driver_health(ui, &update.driver_health);
     ui.set_busy(update.busy);
     if let Some(capabilities) = update.capabilities {
         ui.set_rgb_available(capabilities.keyboard_type != 0);
@@ -477,8 +532,8 @@ pub(crate) fn apply_update(ui: &MainWindow, update: UiUpdate) {
     }
 
     if let Some(thermal) = update.thermal {
-        ui.set_cpu_temp(format!("{}°C", thermal.cpu.temperature_c).into());
-        ui.set_gpu_temp(format!("{}°C", thermal.gpu.temperature_c).into());
+        ui.set_cpu_temp(format_temperature_celsius(u32::from(thermal.cpu.temperature_c)).into());
+        ui.set_gpu_temp(format_temperature_celsius(u32::from(thermal.gpu.temperature_c)).into());
         ui.set_cpu_rpm(thermal.cpu.rpm.to_string().into());
         ui.set_gpu_rpm(thermal.gpu.rpm.to_string().into());
         ui.set_cpu_duty(thermal.cpu.duty_percent.to_string().into());
@@ -521,7 +576,7 @@ pub(crate) fn apply_update(ui: &MainWindow, update: UiUpdate) {
             if fan3_absent {
                 "--".to_owned()
             } else {
-                thermal.fan3.temperature_c.to_string()
+                format_temperature_celsius(u32::from(thermal.fan3.temperature_c))
             }
             .into(),
         );
@@ -529,18 +584,18 @@ pub(crate) fn apply_update(ui: &MainWindow, update: UiUpdate) {
             if fan4_absent {
                 "--".to_owned()
             } else {
-                thermal.fan4.temperature_c.to_string()
+                format_temperature_celsius(u32::from(thermal.fan4.temperature_c))
             }
             .into(),
         );
     } else {
-        ui.set_cpu_temp("--".into());
+        ui.set_cpu_temp("--°C".into());
         ui.set_gpu_temp(
             system
                 .gpu
                 .as_ref()
-                .map(|gpu| format!("{}°C", gpu.temperature_c))
-                .unwrap_or_else(|| "--".to_owned())
+                .map(|gpu| format_temperature_celsius(gpu.temperature_c))
+                .unwrap_or_else(|| "--°C".to_owned())
                 .into(),
         );
         ui.set_cpu_rpm("--".into());

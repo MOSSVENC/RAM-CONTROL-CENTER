@@ -99,7 +99,7 @@ msgstr "来自本地平台的实时温度、电源与利用率状态。"
 msgid "Thermal state"
 msgstr "温度状态"
 
-msgid "DCHU · 2 s"
+msgid "DCHU · 5 s"
 msgstr "DCHU · 2 秒"
 
 msgid "CPU PACKAGE"
@@ -1064,3 +1064,42 @@ msgstr "新建"
 
 msgid "Confirm"
 msgstr "确认"
+
+msgid "Checking driver health"
+msgstr "正在检查驱动状态"
+
+msgid "Checking the signed driver package."
+msgstr "正在检查签名驱动包。"
+
+msgid "Driver health"
+msgstr "驱动状态"
+
+msgid "AcpiBridge · required"
+msgstr "AcpiBridge · 必需"
+
+msgid "Keyboard filter · optional"
+msgstr "键盘过滤器 · 可选"
+
+msgid "Ready"
+msgstr "就绪"
+
+msgid "Installed"
+msgstr "已安装"
+
+msgid "Missing"
+msgstr "缺失"
+
+msgid "Optional"
+msgstr "可选"
+
+msgid "Install required driver"
+msgstr "安装必需驱动"
+
+msgid "Installing…"
+msgstr "正在安装…"
+
+msgid "Required driver ready"
+msgstr "必需驱动已就绪"
+
+msgid "Available"
+msgstr "可用"

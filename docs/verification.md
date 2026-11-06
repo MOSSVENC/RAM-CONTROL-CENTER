@@ -1,6 +1,6 @@
 # Verification log
 
-Date: 2026-11-06
+Date: 2026-11-07
 Target: Firebat/Clevo ZY-T6K, Windows host, signed AcpiBridge device
 
 ## Build
@@ -13,8 +13,8 @@ target/x86_64-pc-windows-gnu/release/neo-dchu-probe.exe
 Last successful Release cross-build after the final audit fixes:
 
 ```text
-neo-control.exe        10,954,752 bytes
-sha256                 74c59f363dcb66a775668be3ea8f126562a23a944f9756dcd549fa825a9a5b7b
+neo-control.exe        11,046,912 bytes
+sha256                 05e5eb53c6461a70a2de2702ee4124437d0a19f77c2548afe5f6255584f32b9f
 neo-dchu-probe.exe     347,648 bytes
 ```
 
@@ -28,12 +28,11 @@ Final source gates:
 
 ```text
 cargo fmt --all -- --check                         passed
-cargo test --workspace                             39 passed
+cargo test --workspace                             40 passed
 cargo clippy --workspace --all-targets \
   --target x86_64-pc-windows-gnu -- \
   -D warnings -D clippy::undocumented_unsafe_blocks passed
 cargo build --release --target x86_64-pc-windows-gnu --workspace  passed
-Windows-target test executables                    42 passed
 clean-target full verification                     passed
 ```
 
@@ -469,6 +468,28 @@ The Release PE imports `opengl32.dll` and system DLLs only, with no
   animation intervals produced continuous frame counts. Rendering remains GPU
   backed rather than a CPU software-rendering fallback.
 
+## Thermal stability audit
+
+The worker stores the latest valid thermal sample in `WorkerRuntime`. Full DCHU
+readbacks refresh that cache; the intervening one-second snapshots reuse it
+instead of sending an empty thermal update to the UI. Samples with no plausible
+CPU or GPU temperature are ignored, and the cache is cleared only after three
+consecutive invalid or failed full reads.
+
+Temperature formatting maps values outside `1..=125 °C` to `--°C`, so an
+all-zero EC response cannot render as `0°C`.
+
+Native Windows screenshots taken at 0, 6 and 15 seconds showed:
+
+```text
+CPU   80°C → 92°C → 89°C
+GPU   59°C → 59°C → 60°C
+```
+
+The temperature area remained populated for the full capture window. The action
+log recorded only valid cached samples, with no ignored or failed thermal reads
+in that interval.
+
 The Windows deployment was relaunched with the audited binary and captured from
 its real Win32 window. Temporary scripts, BMP/PNG frame series, and logs were
 removed after verification; `C:\ProgramData\NeoControl` contains only the
@@ -529,3 +550,53 @@ and shared rollback helpers. The domain modules expose the same inherent
 `Dchu` methods, so callers did not gain a new layer. Registry access is behind
 safe helpers used by display-care and tray-startup code. Service, registry,
 power-scheme, device-context, PDH and NVML resources now use RAII wrappers.
+
+## Driver health and driver-only installation
+
+### Required dependency audit
+
+A fresh code-path audit found that the application opens `AcpiBridge` for the
+DCHU transport and does not call `KeyboardFilter::open` from the FlexiKey
+engine. The current FlexiKey implementation uses `WH_KEYBOARD_LL` and
+`WH_MOUSE_LL`; `HKKbdFltr` remains a protocol-level optional path, not a current
+runtime requirement.
+
+### Live detection
+
+Run on the Windows host:
+
+```text
+neo-control.exe --driver-smoke
+acpi_ready=true
+acpi_installed=true
+keyboard_filter_ready=true
+keyboard_filter_installed=true
+acpi_payload_ready=true
+keyboard_payload_ready=true
+payload_path=C:\ProgramData\NeoControl\drivers
+```
+
+The driver payload exists only in the local ProgramData deployment. It is
+ignored by Git.
+
+### Idempotent installer helper
+
+Run on the Windows host with the driver already available:
+
+```text
+neo-control.exe --install-drivers
+exit=0
+installer: start
+installer: AcpiBridge already responding; nothing to install
+```
+
+This verified the helper's no-op path and log output. The UAC/`pnputil` path
+still needs a clean-machine test with the required device absent.
+
+### Overview UI
+
+The driver-health card is rendered on the Overview page. It shows the required
+`AcpiBridge` state, the optional `HKKbdFltr` state, payload presence, and an
+explicit install button when the required driver is unavailable. Driver files
+are loaded from the executable-adjacent `drivers/` directory or the
+ProgramData fallback.

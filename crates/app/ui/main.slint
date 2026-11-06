@@ -59,6 +59,16 @@ export component MainWindow inherits Window {
     in property <string> transport-detail: @tr("Opening the signed AcpiBridge device");
     in property <string> status-message: "";
     in property <int> status-tone: 0;
+    in property <bool> driver-core-ready: false;
+    in property <bool> driver-core-installed: false;
+    in property <bool> driver-keyboard-ready: false;
+    in property <bool> driver-keyboard-installed: false;
+    in property <bool> driver-payload-ready: false;
+    in property <bool> driver-keyboard-payload-ready: false;
+    in property <bool> driver-installing: false;
+    in property <string> driver-summary: @tr("Checking driver health");
+    in property <string> driver-detail: @tr("Checking the signed driver package.");
+    in property <string> driver-payload-path: "";
 
     in property <string> cpu-temp: "--°C";
     in property <string> gpu-temp: "--°C";
@@ -340,6 +350,7 @@ export component MainWindow inherits Window {
     callback apply-fan-offset(int);
     callback run-anti-dust();
     callback apply-anti-dust-schedule(bool, bool, int, int);
+    callback install-drivers();
 
     HorizontalLayout {
         Rectangle {
@@ -462,6 +473,17 @@ export component MainWindow inherits Window {
                             fan-label: root.fan-label;
                             capabilities-text: root.capabilities-text;
                             platform-text: root.platform-text;
+                            driver-core-ready: root.driver-core-ready;
+                            driver-core-installed: root.driver-core-installed;
+                            driver-keyboard-ready: root.driver-keyboard-ready;
+                            driver-keyboard-installed: root.driver-keyboard-installed;
+                            driver-payload-ready: root.driver-payload-ready;
+                            driver-keyboard-payload-ready: root.driver-keyboard-payload-ready;
+                            driver-installing: root.driver-installing;
+                            driver-summary: root.driver-summary;
+                            driver-detail: root.driver-detail;
+                            driver-payload-path: root.driver-payload-path;
+                            install-drivers() => { root.install-drivers(); }
                         }
 
                         // ------------------------------------------------- Performance

@@ -11,11 +11,15 @@ discover or version during startup.
 |---|---|---|
 | `CC40.exe` | Slint UI in `neo-control.exe` | Implemented |
 | `InsydeDCHU.dll` | `neo-control-protocol` direct AcpiBridge transport | All five exports have a direct equivalent |
-| `HKFltrLib.dll` | `neo-control-protocol` direct `HKKbdFltr.sys` transport | Filter control, clearing, USB enable, macro add and transactional macro-set replacement are implemented |
+| `HKFltrLib.dll` | `neo-control-protocol` direct `HKKbdFltr.sys` transport | Protocol is implemented; the current FlexiKey engine uses a user-mode hook and does not require this driver |
 | vendor boot-policy delivery | `NeoControlBoot` service mode plus interactive `neo-control.exe` | Power replay starts before the user shell; the vendor hotkey application remains independently installed |
 
 The signed `AcpiBridge.sys` and `HKKbdFltr.sys` drivers are not replaced,
-patched, re-signed or wrapped by a custom kernel component.
+patched, re-signed or wrapped by a custom kernel component. `AcpiBridge.sys` is
+the required runtime boundary; `HKKbdFltr.sys` is optional for the current
+FlexiKey implementation.
+
+The exact firmware/driver/user-service dependency boundary and the five local vendor packages are recorded in [vendor-dependency-matrix.md](vendor-dependency-matrix.md). In particular, `AcpiBridge.sys` is the required ACPI/EC boundary; `InsydeDCHU.dll`, `DCHUService.exe`, `CC40.exe` and `FnKey.exe` are not runtime dependencies of the Rust implementation.
 
 ## InsydeDCHU.dll exports
 
@@ -58,3 +62,31 @@ The installed service is named `NeoControlBoot`, starts automatically as
 `LocalSystem`, and depends on the signed `AcpiBridge` driver. It runs the same
 headless worker as `--boot-agent`, applies the persisted power transition,
 verifies the readback and exits without creating a window.
+
+## Driver-only installation
+
+The signed OEM driver is a deployment dependency, not a component linked into
+`neo-control.exe`. The application looks for a local payload beside the
+executable:
+
+```text
+drivers/acpibridge/
+  AcpiBridge.inf
+  AcpiBridge.sys
+  acpibridge.cat
+```
+
+The Overview page detects whether the AcpiBridge device is actually reachable.
+When it is missing and the payload is present, the explicit install button
+launches the same executable with `--install-drivers` through UAC. The helper
+uses Windows `pnputil` to install only the signed AcpiBridge package, then
+waits for the device to open. It does not install CC40, FnKey, DCHUService,
+InsydeDCHU, HKFltrLib, or any vendor service.
+
+`HKKbdFltr` is displayed as an optional component. The current FlexiKey engine
+uses a user-mode low-level hook, so the default installer does not install that
+filter driver.
+
+Driver binaries are ignored by Git. See
+[`drivers/README.md`](../drivers/README.md) and
+[`docs/driver-installation.md`](driver-installation.md).

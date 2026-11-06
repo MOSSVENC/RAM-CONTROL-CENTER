@@ -7,8 +7,9 @@ and Slint. The current hardware validation baseline is the Firebat/Clevo ZY-T6K.
 
 Neo Control provides a fast, Chinese-first desktop interface for platform power,
 cooling, lighting, battery, display, input and FlexiKey controls. Hardware
-access goes through the signed `AcpiBridge` and `HKKbdFltr` driver interfaces;
-firmware and driver signatures remain unchanged.
+access goes through the signed `AcpiBridge` driver interface. The current
+FlexiKey engine is user-mode; the `HKKbdFltr` protocol remains available as an
+optional hardware-filter path. Firmware and driver signatures remain unchanged.
 
 ## Highlights
 
@@ -30,7 +31,8 @@ neo-control
   -> Slint / Win32
 
 neo-control-protocol
-  -> signed AcpiBridge and HKKbdFltr device interfaces
+  -> signed AcpiBridge device interface (required)
+  -> signed HKKbdFltr device interface (optional protocol path)
 ```
 
 The workspace is split into a typed protocol layer, a serialized hardware
@@ -71,6 +73,11 @@ installed, run the reversible hardware smoke suite:
 pwsh -File scripts/hardware-smoke.ps1
 ```
 
+Driver payloads are intentionally not committed. On a deployed machine, place
+the signed OEM files under `drivers/acpibridge/` beside the executable. The
+Overview page detects the live device and exposes an explicit install button;
+no driver is installed at startup.
+
 The Release executable is written to:
 
 ```text
@@ -85,6 +92,8 @@ target/x86_64-pc-windows-gnu/release/neo-control.exe
 - [Verification log](docs/verification.md)
 - [Quality assessment](docs/quality-assessment.md)
 - [Binary replacement notes](docs/binary-replacement.md)
+- [Vendor driver and package dependency matrix](docs/vendor-dependency-matrix.md)
+- [Driver detection and installation](docs/driver-installation.md)
 
 ## License
 

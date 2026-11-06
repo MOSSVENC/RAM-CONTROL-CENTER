@@ -10,12 +10,13 @@ use std::time::{Duration, Instant};
 
 use neo_control_protocol::{
     AntiDustSchedule, CustomFanCurve, Dchu, FanMode, GpuSwitchMode, PowerMode, QuickToggle,
-    RgbColor,
+    RgbColor, ThermalSample,
 };
 use slint::Weak;
 
 use crate::MainWindow;
 use crate::diagnostics::log_action;
+use crate::driver_manager::{self, DriverHealth};
 use crate::localization::tr;
 use crate::telemetry::SystemSampler;
 use crate::ui_update::UiUpdate;
@@ -110,6 +111,9 @@ struct WorkerRuntime {
     next_retry: Instant,
     sync_selection_once: bool,
     tick: u64,
+    last_thermal: Option<ThermalSample>,
+    thermal_failures: u8,
+    driver_health: DriverHealth,
 }
 
 impl WorkerRuntime {
@@ -137,6 +141,7 @@ impl WorkerRuntime {
                 None
             }
         };
+        let driver_health = driver_manager::detect(dchu.is_some());
         Self {
             weak,
             sampler,
@@ -145,6 +150,9 @@ impl WorkerRuntime {
             next_retry: Instant::now() + Duration::from_secs(5),
             sync_selection_once: true,
             tick: 0,
+            last_thermal: None,
+            thermal_failures: 0,
+            driver_health,
         }
     }
 
@@ -280,9 +288,12 @@ impl WorkerRuntime {
             &self.weak,
             &mut self.sampler,
             self.dchu.as_ref(),
-            self.status.clone(),
+            snapshot::SnapshotInput {
+                status: self.status.clone(),
+                thermal: self.last_thermal,
+                driver_health: &self.driver_health,
+            },
             sync_selection,
-            extended_reads,
             extended_reads,
         );
     }
@@ -292,9 +303,12 @@ impl WorkerRuntime {
             &self.weak,
             &mut self.sampler,
             self.dchu.as_ref(),
-            self.status.clone(),
+            snapshot::SnapshotInput {
+                status: self.status.clone(),
+                thermal: self.last_thermal,
+                driver_health: &self.driver_health,
+            },
             sync_selection,
-            false,
             false,
         );
     }
@@ -313,6 +327,8 @@ impl WorkerRuntime {
             }
             self.next_retry = Instant::now() + Duration::from_secs(5);
         }
+        self.refresh_thermal();
+        self.driver_health = driver_manager::detect(self.dchu.is_some());
         self.push(true, true);
     }
 
@@ -329,12 +345,65 @@ impl WorkerRuntime {
             self.next_retry = Instant::now() + Duration::from_secs(5);
         }
         let full_read = self.tick == 1 || self.tick.is_multiple_of(5);
+        if full_read {
+            self.refresh_thermal();
+            self.driver_health = driver_manager::detect(self.dchu.is_some());
+        }
         let sync_selection = if full_read {
             std::mem::take(&mut self.sync_selection_once)
         } else {
             false
         };
         self.push(sync_selection, full_read);
+    }
+
+    fn refresh_thermal(&mut self) {
+        let Some(dchu) = self.dchu.as_ref() else {
+            self.thermal_failures = self.thermal_failures.saturating_add(1);
+            if self.thermal_failures >= 3 {
+                self.last_thermal = None;
+            }
+            return;
+        };
+        let started = Instant::now();
+        match dchu.read_thermal() {
+            Ok(sample) if sample.has_plausible_temperature() => {
+                log_action(&format!(
+                    "worker: thermal cpu={}C gpu={}C fan3={}C fan4={}C sampled in {} us",
+                    sample.cpu.temperature_c,
+                    sample.gpu.temperature_c,
+                    sample.fan3.temperature_c,
+                    sample.fan4.temperature_c,
+                    started.elapsed().as_micros()
+                ));
+                self.last_thermal = Some(sample);
+                self.thermal_failures = 0;
+            }
+            Ok(sample) => {
+                self.thermal_failures = self.thermal_failures.saturating_add(1);
+                log_action(&format!(
+                    "worker: thermal sample ignored (cpu={}C gpu={}C fan3={}C fan4={}C, failures={})",
+                    sample.cpu.temperature_c,
+                    sample.gpu.temperature_c,
+                    sample.fan3.temperature_c,
+                    sample.fan4.temperature_c,
+                    self.thermal_failures
+                ));
+                if self.thermal_failures >= 3 {
+                    self.last_thermal = None;
+                }
+            }
+            Err(error) => {
+                self.thermal_failures = self.thermal_failures.saturating_add(1);
+                log_action(&format!(
+                    "worker: thermal read failed ({error}, failures={})",
+                    self.thermal_failures
+                ));
+                if self.thermal_failures >= 3 {
+                    self.last_thermal = None;
+                }
+            }
+        }
     }
 }
 

@@ -65,6 +65,14 @@ pub(crate) fn format_power_rate(milliwatts: u32) -> String {
     }
 }
 
+pub(crate) fn format_temperature_celsius(celsius: u32) -> String {
+    if (1..=125).contains(&celsius) {
+        format!("{celsius}°C")
+    } else {
+        "--°C".to_owned()
+    }
+}
+
 pub(crate) fn format_clock(mhz: u32) -> String {
     if mhz == 0 {
         return "--".to_owned();
@@ -95,4 +103,17 @@ pub(crate) fn shorten_path(path: &str) -> String {
     path.rsplit_once('\\')
         .map(|(_, file)| format!("Signed codec · {file}"))
         .unwrap_or_else(|| "Signed codec located".to_owned())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::format_temperature_celsius;
+
+    #[test]
+    fn invalid_temperatures_use_a_unit_preserving_placeholder() {
+        assert_eq!(format_temperature_celsius(0), "--°C");
+        assert_eq!(format_temperature_celsius(126), "--°C");
+        assert_eq!(format_temperature_celsius(1), "1°C");
+        assert_eq!(format_temperature_celsius(125), "125°C");
+    }
 }

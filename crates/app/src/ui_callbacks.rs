@@ -10,6 +10,7 @@ use neo_control_protocol::{
 use slint::ComponentHandle;
 
 use crate::diagnostics::log_action;
+use crate::driver_manager::{self, InstallLaunchError};
 use crate::fan_curve_ui::{curve_nodes, quick_toggle_from_index};
 use crate::flexikey_ui::{FlexiKeyViewState, render_flexikey};
 use crate::localization::{is_zh, localized_fan_label, localized_power_label, set_zh, tr};
@@ -693,6 +694,107 @@ pub(crate) fn wire_ui(
             ui.set_airplane_known(true);
         }
         let _ = tx.send(WorkerCommand::ApplyAirplane(enabled));
+    });
+
+    let weak = ui.as_weak();
+    ui.on_install_drivers(move || {
+        let Some(ui) = weak.upgrade() else {
+            return;
+        };
+        if ui.get_driver_installing() {
+            return;
+        }
+        if ui.get_driver_core_ready() {
+            ui.set_status_message(tr("Required driver is already ready.", "必需驱动已就绪。").into());
+            ui.set_status_tone(1);
+            return;
+        }
+        if !ui.get_driver_payload_ready() {
+            ui.set_status_message(
+                tr(
+                    "Driver package is missing next to the application.",
+                    "应用目录中缺少驱动包。",
+                )
+                .into(),
+            );
+            ui.set_status_tone(2);
+            return;
+        }
+
+        ui.set_driver_installing(true);
+        ui.set_status_message(
+            tr(
+                "Waiting for administrator permission…",
+                "正在等待管理员授权…",
+            )
+            .into(),
+        );
+        ui.set_status_tone(0);
+        log_action("install-drivers: requesting elevated helper");
+        let weak = ui.as_weak();
+        std::thread::spawn(move || {
+            let result = driver_manager::install_and_wait();
+            let _ = slint::invoke_from_event_loop(move || {
+                if let Some(ui) = weak.upgrade() {
+                    ui.set_driver_installing(false);
+                    match result {
+                        Ok(0) => {
+                            ui.set_status_message(
+                                tr(
+                                    "Driver installation completed.",
+                                    "驱动安装已完成。",
+                                )
+                                .into(),
+                            );
+                            ui.set_status_tone(1);
+                        }
+                        Ok(code) => {
+                            let message = match code {
+                                2 => tr("Driver package missing.", "缺少驱动包。"),
+                                3 => tr(
+                                    "Administrator permission is required.",
+                                    "需要管理员权限。",
+                                ),
+                                4 => tr(
+                                    "Driver installation failed. Check driver-install.log.",
+                                    "驱动安装失败，请检查 driver-install.log。",
+                                ),
+                                5 => tr(
+                                    "Driver was installed but did not come online. Restart Windows and retry.",
+                                    "驱动已安装但未上线，请重启 Windows 后重试。",
+                                ),
+                                _ => tr("Driver installation failed.", "驱动安装失败。"),
+                            };
+                            ui.set_status_message(format!("{message} ({code})").into());
+                            ui.set_status_tone(2);
+                        }
+                        Err(InstallLaunchError::Cancelled) => {
+                            ui.set_status_message(
+                                tr(
+                                    "Administrator permission was not granted.",
+                                    "未获得管理员授权。",
+                                )
+                                .into(),
+                            );
+                            ui.set_status_tone(0);
+                        }
+                        Err(InstallLaunchError::Failed(error)) => {
+                            ui.set_status_message(
+                                format!(
+                                    "{}: {error}",
+                                    tr(
+                                        "Could not start driver installation.",
+                                        "无法启动驱动安装。"
+                                    )
+                                )
+                                .into(),
+                            );
+                            ui.set_status_tone(2);
+                        }
+                    }
+                }
+            });
+        });
     });
 
     let weak = ui.as_weak();

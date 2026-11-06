@@ -45,6 +45,20 @@ pub struct ThermalSample {
     pub fan4: FanChannel,
 }
 
+impl ThermalSample {
+    /// A usable sample must contain at least one physically plausible CPU or
+    /// GPU temperature. This filters the all-zero response some ECs return
+    /// while their thermal mailbox is being refreshed.
+    pub fn has_plausible_temperature(&self) -> bool {
+        is_plausible_temperature(self.cpu.temperature_c)
+            || is_plausible_temperature(self.gpu.temperature_c)
+    }
+}
+
+pub fn is_plausible_temperature(celsius: u8) -> bool {
+    (1..=125).contains(&celsius)
+}
+
 /// One point in the EC's four-point fan curve. Duty is kept in the vendor's
 /// native 0..=255 representation so a read can be round-tripped exactly.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
@@ -1689,11 +1703,18 @@ mod tests {
         buffer[19] = 65;
         buffer[21] = 50;
         let sample = decode_thermal(&buffer);
+        assert!(sample.has_plausible_temperature());
         assert_eq!(sample.cpu.rpm, 3512);
         assert_eq!(sample.cpu.temperature_c, 68);
         assert_eq!(sample.cpu.duty_percent, 44);
         assert_eq!(sample.gpu.rpm, 2108);
         assert_eq!(sample.gpu.temperature_c, 50);
         assert_eq!(sample.gpu.duty_percent, 25);
+
+        assert!(!decode_thermal(&[0_u8; 256]).has_plausible_temperature());
+        assert!(!is_plausible_temperature(0));
+        assert!(!is_plausible_temperature(126));
+        assert!(is_plausible_temperature(1));
+        assert!(is_plausible_temperature(125));
     }
 }

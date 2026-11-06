@@ -26,7 +26,7 @@ split.
 
 - Host Clippy across all targets and features now passes with `-D warnings`;
   Windows-only FlexiKey mapping helpers are gated out of non-test host builds.
-- All 70 Win32/NVML `unsafe` blocks now carry an individual `SAFETY:` contract.
+- All 77 Win32/NVML/Shell `unsafe` blocks carry an individual `SAFETY:` contract.
   The Windows Clippy gate fails on any undocumented block.
 - Page transitions use opacity only. Content geometry remains fixed, and a
   transparent input guard covers the workspace during the swap.
@@ -44,6 +44,10 @@ split.
 - RGB sliders update the preview directly from pointer movement. A captured
   drag produced 13 consecutive preview colours while the R value moved from 85
   through 253.
+- Thermal snapshots now carry the last valid sample through light refreshes.
+  All-zero or implausible DCHU responses are rejected, and invalid values render
+  as `--°C`; a 15-second native Windows capture kept CPU and GPU temperatures
+  populated across the full interval.
 - Remaining debt: the 1,213-line FlexiKey editor still performs XML/engine work
   synchronously on the UI thread; `wire_ui` (699 lines), `apply_update` (520
   lines) and `wire_flexikey` (544 lines) need functional decomposition; no
@@ -52,16 +56,16 @@ split.
 ## Code metrics
 
 ```text
-total measured lines       19,886
-Rust lines                 13,787
+total measured lines       19,974
+Rust lines                 13,875
 Slint lines                 5,033
 translation lines           1,066
 Rust source modules            45
 Slint source modules           16
-unsafe token occurrences      83
-documented unsafe blocks       70
-test functions                 43
-host-executed tests            39
+unsafe token occurrences      90
+documented unsafe blocks       77
+test functions                 44
+host-executed tests            40
 ```
 
 The source-line total reflects explicit module interfaces, typed page
@@ -156,7 +160,7 @@ Remaining debt:
 - `flexikey_ui.rs` is 1,213 lines; its editor/profile state is the next
   candidate for functional split. The hardware worker is now 330 lines plus
   five focused submodules.
-- There are 83 `unsafe` token occurrences and 70 raw blocks. They are localized
+- There are 90 `unsafe` token occurrences and 77 raw blocks. They are localized
   around Windows IOCTL/FFI, with `telemetry.rs` (18 blocks), `tray.rs` (20) and
   `flexikey_engine.rs` (8) as the largest clusters. Every block has a specific
   `SAFETY:` invariant. `scripts/check-unsafe.sh` ratchets the token count and
@@ -229,18 +233,18 @@ CC40 plus two DLLs       33,246,592 bytes
 Current Neo Control:
 
 ```text
-neo-control.exe          10,954,752 bytes
+neo-control.exe          11,046,912 bytes
 ```
 
 ```text
-Neo / CC40.exe                       36.16%  (63.84% smaller)
-Neo / (CC40 + DLLs)                  32.95%  (67.05% smaller)
+Neo / CC40.exe                       36.46%  (63.54% smaller)
+Neo / (CC40 + DLLs)                  33.23%  (66.77% smaller)
 ```
 
 The latest background process sample was:
 
 ```text
-neo-control.exe   working set 121,085,952 bytes  private 128,270,336 bytes
+neo-control.exe   working set 132,206,592 bytes  private 145,522,688 bytes
 FnKey.exe         working set  52,187,136 bytes  private 152,457,216 bytes
 DCHUService.exe   working set  12,161,024 bytes  private  29,872,128 bytes
 ```

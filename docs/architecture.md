@@ -13,12 +13,15 @@ neo-control-protocol
 signed AcpiBridge device          signed HKKbdFltr device
         │                                  │
         ▼                                  ▼
-     ACPI / EC                    keyboard filter / macros
+     ACPI / EC                    optional hardware filter
+                                   (protocol path only)
 ```
 
 The accepted runtime is a two-crate Rust workspace with a native Slint UI.
-Hardware access is implemented through the signed `AcpiBridge` and
-`HKKbdFltr` device interfaces; firmware and driver signatures remain unchanged.
+Hardware access is implemented through the signed `AcpiBridge` device
+interface. The current FlexiKey engine uses a low-level user-mode hook; the
+`HKKbdFltr` transport remains available as an optional protocol path. Firmware
+and driver signatures remain unchanged.
 
 ## Application composition
 
@@ -81,7 +84,8 @@ rejects truncated headers, truncated descriptors, short integer records and
 output buffers that received fewer bytes than requested.
 
 `win_device.rs` is the common signed-device open/ioctl/close boundary used by
-both AcpiBridge and HKKbdFltr. `windows_backend.rs` keeps DCHU frame assembly,
+the AcpiBridge transport and the optional HKKbdFltr protocol path.
+`windows_backend.rs` keeps DCHU frame assembly,
 settings access and shared rollback helpers. Its domain modules contain only
 the typed platform operations:
 
@@ -201,7 +205,12 @@ The UI animation is independent of hardware sampling.
 
 ## Keyboard filter transport
 
-The signed `HKKbdFltr.sys` control device is opened directly:
+The current FlexiKey engine does not open this device; it uses `WH_KEYBOARD_LL`
+and `WH_MOUSE_LL` for profile actions. The protocol crate retains the direct
+signed-device path for a future hardware-filter mode.
+
+The signed `HKKbdFltr.sys` control device is opened directly by that protocol
+path:
 
 ```text
 \\.\{2dc8164f-3a23-4d71-9fa6-91f9ead88613}

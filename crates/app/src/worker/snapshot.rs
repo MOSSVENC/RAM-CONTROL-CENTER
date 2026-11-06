@@ -1,10 +1,11 @@
 use std::time::Instant;
 
-use neo_control_protocol::{Dchu, PlatformState, QuickToggleState};
+use neo_control_protocol::{Dchu, PlatformState, QuickToggleState, ThermalSample};
 use slint::Weak;
 
 use crate::MainWindow;
 use crate::diagnostics::log_action;
+use crate::driver_manager::DriverHealth;
 use crate::formatting::shorten_path;
 use crate::localization::tr;
 use crate::runtime_state::flexi_recovery_ready;
@@ -12,15 +13,25 @@ use crate::system_controls;
 use crate::telemetry::SystemSampler;
 use crate::ui_update::{UiUpdate, apply_update};
 
+pub(super) struct SnapshotInput<'a> {
+    pub(super) status: Option<(String, i32)>,
+    pub(super) thermal: Option<ThermalSample>,
+    pub(super) driver_health: &'a DriverHealth,
+}
+
 pub(super) fn push_snapshot(
     weak: &Weak<MainWindow>,
     sampler: &mut SystemSampler,
     dchu: Option<&Dchu>,
-    status: Option<(String, i32)>,
+    input: SnapshotInput<'_>,
     sync_selection: bool,
     extended_reads: bool,
-    read_thermal: bool,
 ) {
+    let SnapshotInput {
+        status,
+        thermal,
+        driver_health,
+    } = input;
     log_action(if extended_reads {
         "worker: snapshot begin full"
     } else {
@@ -31,17 +42,6 @@ pub(super) fn push_snapshot(
         "worker: system sampled cpu={:.0}% clock={} MHz max={} MHz",
         system.cpu_load_percent, system.cpu_clock_mhz, system.cpu_max_clock_mhz
     ));
-    let thermal = if read_thermal {
-        let thermal_started = Instant::now();
-        let thermal = dchu.and_then(|dchu| dchu.read_thermal().ok());
-        log_action(&format!(
-            "worker: thermal sampled in {} us",
-            thermal_started.elapsed().as_micros()
-        ));
-        thermal
-    } else {
-        None
-    };
     let (
         platform,
         quick_toggles,
@@ -193,6 +193,7 @@ pub(super) fn push_snapshot(
             transport_label,
             transport_detail,
             transport_device_path,
+            driver_health: driver_health.clone(),
             busy: false,
             status,
             sync_selection,

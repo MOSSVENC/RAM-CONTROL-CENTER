@@ -36,6 +36,17 @@ import {
     in property <string> fan-label: @tr("Automatic");
     in property <string> capabilities-text: @tr("--");
     in property <string> platform-text: @tr("--");
+    in property <bool> driver-core-ready: false;
+    in property <bool> driver-core-installed: false;
+    in property <bool> driver-keyboard-ready: false;
+    in property <bool> driver-keyboard-installed: false;
+    in property <bool> driver-payload-ready: false;
+    in property <bool> driver-keyboard-payload-ready: false;
+    in property <bool> driver-installing: false;
+    in property <string> driver-summary: @tr("Checking driver health");
+    in property <string> driver-detail: @tr("Checking the signed driver package.");
+    in property <string> driver-payload-path: "";
+    callback install-drivers();
 
     spacing: 18px;
 
@@ -118,7 +129,7 @@ import {
                 SectionTitle { text: @tr("Thermal state"); }
                 Rectangle { horizontal-stretch: 1; }
                 Text {
-                    text: @tr("DCHU · 2 s");
+                    text: @tr("DCHU · 5 s");
                     color: Palette.text-faint;
                     font-family: "Cascadia Mono";
                     font-size: 10px;
@@ -353,4 +364,139 @@ import {
             }
         }
     }
+    Rectangle {
+        height: 116px;
+        border-radius: 12px;
+        background: Palette.surface-gradient;
+        border-width: 1px;
+        border-color: root.driver-core-ready ? Palette.line : Palette.amber;
+        clip: true;
+
+        HorizontalLayout {
+            padding-left: 18px;
+            padding-right: 18px;
+            padding-top: 14px;
+            padding-bottom: 14px;
+            spacing: 18px;
+
+            VerticalLayout {
+                horizontal-stretch: 1;
+                spacing: 5px;
+
+                HorizontalLayout {
+                    spacing: 10px;
+                    cross-axis-alignment: center;
+                    SectionTitle { text: @tr("Driver health"); font-size: 15px; }
+                    Rectangle { horizontal-stretch: 1; }
+                    SignalDot {
+                        width: 6px;
+                        height: 6px;
+                        border-radius: 3px;
+                        active: root.driver-core-ready;
+                        tone: root.driver-core-ready ? Palette.green : Palette.amber;
+                    }
+                    Text {
+                        text: root.driver-summary;
+                        color: root.driver-core-ready ? Palette.green : Palette.amber;
+                        font-family: "Cascadia Mono";
+                        font-size: 10px;
+                        font-weight: 600;
+                    }
+                }
+
+                Text {
+                    text: root.driver-detail;
+                    color: Palette.text-dim;
+                    font-family: "Bahnschrift";
+                    font-size: 11px;
+                    wrap: word-wrap;
+                    vertical-stretch: 1;
+                }
+
+                HorizontalLayout {
+                    spacing: 8px;
+
+                    Rectangle {
+                        width: 190px;
+                        height: 26px;
+                        border-radius: 13px;
+                        border-width: 1px;
+                        border-color: root.driver-core-ready ? Palette.green : Palette.line;
+                        background: root.driver-core-ready ? Palette.green-soft : Palette.panel-hover;
+                        HorizontalLayout {
+                            padding-left: 10px;
+                            padding-right: 10px;
+                            spacing: 7px;
+                            cross-axis-alignment: center;
+                            SignalDot { width: 5px; height: 5px; active: root.driver-core-ready; tone: root.driver-core-ready ? Palette.green : Palette.amber; }
+                            Text { text: @tr("AcpiBridge · required"); color: Palette.text; font-family: "Bahnschrift"; font-size: 10px; vertical-alignment: center; }
+                            Rectangle { horizontal-stretch: 1; }
+                            Text {
+                                text: root.driver-core-ready ? @tr("Ready") : root.driver-core-installed ? @tr("Installed") : @tr("Missing");
+                                color: root.driver-core-ready ? Palette.green : Palette.amber;
+                                font-family: "Cascadia Mono";
+                                font-size: 9px;
+                                vertical-alignment: center;
+                            }
+                        }
+                    }
+
+                    Rectangle {
+                        width: 222px;
+                        height: 26px;
+                        border-radius: 13px;
+                        border-width: 1px;
+                        border-color: Palette.line;
+                        background: Palette.panel-hover;
+                        HorizontalLayout {
+                            padding-left: 10px;
+                            padding-right: 10px;
+                            spacing: 7px;
+                            cross-axis-alignment: center;
+                            SignalDot { width: 5px; height: 5px; active: root.driver-keyboard-ready; tone: root.driver-keyboard-ready ? Palette.green : Palette.text-faint; }
+                            Text { text: @tr("Keyboard filter · optional"); color: Palette.text-dim; font-family: "Bahnschrift"; font-size: 10px; vertical-alignment: center; }
+                            Rectangle { horizontal-stretch: 1; }
+                            Text {
+                                text: root.driver-keyboard-ready ? @tr("Ready") : root.driver-keyboard-installed ? @tr("Installed") : root.driver-keyboard-payload-ready ? @tr("Available") : @tr("Optional");
+                                color: root.driver-keyboard-ready ? Palette.green : Palette.text-faint;
+                                font-family: "Cascadia Mono";
+                                font-size: 9px;
+                                vertical-alignment: center;
+                            }
+                        }
+                    }
+                }
+            }
+
+            Rectangle { width: 1px; background: Palette.line; }
+
+            VerticalLayout {
+                width: 214px;
+                spacing: 7px;
+                alignment: center;
+                if !root.driver-core-ready : StageButton {
+                    text: root.driver-installing ? @tr("Installing…") : @tr("Install required driver");
+                    primary: true;
+                    enabled: root.driver-payload-ready && !root.driver-installing;
+                    clicked => { root.install-drivers(); }
+                }
+                if root.driver-core-ready : Text {
+                    text: @tr("Required driver ready");
+                    color: Palette.green;
+                    font-family: "Bahnschrift";
+                    font-size: 11px;
+                    horizontal-alignment: center;
+                }
+                Text {
+                    text: root.driver-payload-path;
+                    color: Palette.text-faint;
+                    font-family: "Cascadia Mono";
+                    font-size: 9px;
+                    horizontal-alignment: center;
+                    overflow: elide;
+                }
+            }
+        }
+    }
+
 }

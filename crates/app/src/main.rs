@@ -4,6 +4,7 @@ mod boot_agent;
 mod boot_service;
 mod diagnostics;
 mod display_care;
+mod driver_manager;
 mod fan_curve_ui;
 mod flexikey_engine;
 mod flexikey_ui;
@@ -106,6 +107,15 @@ fn run_snapshot(page: usize, path: std::path::PathBuf) -> Result<(), Box<dyn std
         log_action(&format!("snapshot translation unavailable: {error}"));
     }
     ui.set_language_zh(true);
+    let dchu = neo_control_protocol::Dchu::open();
+    ui.set_transport_ready(dchu.is_ok());
+    ui.set_transport_detail(
+        dchu.as_ref()
+            .map(|dchu| dchu.path().to_owned())
+            .unwrap_or_else(|_| "DCHU unavailable".to_owned())
+            .into(),
+    );
+    ui_update::apply_driver_health(&ui, &driver_manager::detect(dchu.is_ok()));
     let page = page.min(10) as i32;
     ui.set_selected_page(page);
     ui.set_navigation_page(page);
@@ -234,6 +244,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     match std::env::args().nth(1).as_deref() {
         Some("--boot-agent") => std::process::exit(boot_agent::run()),
+        Some("--install-drivers") => std::process::exit(driver_manager::run_installer()),
+        Some("--driver-smoke") => std::process::exit(driver_manager::smoke()),
         Some("--boot-service") => std::process::exit(boot_service::run_dispatcher()),
         Some("--install-boot-service") => std::process::exit(boot_service::install()),
         Some("--uninstall-boot-service") => std::process::exit(boot_service::uninstall()),

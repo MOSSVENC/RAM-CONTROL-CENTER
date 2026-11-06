@@ -8,6 +8,7 @@ cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.."
 # fails the gate. When a later refactor lowers a count, lower its ceiling here.
 declare -A ceilings=(
     ["crates/app/src/telemetry.rs"]=26
+    ["crates/app/src/driver_manager.rs"]=7
     ["crates/app/src/tray.rs"]=21
     ["crates/app/src/flexikey_engine.rs"]=10
     ["crates/app/src/system_controls/registry.rs"]=1
@@ -24,7 +25,7 @@ declare -A ceilings=(
 
 total=0
 failed=0
-max_total=83
+max_total=90
 
 while IFS= read -r file; do
     count=$(grep -o -E '\bunsafe\b' "$file" | wc -l)
