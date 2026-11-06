@@ -73,21 +73,21 @@ import {
                     label: @tr("Camera");
                     value: root.camera-enabled;
                     known: root.camera-known;
-                    busy: root.busy;
+                    busy: false;
                     toggled(enabled) => { root.apply-camera(enabled); }
                 }
                 ToggleStatusRow {
                     label: @tr("Touchpad");
                     value: root.touchpad-enabled;
                     known: root.touchpad-known;
-                    busy: root.busy;
+                    busy: false;
                     toggled(enabled) => { root.apply-touchpad(enabled); }
                 }
                 ToggleStatusRow {
                     label: @tr("Airplane mode");
                     value: root.airplane-enabled;
                     known: root.airplane-known;
-                    busy: root.busy;
+                    busy: false;
                     toggled(enabled) => { root.apply-airplane(enabled); }
                 }
                 Text {
@@ -213,7 +213,7 @@ import {
                     label: @tr("Mute");
                     value: root.audio-muted;
                     known: root.audio-known;
-                    busy: root.busy;
+                    busy: false;
                     toggled(enabled) => { root.apply-mute(enabled); }
                 }
                 Rectangle { vertical-stretch: 1; }

@@ -85,35 +85,35 @@ import {
                     label: @tr("Fn key lock");
                     value: root.toggle-fn-value;
                     known: root.toggle-fn-known;
-                    busy: root.busy;
+                    busy: false;
                     toggled(value) => { root.set-quick-toggle(0, value); }
                 }
                 ToggleStatusRow {
                     label: @tr("Windows key lock");
                     value: root.toggle-win-value;
                     known: root.toggle-win-known;
-                    busy: root.busy;
+                    busy: false;
                     toggled(value) => { root.set-quick-toggle(1, value); }
                 }
                 ToggleStatusRow {
                     label: @tr("Swap Win / Fn");
                     value: root.toggle-swap-value;
                     known: root.toggle-swap-known;
-                    busy: root.busy;
+                    busy: false;
                     toggled(value) => { root.set-quick-toggle(2, value); }
                 }
                 ToggleStatusRow {
                     label: @tr("Control Center hotkey");
                     value: root.toggle-hotkeys-value;
                     known: root.toggle-hotkeys-known;
-                    busy: root.busy;
+                    busy: false;
                     toggled(value) => { root.set-quick-toggle(3, value); }
                 }
                 ToggleStatusRow {
                     label: @tr("Copilot key");
                     value: root.toggle-copilot-value;
                     known: root.toggle-copilot-known;
-                    busy: root.busy;
+                    busy: false;
                     toggled(value) => { root.set-quick-toggle(4, value); }
                 }
                 if root.low-refresh-supported && root.low-refresh-eligible : VerticalLayout {
@@ -123,7 +123,7 @@ import {
                         label: @tr("Lowest panel refresh rate");
                         value: root.low-refresh-enabled;
                         known: root.low-refresh-known;
-                        busy: root.busy;
+                        busy: false;
                         toggled(value) => { root.apply-low-refresh(value); }
                     }
                     Text {

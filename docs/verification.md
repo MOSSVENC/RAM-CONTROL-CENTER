@@ -13,8 +13,8 @@ target/x86_64-pc-windows-gnu/release/neo-dchu-probe.exe
 Last successful Release cross-build after the final audit fixes:
 
 ```text
-neo-control.exe        10,990,592 bytes
-sha256                 6f0bb0702fa10f4d537a1277440946913f538a99e7493d1842ef1529fe27582e
+neo-control.exe        10,954,752 bytes
+sha256                 74c59f363dcb66a775668be3ea8f126562a23a944f9756dcd549fa825a9a5b7b
 neo-dchu-probe.exe     347,648 bytes
 ```
 
@@ -413,25 +413,26 @@ driver-level route if it is needed for compatibility.
 - Slint notifier: `GraphicsAPI::NativeOpenGL`.
 - GPU 3D engine activity was observed while the window is visible.
 - UI animation and hardware polling are separated by a worker channel.
-- Navigation updates the rail immediately, then a gradient veil covers the
-  workspace in 110 ms. The live page swaps behind the veil; the veil reveals the
-  incoming page over 190 ms while the page fades for 150 ms and rises/scales for
-  200 ms. The transition performs no snapshot or framebuffer readback.
-- The navigation rail now owns one shared capsule whose `y` position animates
-  over 320 ms. The page veil is clipped to the content viewport; its moving
-  rectangle is physically unable to reach the rail even at the end of reveal.
-- Continuous captured frames showed the old page, the veil covering the swap,
-  the partially revealed incoming page, and the settled page. Page dispatch
-  stayed between 28 and 250 µs across the sampled clicks.
+- Navigation updates the rail immediately. One shared capsule travels vertically
+  over 320 ms, and the page content dims to 74% over 90 ms, swaps at a fixed
+  position, then returns to full opacity over 170 ms.
+- Page content uses opacity only during a switch. It does not translate, scale,
+  or place a sheet over the workspace. A transparent input guard covers the
+  content viewport while the swap is active.
+- Native captures showed stable content geometry through the swap. The maximum
+  blue-dominant pixel fraction in the content area was 0.093, confined to normal
+  accent surfaces rather than a full-area overlay.
 - Segmented controls share a single moving highlight pill rather than changing
   each button independently; supported groups use a 240 ms `ease-out-back`
   translation. Pointer presses also render a radial highlight like KernelSU's
   InteractiveHighlight.
+- Brightness and effect choices update the requested state before the worker
+  command is queued. The selected pill therefore moves immediately, and the
+  page does not wait for a hardware response.
+- RGB uses three draggable channel tracks. The preview swatch binds directly to
+  the requested channel values with no intermediate release event.
 - Light/dark switching interpolates the complete palette and gradient set over
-  260 ms with an ease-out-cubic curve. Continuous capture showed the page mean
-  RGB move from approximately `(235, 237, 244)` through ten intermediate values
-  to `(28.6, 31.2, 42.7)`; there is no opaque white-to-black flash frame anymore.
-  Rapid repeated toggles cancelled stale animation epochs and settled on the
+  260 ms with an ease-out-cubic curve. Rapid repeated toggles settle on the
   correct final theme and segmented-control selection.
 - Option controls share the same motion system: 200–220 ms surface/radius
   morphs, 240 ms `ease-out-back` selection indicators, 240 ms toggle-thumb
@@ -448,27 +449,22 @@ driver-level route if it is needed for compatibility.
 
 ## 2026-11-06 interaction audit
 
-The final navigation audit was performed against the native Windows process,
-not WSLg. The Release PE imports `opengl32.dll` and system DLLs only, with no
+The final interaction audit was performed against the native Windows process.
+The Release PE imports `opengl32.dll` and system DLLs only, with no
 `InsydeDCHU.dll`, `HKFltrLib.dll`, `CC40.exe` or `FnKey.exe` dependency.
 
-- A stress run that changed Settings→Performance→Cooling while an earlier
-  transition was still active produced 20 distinct changing frames and settled
-  on Cooling without a stuck veil. Rapid Overview→Performance→Cooling→Battery→
-  Overview clicks then ended on Overview with the correct rail selection.
-- A click aimed at an underlying power option while the transition was active
-  did not change the selected option, confirming the veil input guard.
-- Pressing the Refresh control produced a stable pressed frame across two
-  captures and released to a distinct frame, confirming live press feedback.
-- The theme transition was fixed after capture exposed an opaque 190 ms white
-  flash followed by a black flash. The replacement interpolation was recaptured
-  through the complete transition and with rapid repeated toggles.
-- Native Windows screen capture at roughly 60 fps changed Overview→Settings.
-  The rail stayed visible in every frame, the shared capsule was observed at
-  intermediate rows, and it settled on Settings without the former blue sweep
-  or rebound. This also reproduced and fixed the original per-item fade flash.
-- The Settings `Start with Windows` row was captured on Windows after the fix;
-  the switch uses a plain centred thumb and the full row aligns vertically.
+- Native Windows screen captures verified the fixed top header, the single
+  hardware-online pill in Overview, and the absence of global status banners.
+- Fn lock changed its visible switch state approximately 26 ms after the click;
+  the page stayed in place and no status banner appeared.
+- The Lighting brightness capsule moved through intermediate positions and
+  settled on the chosen option; the first visible motion appeared about 20 ms
+  after the click.
+- Dragging the R slider from 85 to 253 produced 13 sampled preview colours from
+  `(87, 80, 200)` through `(170, 80, 200)` to `(253, 80, 200)`, confirming the
+  preview follows pointer movement continuously.
+- The Settings `Start with Windows` row was captured on Windows; the switch track
+  and label both measured `center_y = 526.5 px`, a 0 px vertical offset.
 - Idle frame diagnostics reported zero rendered frames per two-second interval;
   animation intervals produced continuous frame counts. Rendering remains GPU
   backed rather than a CPU software-rendering fallback.
@@ -500,8 +496,8 @@ hooks + tray + worker    median 466.9 ms  range 447.9–496.7 ms
 All eleven extracted pages were captured at the production size: Overview,
 Performance, Cooling, Fan curve, Battery, System, Lighting, FlexiKey,
 Input & I/O, Display care and Settings. They retained live telemetry, Chinese
-labels, the central `NEO CONTROL` title, GPU composition and the existing
-animations. No captured page was blank or clipped.
+labels, the rail wordmark, GPU composition and the accepted motion system. No
+captured page was blank or clipped.
 
 
 ## Backend/control module split

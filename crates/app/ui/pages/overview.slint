@@ -60,12 +60,33 @@ import {
             }
         }
         Rectangle { horizontal-stretch: 1; }
-        Text {
-            text: root.power-label + "  /  " + root.fan-label;
-            color: Palette.amber;
-            font-family: "Cascadia Mono";
-            font-size: 11px;
-            vertical-alignment: bottom;
+        Rectangle {
+            height: 28px;
+            border-radius: 14px;
+            border-width: 1px;
+            border-color: root.transport-ready ? Palette.green : Palette.line;
+            background: root.transport-ready ? Palette.green-soft : Palette.panel-hover;
+            HorizontalLayout {
+                padding-left: 11px;
+                padding-right: 11px;
+                spacing: 7px;
+                cross-axis-alignment: center;
+                SignalDot {
+                    width: 6px;
+                    height: 6px;
+                    border-radius: 3px;
+                    active: root.transport-ready;
+                    tone: root.transport-ready ? Palette.green : Palette.amber;
+                }
+                Text {
+                    text: root.transport-ready ? @tr("HARDWARE ONLINE") : @tr("HARDWARE OFFLINE");
+                    color: root.transport-ready ? Palette.green : Palette.text-dim;
+                    font-family: "Bahnschrift";
+                    font-size: 10px;
+                    font-weight: 600;
+                    vertical-alignment: center;
+                }
+            }
         }
     }
 

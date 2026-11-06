@@ -55,7 +55,6 @@ pub(crate) enum WorkerCommand {
     ApplyVolume(u8),
     ApplyMute(bool),
     Refresh,
-    ClearStatus,
 }
 
 pub(super) struct CommandOutcome {
@@ -264,10 +263,6 @@ impl WorkerRuntime {
                     self.finish(input::apply_lock_key(vk));
                 }
                 Ok(WorkerCommand::Refresh) => self.refresh(),
-                Ok(WorkerCommand::ClearStatus) => {
-                    self.status = None;
-                    self.push_quick(false);
-                }
                 Err(RecvTimeoutError::Timeout) => self.on_timeout(),
                 Err(RecvTimeoutError::Disconnected) => break,
             }

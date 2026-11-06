@@ -267,6 +267,8 @@ pub(crate) fn apply_update(ui: &MainWindow, update: UiUpdate) {
             ui.set_rgb_requested_green(i32::from(keyboard.color.green));
             ui.set_rgb_requested_blue(i32::from(keyboard.color.blue));
             ui.set_rgb_requested_brightness(i32::from(keyboard.brightness));
+            ui.set_rgb_requested_effect(i32::from(keyboard.effect));
+            ui.set_rgb_requested_boot_effect(keyboard.boot_effect);
             ui.set_rgb_requested_sleep_enabled(keyboard.sleep_enabled);
             ui.set_rgb_requested_hours((keyboard.sleep_seconds / 3600) as i32);
             ui.set_rgb_requested_minutes(((keyboard.sleep_seconds / 60) % 60) as i32);

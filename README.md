@@ -15,7 +15,8 @@ firmware and driver signatures remain unchanged.
 - Native Rust + Slint UI with GPU compositing and a compact tray-resident shell
 - Power profiles, fan policies, custom curves and a ten-point RPM editor
 - Thermal, clock, memory, disk, battery and optional NVIDIA telemetry
-- Keyboard RGB, charging policy, GPU mode and panel refresh controls
+- Keyboard RGB with live draggable channel sliders, charging policy, GPU mode and panel refresh controls
+- Immediate local feedback for navigation, quick toggles and segmented controls
 - FlexiKey profiles, binding editor and resident keyboard/mouse action engine
 - Windows display care with readback and rollback
 - Headless boot service that restores the saved power policy before login

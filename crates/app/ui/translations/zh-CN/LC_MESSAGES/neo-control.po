@@ -81,6 +81,9 @@ msgstr "设置"
 msgid "LOCAL HARDWARE"
 msgstr "本地硬件"
 
+msgid "HARDWARE ONLINE"
+msgstr "硬件在线"
+
 msgid "HARDWARE OFFLINE"
 msgstr "硬件离线"
 
@@ -414,8 +417,8 @@ msgstr "GPU 合成"
 msgid "Animation"
 msgstr "动画"
 
-msgid "Slide veil · lift · scale"
-msgstr "滑入遮罩 · 上浮缩放"
+msgid "Soft fade · immediate response"
+msgstr "柔和淡化 · 即时响应"
 
 msgid "Neo Control uses the Slint winit renderer. The scene is composed by the GPU; the hardware worker only samples telemetry off the UI thread."
 msgstr "Neo Control 使用 Slint winit 渲染器，画面由 GPU 合成；硬件采样在工作线程中进行，不阻塞 UI。"

@@ -3,17 +3,19 @@ import {
     ChromeButton, ChoiceChip, CurveStepper, DataLabel, DataValue, FanOption, FanReadout,
     FieldInput, Hairline, InfoRow, MetricBar, MicroLabel, NavGlyph, NavItem, PowerOption,
     ReadoutRow, SectionTitle, SignalDot, StageButton, ToggleStatusRow,
-    SegmentedChoice,
+    SegmentedChoice, ValueSlider,
 } from "../components.slint";
 
                         export component LightingPage inherits VerticalLayout {
     in property <int> selected-page: 0;
-    in property <bool> busy: false;
     in property <bool> rgb-available: false;
     in property <bool> rgb-enabled: false;
     in property <int> rgb-brightness: 4;
     in property <int> rgb-effect: 8;
     in property <bool> rgb-boot-effect: false;
+    in-out property <int> rgb-requested-brightness: 4;
+    in-out property <int> rgb-requested-effect: 8;
+    in-out property <bool> rgb-requested-boot-effect: false;
     in-out property <int> rgb-requested-red: 0;
     in-out property <int> rgb-requested-green: 0;
     in-out property <int> rgb-requested-blue: 200;
@@ -91,13 +93,13 @@ import {
                         y: 10px;
                     }
                 }
-                CurveStepper { label: "R"; value: root.rgb-requested-red; lower: 0; upper: 255; step: 5; changed(v) => { root.rgb-requested-red = v; } }
-                CurveStepper { label: "G"; value: root.rgb-requested-green; lower: 0; upper: 255; step: 5; changed(v) => { root.rgb-requested-green = v; } }
-                CurveStepper { label: "B"; value: root.rgb-requested-blue; lower: 0; upper: 255; step: 5; changed(v) => { root.rgb-requested-blue = v; } }
+                ValueSlider { label: "R"; value <=> root.rgb-requested-red; lower: 0; upper: 255; tone: Palette.red; }
+                ValueSlider { label: "G"; value <=> root.rgb-requested-green; lower: 0; upper: 255; tone: Palette.green; }
+                ValueSlider { label: "B"; value <=> root.rgb-requested-blue; lower: 0; upper: 255; tone: Palette.cyan; }
                 StageButton {
                     text: @tr("Apply keyboard color");
                     primary: true;
-                    enabled: !root.busy;
+                    enabled: root.rgb-available;
                     clicked => { root.apply-rgb-color(root.rgb-requested-red, root.rgb-requested-green, root.rgb-requested-blue); }
                 }
             }
@@ -118,24 +120,33 @@ import {
                 SegmentedChoice {
                     width: min(340px, parent.width);
                     labels: [@tr("OFF"), "1", "2", "3", "4"];
-                    selected-index: min(4, max(0, root.rgb-brightness));
-                    enabled: !root.busy;
-                    selected(index) => { root.apply-rgb-brightness(index); }
+                    selected-index: min(4, max(0, root.rgb-requested-brightness));
+                    enabled: root.rgb-available;
+                    selected(index) => {
+                        root.rgb-requested-brightness = index;
+                        root.apply-rgb-brightness(index);
+                    }
                 }
                 MicroLabel { text: @tr("EFFECT"); }
                 SegmentedChoice {
                     width: min(360px, parent.width);
                     labels: [@tr("Static"), @tr("Breathe"), @tr("Cycle")];
-                    selected-index: root.rgb-effect == 8 ? 0 : (root.rgb-effect == 2 ? 1 : 2);
-                    enabled: !root.busy;
-                    selected(index) => { root.apply-rgb-effect(index == 0 ? 8 : (index == 1 ? 2 : 3)); }
+                    selected-index: root.rgb-requested-effect == 8 ? 0 : (root.rgb-requested-effect == 2 ? 1 : 2);
+                    enabled: root.rgb-available;
+                    selected(index) => {
+                        root.rgb-requested-effect = index == 0 ? 8 : (index == 1 ? 2 : 3);
+                        root.apply-rgb-effect(root.rgb-requested-effect);
+                    }
                 }
                 ToggleStatusRow {
                     label: @tr("Override boot effect");
-                    value: root.rgb-boot-effect;
+                    value: root.rgb-requested-boot-effect;
                     known: true;
-                    busy: root.busy;
-                    toggled(enabled) => { root.apply-rgb-boot-effect(enabled); }
+                    busy: false;
+                    toggled(enabled) => {
+                        root.rgb-requested-boot-effect = enabled;
+                        root.apply-rgb-boot-effect(enabled);
+                    }
                 }
                 Hairline {}
                 MicroLabel { text: @tr("SLEEP TIMER"); }
@@ -154,7 +165,7 @@ import {
                 StageButton {
                     text: @tr("Apply sleep timer");
                     primary: false;
-                    enabled: !root.busy;
+                    enabled: root.rgb-available;
                     clicked => { root.apply-rgb-sleep-timer(root.rgb-requested-sleep-enabled, root.rgb-requested-hours, root.rgb-requested-minutes, root.rgb-requested-seconds); }
                 }
                 Rectangle { vertical-stretch: 1; }

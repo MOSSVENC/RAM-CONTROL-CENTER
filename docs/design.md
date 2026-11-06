@@ -22,39 +22,40 @@ Neo Control is a hardware instrument, not a generic settings dashboard. The UI s
 
 - Bahnschrift carries headings, labels and descriptive copy.
 - Cascadia Mono carries temperatures, clocks, fan speeds, percentages and command identifiers.
-- The title is centred, uppercase and spaced with ordinary spaces: `NEO CONTROL`.
+- The rail logo is the only product wordmark in the application content area; page headings provide the local context.
 
 ## Layout
 
 ```text
 ┌────────────┬──────────────────────────────────────────────┐
-│ pixel N    │                 NEO CONTROL                  │
-│            ├──────────────────────────────────────────────┤
 │ Overview   │  page heading                                │
 │ Performance│  ┌──────────────────────────────┬───────────┐ │
 │ Cooling    │  │ primary instrument           │ live side │ │
 │            │  │ large thermal/fan figures    │ readings  │ │
 │            │  └──────────────────────────────┴───────────┘ │
-│Bridge state│  compute / resources / profile strip         │
+│            │  compute / resources / profile strip         │
 └────────────┴──────────────────────────────────────────────┘
 ```
 
-Overview is read-only. Performance and Cooling own their controls. No identical card grid is used as the page structure; surfaces differ by hierarchy and purpose.
+Overview is read-only and carries the single hardware-online indicator. Performance and Cooling own their controls. No identical card grid is used as the page structure; surfaces differ by hierarchy and purpose.
 
 ## Motion
 
 - The left rail uses one shared selection capsule. It travels vertically over
   320 ms with `cubic-bezier(0.2, 0, 0, 1)` rather than fading each item
   independently, so the highlight visibly passes through intermediate rows.
-- Navigation uses a sliding content veil: it covers the workspace in 110 ms,
-  swaps the live page behind the veil, then reveals the incoming page over
-  190 ms while the page fades for 150 ms and rises/scales for 200 ms on the
-  Material emphasized curve `cubic-bezier(0.2, 0, 0, 1)`. The veil is clipped
-  to the content viewport and can never sweep across or flash over the rail.
+- Page content dims to 74% over 90 ms, swaps at a fixed size and position, then
+  returns to full opacity over 170 ms. The page never translates or scales, so
+  text and dividers cannot shimmer during the swap.
 - Option surfaces morph over 200–220 ms. Shared segmented controls move one
   highlight pill between items over 240 ms. Selection bars and radio dots use a
   240 ms `ease-out-back` settle. Press feedback includes a pointer-positioned
   radial glow and a 0.97 scale with a 260 ms release.
+- Quick toggles, segmented choices and RGB sliders update their visible state
+  immediately. Hardware writes and readback reconciliation run in the worker
+  without a modal or banner in front of the interaction.
+- RGB uses three draggable channel tracks. The preview swatch binds directly to
+  the requested red, green and blue properties, so it follows every pointer move.
 - Toggle switches slide a 20 px thumb over 240 ms while the track cross-fades
   colour and border state. The thumb has no font-glyph dependency, keeping it
   centred at every DPI. Telemetry bars retain their 260 ms value animation.

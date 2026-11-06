@@ -806,6 +806,102 @@ export component CurveStepper inherits Rectangle {
     }
 }
 
+export component ValueSlider inherits Rectangle {
+    in property <string> label;
+    in-out property <int> value: 0;
+    in property <int> lower: 0;
+    in property <int> upper: 255;
+    in property <color> tone: Palette.cyan;
+    in property <bool> enabled: true;
+    callback changed(int);
+    height: 36px;
+    opacity: root.enabled ? 1 : 0.45;
+    out property <length> track-left: 32px;
+    out property <length> track-width: max(1px, root.width - 84px);
+    out property <float> fraction: (root.value - root.lower) * 1.0 / max(1, root.upper - root.lower);
+    animate opacity { duration: 140ms; easing: ease-out; }
+
+    function set-from-x(x: length) {
+        let ratio = max(0.0, min(1.0, x / root.track-width));
+        let next = root.lower + round(ratio * (root.upper - root.lower));
+        if (next != root.value) {
+            root.value = next;
+            root.changed(next);
+        }
+    }
+
+    Text {
+        x: 0;
+        width: 24px;
+        height: parent.height;
+        text: root.label;
+        color: root.tone;
+        font-family: "Cascadia Mono";
+        font-size: 11px;
+        font-weight: 600;
+        vertical-alignment: center;
+    }
+
+    Rectangle {
+        x: root.track-left;
+        y: (parent.height - 6px) / 2;
+        width: root.track-width;
+        height: 6px;
+        border-radius: 3px;
+        background: Palette.track;
+        clip: true;
+
+        Rectangle {
+            width: root.fraction * parent.width;
+            height: parent.height;
+            border-radius: 3px;
+            background: root.tone;
+        }
+    }
+
+    Rectangle {
+        x: root.track-left + root.fraction * (root.track-width - 16px);
+        y: (parent.height - 16px) / 2;
+        width: 16px;
+        height: 16px;
+        border-radius: 8px;
+        background: Palette.surface-hi;
+        border-width: 2px;
+        border-color: root.tone;
+    }
+
+    Text {
+        x: parent.width - 44px;
+        width: 44px;
+        height: parent.height;
+        text: root.value;
+        color: Palette.text-dim;
+        font-family: "Cascadia Mono";
+        font-size: 11px;
+        horizontal-alignment: right;
+        vertical-alignment: center;
+    }
+
+    slider-touch := TouchArea {
+        x: root.track-left;
+        y: 0;
+        width: root.track-width;
+        height: parent.height;
+        enabled: root.enabled;
+        mouse-cursor: root.enabled ? pointer : default;
+        pointer-event(event) => {
+            if (root.enabled && event.button == PointerEventButton.left && event.kind == PointerEventKind.down) {
+                root.set-from-x(self.mouse-x);
+            }
+        }
+        moved => {
+            if (root.enabled && self.pressed) {
+                root.set-from-x(self.mouse-x);
+            }
+        }
+    }
+}
+
 export component SectionTitle inherits Text {
     color: Palette.text;
     font-family: "Bahnschrift";
@@ -886,26 +982,31 @@ export component ToggleStatusRow inherits Rectangle {
         }
         Rectangle {
             width: 48px;
-            height: 26px;
-            border-radius: 13px;
-            clip: true;
-            background: root.value && root.known ? Palette.green-soft : Palette.track;
-            border-width: 1px;
-            border-color: root.value && root.known ? Palette.green : Palette.line-hi;
-            animate background { duration: 200ms; easing: cubic-bezier(0.2, 0, 0, 1); }
-            animate border-color { duration: 200ms; easing: cubic-bezier(0.2, 0, 0, 1); }
+            height: parent.height;
             Rectangle {
-                x: root.value && root.known ? 24px : 3px;
-                y: 2px;
-                width: 20px;
-                height: 20px;
-                border-radius: 10px;
-                background: root.value && root.known ? Palette.green : Palette.surface-hi;
+                y: 8px;
+                width: parent.width;
+                height: 26px;
+                border-radius: 13px;
+                clip: true;
+                background: root.value && root.known ? Palette.green-soft : Palette.track;
                 border-width: 1px;
                 border-color: root.value && root.known ? Palette.green : Palette.line-hi;
-                animate x { duration: 240ms; easing: ease-out-back; }
                 animate background { duration: 200ms; easing: cubic-bezier(0.2, 0, 0, 1); }
                 animate border-color { duration: 200ms; easing: cubic-bezier(0.2, 0, 0, 1); }
+                Rectangle {
+                    x: root.value && root.known ? 24px : 3px;
+                    y: 3px;
+                    width: 20px;
+                    height: 20px;
+                    border-radius: 10px;
+                    background: root.value && root.known ? Palette.green : Palette.surface-hi;
+                    border-width: 1px;
+                    border-color: root.value && root.known ? Palette.green : Palette.line-hi;
+                    animate x { duration: 240ms; easing: ease-out-back; }
+                    animate background { duration: 200ms; easing: cubic-bezier(0.2, 0, 0, 1); }
+                    animate border-color { duration: 200ms; easing: cubic-bezier(0.2, 0, 0, 1); }
+                }
             }
         }
     }

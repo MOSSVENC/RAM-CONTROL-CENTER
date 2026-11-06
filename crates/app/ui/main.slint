@@ -1,7 +1,6 @@
 import { Palette } from "theme.slint";
 export { Palette }
 import {
-    ChromeButton,
     ChoiceChip,
     CurveStepper,
     DataLabel,
@@ -52,13 +51,8 @@ export component MainWindow inherits Window {
     in property <bool> busy: false;
     in-out property <bool> language-zh: true;
     in-out property <float> page-opacity: 1.0;
-    in-out property <float> page-shift: 0.0;
-    in-out property <float> page-scale: 1.0;
     in-out property <duration> page-fade-duration: 150ms;
-    in-out property <duration> page-motion-duration: 220ms;
-    in-out property <float> page-veil-x: 1.0;
-    in-out property <bool> page-veil-visible: false;
-    in-out property <duration> page-veil-duration: 140ms;
+    in-out property <bool> page-transitioning: false;
     in-out property <bool> quiet-dialog-open: false;
     in property <bool> transport-ready: false;
     in property <string> transport-label: @tr("Connecting to DCHU");
@@ -227,6 +221,8 @@ export component MainWindow inherits Window {
     in-out property <int> rgb-requested-green: 0;
     in-out property <int> rgb-requested-blue: 200;
     in-out property <int> rgb-requested-brightness: 4;
+    in-out property <int> rgb-requested-effect: 8;
+    in-out property <bool> rgb-requested-boot-effect: false;
     in-out property <int> rgb-requested-hours: 0;
     in-out property <int> rgb-requested-minutes: 0;
     in-out property <int> rgb-requested-seconds: 30;
@@ -319,8 +315,6 @@ export component MainWindow inherits Window {
     callback capture-flexikey-trigger();
     callback cancel-flexikey-capture();
     callback apply-fan-curve();
-    callback refresh-now();
-    callback clear-status();
     callback set-language(bool);
     callback set-theme(bool);
     callback apply-quiet(bool);
@@ -360,6 +354,7 @@ export component MainWindow inherits Window {
                 padding-top: 18px;
                 padding-bottom: 16px;
                 spacing: 5px;
+                alignment: start;
 
                 HorizontalLayout {
                     height: 52px;
@@ -402,41 +397,6 @@ export component MainWindow inherits Window {
                     selected-page: root.navigation-page;
                     select-page(page) => { root.select-page(page); }
                 }
-
-                Rectangle { vertical-stretch: 1; }
-
-                Rectangle {
-                    height: 82px;
-                    border-radius: 9px;
-                    background: Palette.surface-hi;
-                    border-width: 1px;
-                    border-color: Palette.line;
-                    VerticalLayout {
-                        padding: 11px;
-                        spacing: 7px;
-                        HorizontalLayout {
-                            spacing: 7px;
-                            cross-axis-alignment: center;
-                            SignalDot { active: root.transport-ready; tone: root.transport-ready ? Palette.green : Palette.amber; }
-                            Text {
-                                text: root.transport-label;
-                                color: Palette.text-dim;
-                                font-family: "Bahnschrift";
-                                font-size: 11px;
-                                font-weight: 500;
-                                overflow: elide;
-                            }
-                        }
-                        Text {
-                            text: root.transport-detail;
-                            color: Palette.text-faint;
-                            font-family: "Bahnschrift";
-                            font-size: 10px;
-                            wrap: word-wrap;
-                            max-lines: 2;
-                        }
-                    }
-                }
             }
         }
 
@@ -448,113 +408,13 @@ export component MainWindow inherits Window {
                 spacing: 0;
 
                 Rectangle {
-                    height: 62px;
-                    background: Palette.rail-gradient;
-
-                    Text {
-                        text: @tr("NEO CONTROL");
-                        color: Palette.text;
-                        font-family: "Bahnschrift";
-                        font-size: 17px;
-                        font-weight: 500;
-                        letter-spacing: 2.4px;
-                        horizontal-alignment: center;
-                        vertical-alignment: center;
-                    }
-
-                    HorizontalLayout {
-                        x: 22px;
-                        y: 0;
-                        height: parent.height;
-                        spacing: 8px;
-                        cross-axis-alignment: center;
-                        SignalDot { active: root.transport-ready; tone: root.transport-ready ? Palette.green : Palette.amber; }
-                        MicroLabel {
-                            text: root.transport-ready ? @tr("LOCAL HARDWARE") : @tr("HARDWARE OFFLINE");
-                            color: root.transport-ready ? Palette.green : Palette.amber;
-                        }
-                    }
-
-                    HorizontalLayout {
-                        x: parent.width - 130px;
-                        y: 0;
-                        width: 112px;
-                        height: parent.height;
-                        spacing: 8px;
-                        alignment: end;
-
-                        ChromeButton {
-                            width: 104px;
-                            emphasized: true;
-                            enabled: !root.busy;
-                            text: root.busy
-                                ? (root.language-zh ? "刷新中" : "Working")
-                                : (root.language-zh ? "刷新" : "Refresh");
-                            clicked => { root.refresh-now(); }
-                        }
-                    }
-                }
-
-                Hairline {}
-
-                if root.status-message != "" : Rectangle {
-                        height: 34px;
-                        background: root.status-tone == 2 ? Palette.red-soft : (root.status-tone == 1 ? Palette.green-soft : Palette.panel-hover);
-                        border-width: 1px;
-                        border-color: root.status-tone == 2 ? Palette.red : (root.status-tone == 1 ? Palette.green : Palette.line);
-                        HorizontalLayout {
-                            padding-left: 24px;
-                            padding-right: 18px;
-                            spacing: 10px;
-                            cross-axis-alignment: center;
-                            SignalDot {
-                                width: 5px;
-                                height: 5px;
-                                border-radius: 3px;
-                                tone: root.status-tone == 2 ? Palette.red : (root.status-tone == 1 ? Palette.green : Palette.cyan);
-                            }
-                            Text {
-                                text: root.status-message;
-                                color: Palette.text-dim;
-                                font-family: "Bahnschrift";
-                                font-size: 11px;
-                                vertical-alignment: center;
-                                overflow: elide;
-                                horizontal-stretch: 1;
-                            }
-                            Rectangle {
-                                width: 54px;
-                                height: 24px;
-                                Text {
-                                    text: @tr("Dismiss");
-                                    color: Palette.text-faint;
-                                    font-family: "Bahnschrift";
-                                    font-size: 10px;
-                                    horizontal-alignment: right;
-                                    vertical-alignment: center;
-                                }
-                                TouchArea {
-                                    mouse-cursor: pointer;
-                                    clicked => { root.clear-status(); }
-                                }
-                            }
-                        }
-                    }
-
-                Rectangle {
                     vertical-stretch: 1;
                     clip: true;
                     page-surface := Rectangle {
-                        y: root.page-shift * 1px;
                         width: parent.width;
                         height: parent.height;
                         opacity: root.page-opacity;
-                        transform-scale-x: root.page-scale * 100%;
-                        transform-scale-y: root.page-scale * 100%;
                         animate opacity { duration: root.page-fade-duration; easing: cubic-bezier(0.2, 0, 0, 1); }
-                        animate y { duration: root.page-motion-duration; easing: cubic-bezier(0.2, 0, 0, 1); }
-                        animate transform-scale-x { duration: root.page-motion-duration; easing: cubic-bezier(0.2, 0, 0, 1); }
-                        animate transform-scale-y { duration: root.page-motion-duration; easing: cubic-bezier(0.2, 0, 0, 1); }
                         page-scroll := Flickable {
                             width: parent.width;
                             height: parent.height;
@@ -748,7 +608,6 @@ export component MainWindow inherits Window {
                         // ------------------------------------------------- Lighting
                         if root.selected-page == 6 : LightingPage {
                             selected-page: root.selected-page;
-                            busy: root.busy;
                             rgb-available: root.rgb-available;
                             rgb-enabled: root.rgb-enabled;
                             rgb-brightness: root.rgb-brightness;
@@ -757,6 +616,9 @@ export component MainWindow inherits Window {
                             rgb-requested-red <=> root.rgb-requested-red;
                             rgb-requested-green <=> root.rgb-requested-green;
                             rgb-requested-blue <=> root.rgb-requested-blue;
+                            rgb-requested-brightness <=> root.rgb-requested-brightness;
+                            rgb-requested-effect <=> root.rgb-requested-effect;
+                            rgb-requested-boot-effect <=> root.rgb-requested-boot-effect;
                             rgb-requested-hours <=> root.rgb-requested-hours;
                             rgb-requested-minutes <=> root.rgb-requested-minutes;
                             rgb-requested-seconds <=> root.rgb-requested-seconds;
@@ -906,50 +768,12 @@ export component MainWindow inherits Window {
             }
         }
 
-    Rectangle {
+    if root.page-transitioning : TouchArea {
         x: 204px;
-        y: 60px;
+        y: 0;
         width: root.width - 204px;
-        height: root.height - 60px;
-        visible: root.page-veil-visible;
-        clip: true;
-
-        Rectangle {
-            x: root.page-veil-x * (root.width - 204px);
-            width: parent.width;
-            height: parent.height;
-            background: Palette.page-veil-gradient;
-            animate x { duration: root.page-veil-duration; easing: cubic-bezier(0.2, 0, 0, 1); }
-
-            Rectangle {
-                x: parent.width - 3px;
-                width: 3px;
-                height: parent.height;
-                background: Palette.cyan;
-                opacity: 0.82;
-            }
-            Rectangle {
-                width: parent.width;
-                height: 1px;
-                background: Palette.cyan;
-                opacity: 0.32;
-            }
-            Rectangle {
-                x: parent.width * 0.45;
-                y: parent.height * 0.18;
-                width: parent.width * 0.45;
-                height: parent.height * 0.64;
-                background: @radial-gradient(circle, Palette.cyan.with-alpha(0.13) 0%, transparent 68%);
-            }
-        }
-
-        if root.page-veil-visible : TouchArea {
-            x: 0;
-            y: 0;
-            width: parent.width;
-            height: parent.height;
-            mouse-cursor: default;
-        }
+        height: root.height;
+        mouse-cursor: default;
     }
 
     QuietDialog {

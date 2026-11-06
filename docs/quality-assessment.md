@@ -10,11 +10,11 @@ vendor package; no BIOS, EC, driver or vendor binary was modified for them.
 | Protocol-layer cohesion | 8.8 / 10 | One transport boundary with typed telemetry, power/fan, RGB, GPU, charging, input and quick-toggle modules |
 | OS-integration cohesion | 8.6 / 10 | Boot, tray, telemetry, input and display concerns have named modules; Win32 handles and resources are wrapped behind RAII helpers and every raw FFI block has a documented safety contract |
 | Functional coverage | 7.6 / 10 | The tested CC4.0 controls work on this machine, but capability-gated branches and uncommon hardware paths still need broader validation |
-| Visual design | 6.3 / 10 | The hierarchy is coherent and the navigation/switch geometry is now clean, but repeated bordered cards and sparse compositions still read as an engineering control panel |
-| Motion and interaction | 7.7 / 10 | A clipped page veil, shared vertically travelling navigation capsule, interpolated palettes, segmented indicator, press feedback and expressive switches are implemented; stagger and reduced-motion behavior remain absent |
+| Visual design | 6.5 / 10 | The rail wordmark is the only in-content product mark, hardware state has one focused location, and navigation/switch geometry is clean; repeated bordered cards still read as an engineering control panel |
+| Motion and interaction | 8.0 / 10 | A shared travelling navigation capsule, opacity-only page transitions, immediate control feedback, draggable RGB channels, interpolated palettes and expressive switches are implemented; reduced-motion behavior remains absent |
 | Accessibility and responsiveness | 4.5 / 10 | No complete keyboard focus system, focus rings, screen-reader semantics or compact layout policy |
-| Packaging and deployment | 7.5 / 10 | The canonical path and Git-based versioning are defined, the audited binary is running, and temporary deployment artifacts have been removed |
-| Overall | **7.3 / 10** | Solid native backend, verified hardware controls and a real motion system; visual-system depth, accessibility and edge-case parity still keep it below finished-product quality |
+| Packaging and deployment | 7.6 / 10 | The canonical path and Git-based versioning are defined, the audited binary is running, and temporary deployment artifacts are removed |
+| Overall | **7.5 / 10** | Solid native backend, verified hardware controls and a responsive motion system; visual-system depth, accessibility and edge-case parity still keep it below finished-product quality |
 
 This is a functional native control panel, not an 8.9/10 finished product. The
 backend architecture is substantially stronger than the product surface. The
@@ -28,17 +28,22 @@ split.
   Windows-only FlexiKey mapping helpers are gated out of non-test host builds.
 - All 70 Win32/NVML `unsafe` blocks now carry an individual `SAFETY:` contract.
   The Windows Clippy gate fails on any undocumented block.
-- The page-transition veil blocks pointer input while visible, so controls
-  underneath cannot be triggered during the swap.
+- Page transitions use opacity only. Content geometry remains fixed, and a
+  transparent input guard covers the workspace during the swap.
 - Page, option, segmented-control and press-feedback transitions were exercised
   through live frame capture, not only compile checks.
-- Light/dark switching no longer uses an opaque white/black flash. Palette
-  colours and gradients are interpolated over 260 ms with an ease-out-cubic
-  curve; rapid repeated switches settle on the correct final theme.
-- The navigation rail now uses one shared 320 ms selection capsule. The page
-  veil is clipped to the content area, eliminating the old sweep/rebound over
-  the left rail. Native Windows frame capture verified the intermediate capsule
-  positions and continuous rail visibility.
+- Light/dark switching interpolates palette colours and gradients over 260 ms
+  with an ease-out-cubic curve; rapid repeated switches settle on the correct
+  final theme.
+- The navigation rail uses one shared 320 ms selection capsule. Native Windows
+  frame capture verified intermediate capsule positions and continuous rail
+  visibility.
+- Quick toggles update their visible state before the worker command; observed
+  Fn-lock feedback began about 26 ms after the click. Brightness segmented
+  controls also move immediately.
+- RGB sliders update the preview directly from pointer movement. A captured
+  drag produced 13 consecutive preview colours while the R value moved from 85
+  through 253.
 - Remaining debt: the 1,213-line FlexiKey editor still performs XML/engine work
   synchronously on the UI thread; `wire_ui` (699 lines), `apply_update` (520
   lines) and `wire_flexikey` (544 lines) need functional decomposition; no
@@ -47,10 +52,10 @@ split.
 ## Code metrics
 
 ```text
-total measured lines       20,021
-Rust lines                 13,876
-Slint lines                 5,082
-translation lines           1,063
+total measured lines       19,886
+Rust lines                 13,787
+Slint lines                 5,033
+translation lines           1,066
 Rust source modules            45
 Slint source modules           16
 unsafe token occurrences      83
@@ -59,10 +64,9 @@ test functions                 43
 host-executed tests            39
 ```
 
-The source-line total is 1,028 lines higher than the pre-refactor baseline because
-the split adds explicit module interfaces, typed page properties, callback
-forwarding and hardware-smoke tooling. Composition-file size and change
-isolation improved materially:
+The source-line total reflects explicit module interfaces, typed page
+properties, callback forwarding and hardware-smoke tooling. Composition-file
+size and change isolation improved materially:
 
 ```text
                               before    after
@@ -225,12 +229,12 @@ CC40 plus two DLLs       33,246,592 bytes
 Current Neo Control:
 
 ```text
-neo-control.exe          10,990,592 bytes
+neo-control.exe          10,954,752 bytes
 ```
 
 ```text
-Neo / CC40.exe                       36.28%  (63.72% smaller)
-Neo / (CC40 + DLLs)                  33.06%  (66.94% smaller)
+Neo / CC40.exe                       36.16%  (63.84% smaller)
+Neo / (CC40 + DLLs)                  32.95%  (67.05% smaller)
 ```
 
 The latest background process sample was:
@@ -289,8 +293,8 @@ The refactored Release build was deployed to
 captured and reviewed at the production 1180×820 size: overview, performance,
 cooling, fan curve, battery, system, lighting, FlexiKey, input/output, display
 care and settings. They rendered with live telemetry and the original theme.
-The Settings page still reports GPU composition and the centered uppercase
-`NEO CONTROL` title.
+The Settings page still reports GPU composition. The rail logo is the sole
+in-content wordmark, and Overview carries the hardware-online indicator.
 
 After the backend/control split, the hardware smoke suite again exercised live
 telemetry, camera/touchpad/airplane restore, Windows display care and DCHU

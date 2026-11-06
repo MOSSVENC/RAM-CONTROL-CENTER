@@ -5,16 +5,14 @@ use std::sync::mpsc::Sender;
 use std::time::{Duration, Instant};
 
 use neo_control_protocol::{
-    AntiDustSchedule, CustomFanCurve, FanMode, GpuSwitchMode, PowerMode, RgbColor,
+    AntiDustSchedule, CustomFanCurve, FanMode, GpuSwitchMode, PowerMode, QuickToggle, RgbColor,
 };
 use slint::ComponentHandle;
 
 use crate::diagnostics::log_action;
 use crate::fan_curve_ui::{curve_nodes, quick_toggle_from_index};
 use crate::flexikey_ui::{FlexiKeyViewState, render_flexikey};
-use crate::localization::{
-    is_zh, localized_fan_label, localized_power_label, localized_toggle_label, set_zh, tr,
-};
+use crate::localization::{is_zh, localized_fan_label, localized_power_label, set_zh, tr};
 use crate::tray;
 use crate::worker::WorkerCommand;
 use crate::{MainWindow, Palette};
@@ -22,13 +20,10 @@ use crate::{MainWindow, Palette};
 static PAGE_EPOCH: AtomicU64 = AtomicU64::new(0);
 static THEME_EPOCH: AtomicU64 = AtomicU64::new(0);
 
-const PAGE_COVER_MS: u64 = 110;
-const PAGE_COVER_SETTLE_MS: u64 = 2;
-const PAGE_REVEAL_MS: u64 = 190;
-const PAGE_ENTER_FADE_MS: u64 = 150;
-const PAGE_ENTER_MOTION_MS: u64 = 200;
-const PAGE_ENTER_SHIFT_PX: f32 = 12.0;
-const PAGE_ENTER_SCALE: f32 = 0.988;
+const PAGE_DIM_MS: u64 = 90;
+const PAGE_SWAP_SETTLE_MS: u64 = 2;
+const PAGE_ENTER_FADE_MS: u64 = 170;
+const PAGE_DIM_OPACITY: f32 = 0.74;
 const THEME_ANIMATION_MS: u64 = 260;
 const THEME_FRAME_MS: u64 = 16;
 
@@ -64,76 +59,42 @@ fn schedule_theme_frame(
 }
 
 fn begin_page_switch(ui: &MainWindow, page: i32, epoch: u64) {
-    ui.set_page_veil_visible(true);
-    ui.set_page_veil_duration(0);
-    ui.set_page_veil_x(1.0);
+    ui.set_page_transitioning(true);
+    ui.set_page_fade_duration(PAGE_DIM_MS as i64);
+    ui.set_page_opacity(PAGE_DIM_OPACITY);
 
     let weak = ui.as_weak();
-    slint::Timer::single_shot(Duration::from_millis(1), move || {
+    slint::Timer::single_shot(Duration::from_millis(PAGE_DIM_MS), move || {
         if PAGE_EPOCH.load(Ordering::Relaxed) != epoch {
             return;
         }
         let Some(ui) = weak.upgrade() else {
             return;
         };
-        ui.set_page_veil_duration(PAGE_COVER_MS as i64);
-        ui.set_page_veil_x(0.0);
+        ui.set_page_fade_duration(0);
+        ui.set_page_opacity(PAGE_DIM_OPACITY);
+        ui.set_selected_page(page);
 
         let weak = ui.as_weak();
-        slint::Timer::single_shot(
-            Duration::from_millis(PAGE_COVER_MS + PAGE_COVER_SETTLE_MS),
-            move || {
-                if PAGE_EPOCH.load(Ordering::Relaxed) != epoch {
-                    return;
+        slint::Timer::single_shot(Duration::from_millis(PAGE_SWAP_SETTLE_MS), move || {
+            if PAGE_EPOCH.load(Ordering::Relaxed) != epoch {
+                return;
+            }
+            let Some(ui) = weak.upgrade() else {
+                return;
+            };
+            ui.set_page_fade_duration(PAGE_ENTER_FADE_MS as i64);
+            ui.set_page_opacity(1.0);
+
+            let weak = ui.as_weak();
+            slint::Timer::single_shot(Duration::from_millis(PAGE_ENTER_FADE_MS), move || {
+                if PAGE_EPOCH.load(Ordering::Relaxed) == epoch
+                    && let Some(ui) = weak.upgrade()
+                {
+                    ui.set_page_transitioning(false);
                 }
-                let Some(ui) = weak.upgrade() else {
-                    return;
-                };
-
-                ui.set_page_fade_duration(0);
-                ui.set_page_motion_duration(0);
-                ui.set_page_opacity(0.72);
-                ui.set_page_shift(PAGE_ENTER_SHIFT_PX);
-                ui.set_page_scale(PAGE_ENTER_SCALE);
-                ui.set_selected_page(page);
-
-                let weak = ui.as_weak();
-                slint::Timer::single_shot(Duration::from_millis(1), move || {
-                    if PAGE_EPOCH.load(Ordering::Relaxed) != epoch {
-                        return;
-                    }
-                    let Some(ui) = weak.upgrade() else {
-                        return;
-                    };
-                    ui.set_page_fade_duration(PAGE_ENTER_FADE_MS as i64);
-                    ui.set_page_motion_duration(PAGE_ENTER_MOTION_MS as i64);
-                    ui.set_page_veil_duration(PAGE_REVEAL_MS as i64);
-                    ui.set_page_veil_x(-1.0);
-
-                    let weak = ui.as_weak();
-                    slint::Timer::single_shot(Duration::from_millis(1), move || {
-                        if PAGE_EPOCH.load(Ordering::Relaxed) == epoch
-                            && let Some(ui) = weak.upgrade()
-                        {
-                            ui.set_page_opacity(1.0);
-                            ui.set_page_shift(0.0);
-                            ui.set_page_scale(1.0);
-                        }
-                    });
-                });
-
-                let weak = ui.as_weak();
-                slint::Timer::single_shot(Duration::from_millis(PAGE_REVEAL_MS + 8), move || {
-                    if PAGE_EPOCH.load(Ordering::Relaxed) == epoch
-                        && let Some(ui) = weak.upgrade()
-                    {
-                        ui.set_page_veil_visible(false);
-                        ui.set_page_veil_duration(0);
-                        ui.set_page_veil_x(1.0);
-                    }
-                });
-            },
-        );
+            });
+        });
     });
 }
 
@@ -205,23 +166,6 @@ pub(crate) fn wire_ui(
 
     let weak = ui.as_weak();
     let tx = sender.clone();
-    ui.on_refresh_now(move || {
-        log_action("refresh");
-        if let Some(ui) = weak.upgrade() {
-            ui.set_status_message(
-                tr(
-                    "Reading the signed DCHU transport…",
-                    "正在读取签名 DCHU 通道…",
-                )
-                .into(),
-            );
-            ui.set_status_tone(0);
-        }
-        let _ = tx.send(WorkerCommand::Refresh);
-    });
-
-    let weak = ui.as_weak();
-    let tx = sender.clone();
     ui.on_apply_power(move |mode| {
         log_action(&format!("apply-power callback {mode}"));
         let Ok(raw_mode) = u8::try_from(mode) else {
@@ -284,16 +228,28 @@ pub(crate) fn wire_ui(
             return;
         };
         if let Some(ui) = weak.upgrade() {
-            ui.set_busy(true);
-            ui.set_status_message(
-                format!(
-                    "{} {}",
-                    tr("Applying:", "正在应用："),
-                    localized_toggle_label(toggle)
-                )
-                .into(),
-            );
-            ui.set_status_tone(0);
+            match toggle {
+                QuickToggle::FnLock => {
+                    ui.set_toggle_fn_value(enabled);
+                    ui.set_toggle_fn_known(true);
+                }
+                QuickToggle::WinLock => {
+                    ui.set_toggle_win_value(enabled);
+                    ui.set_toggle_win_known(true);
+                }
+                QuickToggle::SwapWinFn => {
+                    ui.set_toggle_swap_value(enabled);
+                    ui.set_toggle_swap_known(true);
+                }
+                QuickToggle::HotkeysControlCenter => {
+                    ui.set_toggle_hotkeys_value(enabled);
+                    ui.set_toggle_hotkeys_known(true);
+                }
+                QuickToggle::Copilot => {
+                    ui.set_toggle_copilot_value(enabled);
+                    ui.set_toggle_copilot_known(true);
+                }
+            }
         }
         let _ = tx.send(WorkerCommand::ApplyQuickToggle(toggle, enabled));
     });
@@ -303,19 +259,8 @@ pub(crate) fn wire_ui(
     ui.on_apply_low_refresh(move |enabled| {
         log_action(&format!("apply-low-refresh callback -> {enabled}"));
         if let Some(ui) = weak.upgrade() {
-            ui.set_busy(true);
-            ui.set_status_message(
-                if enabled {
-                    tr(
-                        "Switching the panel to its lowest refresh rate…",
-                        "正在将屏幕切换到最低刷新率…",
-                    )
-                } else {
-                    tr("Restoring the panel refresh rate…", "正在恢复屏幕刷新率…")
-                }
-                .into(),
-            );
-            ui.set_status_tone(0);
+            ui.set_low_refresh_enabled(enabled);
+            ui.set_low_refresh_known(true);
         }
         let _ = tx.send(WorkerCommand::ApplyLowRefresh(enabled));
     });
@@ -452,9 +397,7 @@ pub(crate) fn wire_ui(
             return;
         };
         if let Some(ui) = weak.upgrade() {
-            ui.set_busy(true);
-            ui.set_status_message(tr("Applying keyboard brightness…", "正在应用键盘亮度…").into());
-            ui.set_status_tone(0);
+            ui.set_rgb_requested_brightness(i32::from(level));
         }
         let _ = tx.send(WorkerCommand::ApplyRgbBrightness(level));
     });
@@ -468,9 +411,9 @@ pub(crate) fn wire_ui(
             return;
         };
         if let Some(ui) = weak.upgrade() {
-            ui.set_busy(true);
-            ui.set_status_message(tr("Applying keyboard color…", "正在应用键盘颜色…").into());
-            ui.set_status_tone(0);
+            ui.set_rgb_requested_red(i32::from(red));
+            ui.set_rgb_requested_green(i32::from(green));
+            ui.set_rgb_requested_blue(i32::from(blue));
         }
         let _ = tx.send(WorkerCommand::ApplyRgbColor(RgbColor { red, green, blue }));
     });
@@ -482,9 +425,7 @@ pub(crate) fn wire_ui(
             return;
         };
         if let Some(ui) = weak.upgrade() {
-            ui.set_busy(true);
-            ui.set_status_message(tr("Applying keyboard effect…", "正在应用键盘灯效…").into());
-            ui.set_status_tone(0);
+            ui.set_rgb_requested_effect(i32::from(effect));
         }
         let _ = tx.send(WorkerCommand::ApplyRgbEffect(effect));
     });
@@ -500,11 +441,10 @@ pub(crate) fn wire_ui(
             return;
         };
         if let Some(ui) = weak.upgrade() {
-            ui.set_busy(true);
-            ui.set_status_message(
-                tr("Applying keyboard sleep timer…", "正在应用键盘休眠计时…").into(),
-            );
-            ui.set_status_tone(0);
+            ui.set_rgb_requested_sleep_enabled(enabled);
+            ui.set_rgb_requested_hours(hours as i32);
+            ui.set_rgb_requested_minutes(minutes as i32);
+            ui.set_rgb_requested_seconds(seconds as i32);
         }
         let total = hours * 3600 + minutes * 60 + seconds;
         let _ = tx.send(WorkerCommand::ApplyRgbSleepTimer(enabled, total));
@@ -514,11 +454,7 @@ pub(crate) fn wire_ui(
     let tx = sender.clone();
     ui.on_apply_rgb_boot_effect(move |enabled| {
         if let Some(ui) = weak.upgrade() {
-            ui.set_busy(true);
-            ui.set_status_message(
-                tr("Applying keyboard boot effect…", "正在应用键盘开机灯效…").into(),
-            );
-            ui.set_status_tone(0);
+            ui.set_rgb_requested_boot_effect(enabled);
         }
         let _ = tx.send(WorkerCommand::ApplyRgbBootEffect(enabled));
     });
@@ -527,9 +463,8 @@ pub(crate) fn wire_ui(
     let tx = sender.clone();
     ui.on_apply_camera(move |enabled| {
         if let Some(ui) = weak.upgrade() {
-            ui.set_busy(true);
-            ui.set_status_message(tr("Updating camera state…", "正在更新摄像头状态…").into());
-            ui.set_status_tone(0);
+            ui.set_camera_enabled(enabled);
+            ui.set_camera_known(true);
         }
         let _ = tx.send(WorkerCommand::ApplyCamera(enabled));
     });
@@ -538,24 +473,17 @@ pub(crate) fn wire_ui(
     let tx = sender.clone();
     ui.on_apply_touchpad(move |enabled| {
         if let Some(ui) = weak.upgrade() {
-            ui.set_busy(true);
-            ui.set_status_message(tr("Updating touchpad state…", "正在更新触摸板状态…").into());
-            ui.set_status_tone(0);
+            ui.set_touchpad_enabled(enabled);
+            ui.set_touchpad_known(true);
         }
         let _ = tx.send(WorkerCommand::ApplyTouchpad(enabled));
     });
 
-    let weak = ui.as_weak();
     let tx = sender.clone();
     ui.on_send_lock_key(move |vk| {
         let Ok(vk) = u8::try_from(vk) else {
             return;
         };
-        if let Some(ui) = weak.upgrade() {
-            ui.set_busy(true);
-            ui.set_status_message(tr("Toggling lock key…", "正在切换锁定键…").into());
-            ui.set_status_tone(0);
-        }
         let _ = tx.send(WorkerCommand::ApplyLockKey(vk));
     });
 
@@ -742,9 +670,7 @@ pub(crate) fn wire_ui(
             return;
         };
         if let Some(ui) = weak.upgrade() {
-            ui.set_busy(true);
-            ui.set_status_message(tr("Applying volume…", "正在应用音量…").into());
-            ui.set_status_tone(0);
+            ui.set_audio_volume_requested(i32::from(percent));
         }
         let _ = tx.send(WorkerCommand::ApplyVolume(percent));
     });
@@ -753,9 +679,8 @@ pub(crate) fn wire_ui(
     let tx = sender.clone();
     ui.on_apply_mute(move |muted| {
         if let Some(ui) = weak.upgrade() {
-            ui.set_busy(true);
-            ui.set_status_message(tr("Updating mute state…", "正在更新静音状态…").into());
-            ui.set_status_tone(0);
+            ui.set_audio_muted(muted);
+            ui.set_audio_known(true);
         }
         let _ = tx.send(WorkerCommand::ApplyMute(muted));
     });
@@ -764,9 +689,8 @@ pub(crate) fn wire_ui(
     let tx = sender.clone();
     ui.on_apply_airplane(move |enabled| {
         if let Some(ui) = weak.upgrade() {
-            ui.set_busy(true);
-            ui.set_status_message(tr("Updating airplane mode…", "正在更新飞行模式…").into());
-            ui.set_status_tone(0);
+            ui.set_airplane_enabled(enabled);
+            ui.set_airplane_known(true);
         }
         let _ = tx.send(WorkerCommand::ApplyAirplane(enabled));
     });
@@ -857,15 +781,5 @@ pub(crate) fn wire_ui(
             screen_saver_type,
             minutes,
         ));
-    });
-
-    let weak = ui.as_weak();
-    let tx = sender;
-    ui.on_clear_status(move || {
-        if let Some(ui) = weak.upgrade() {
-            ui.set_status_message("".into());
-            ui.set_status_tone(0);
-        }
-        let _ = tx.send(WorkerCommand::ClearStatus);
     });
 }
