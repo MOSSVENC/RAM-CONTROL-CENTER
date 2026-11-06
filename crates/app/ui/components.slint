@@ -64,7 +64,7 @@ export component NavItem inherits Rectangle {
     callback clicked();
     height: 44px;
     border-radius: 9px;
-    background: selected ? Palette.panel-selected : (tap.has-hover ? Palette.panel-hover.with-alpha(0.55) : transparent);
+    background: tap.has-hover ? Palette.panel-hover.with-alpha(0.55) : transparent;
     transform-scale-x: tap.pressed ? 99% : 100%;
     transform-scale-y: tap.pressed ? 99% : 100%;
     animate background { duration: 200ms; easing: cubic-bezier(0.2, 0, 0, 1); }
@@ -88,19 +88,6 @@ export component NavItem inherits Rectangle {
         }
     }
 
-    Rectangle {
-        x: 0;
-        y: 12px;
-        width: 2px;
-        height: 20px;
-        border-radius: 1px;
-        background: Palette.cyan;
-        opacity: root.selected ? 1 : 0;
-        transform-scale-y: root.selected ? 100% : 40%;
-        animate opacity { duration: 180ms; easing: cubic-bezier(0.2, 0, 0, 1); }
-        animate transform-scale-y { duration: 240ms; easing: ease-out-back; }
-    }
-
     PressGlow {
         width: parent.width;
         height: parent.height;
@@ -119,6 +106,62 @@ export component NavItem inherits Rectangle {
         mouse-cursor: pointer;
         clicked => { root.clicked(); }
     }
+}
+
+export component NavMenu inherits Rectangle {
+    in property <int> selected-page: 0;
+    callback select-page(int);
+    horizontal-stretch: 1;
+    height: 551px;
+
+    pure function nav-index(page: int) -> int {
+        return page == 0 ? 0
+            : page == 1 ? 1
+            : page == 2 ? 2
+            : page == 8 ? 3
+            : page == 3 ? 4
+            : page == 4 ? 5
+            : page == 6 ? 6
+            : page == 9 ? 7
+            : page == 7 ? 8
+            : page == 10 ? 9
+            : page == 5 ? 10
+            : 0;
+    }
+
+    pure function nav-y(page: int) -> length {
+        return nav-index(page) * 49px + (nav-index(page) >= 10 ? 17px : 0px);
+    }
+
+    Rectangle {
+        y: nav-y(root.selected-page);
+        width: parent.width;
+        height: 44px;
+        border-radius: 9px;
+        background: Palette.panel-selected;
+        animate y { duration: 320ms; easing: cubic-bezier(0.2, 0, 0, 1); }
+
+        Rectangle {
+            x: 0;
+            y: 12px;
+            width: 2px;
+            height: 20px;
+            border-radius: 1px;
+            background: Palette.cyan;
+        }
+    }
+
+    NavItem { y: 0px; width: parent.width; label: @tr("Overview"); glyph: 0; selected: root.selected-page == 0; clicked => { root.select-page(0); } }
+    NavItem { y: 49px; width: parent.width; label: @tr("Performance"); glyph: 1; selected: root.selected-page == 1; clicked => { root.select-page(1); } }
+    NavItem { y: 98px; width: parent.width; label: @tr("Cooling"); glyph: 2; selected: root.selected-page == 2; clicked => { root.select-page(2); } }
+    NavItem { y: 147px; width: parent.width; label: @tr("Fan curve"); glyph: 2; selected: root.selected-page == 8; clicked => { root.select-page(8); } }
+    NavItem { y: 196px; width: parent.width; label: @tr("Battery"); glyph: 3; selected: root.selected-page == 3; clicked => { root.select-page(3); } }
+    NavItem { y: 245px; width: parent.width; label: @tr("System"); glyph: 4; selected: root.selected-page == 4; clicked => { root.select-page(4); } }
+    NavItem { y: 294px; width: parent.width; label: @tr("Lighting"); glyph: 6; selected: root.selected-page == 6; clicked => { root.select-page(6); } }
+    NavItem { y: 343px; width: parent.width; label: @tr("FlexiKey"); glyph: 7; selected: root.selected-page == 9; clicked => { root.select-page(9); } }
+    NavItem { y: 392px; width: parent.width; label: @tr("Input & I/O"); glyph: 7; selected: root.selected-page == 7; clicked => { root.select-page(7); } }
+    NavItem { y: 441px; width: parent.width; label: @tr("Display care"); glyph: 8; selected: root.selected-page == 10; clicked => { root.select-page(10); } }
+    NavItem { y: 507px; width: parent.width; label: @tr("Settings"); glyph: 5; selected: root.selected-page == 5; clicked => { root.select-page(5); } }
 }
 
 export component MetricBar inherits Rectangle {
@@ -817,6 +860,8 @@ export component ToggleStatusRow inherits Rectangle {
     animate opacity { duration: 160ms; easing: cubic-bezier(0.2, 0, 0, 1); }
 
     HorizontalLayout {
+        width: parent.width;
+        height: parent.height;
         padding-left: 8px;
         padding-right: 8px;
         spacing: 12px;
@@ -861,16 +906,6 @@ export component ToggleStatusRow inherits Rectangle {
                 animate x { duration: 240ms; easing: ease-out-back; }
                 animate background { duration: 200ms; easing: cubic-bezier(0.2, 0, 0, 1); }
                 animate border-color { duration: 200ms; easing: cubic-bezier(0.2, 0, 0, 1); }
-                Text {
-                    text: root.known ? (root.value ? "✓" : "×") : "·";
-                    color: root.value && root.known ? Palette.primary-text : Palette.text-faint;
-                    font-family: "Bahnschrift";
-                    font-size: 11px;
-                    font-weight: 600;
-                    horizontal-alignment: center;
-                    vertical-alignment: center;
-                    animate color { duration: 160ms; }
-                }
             }
         }
     }

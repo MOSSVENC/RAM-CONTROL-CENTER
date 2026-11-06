@@ -43,16 +43,21 @@ Overview is read-only. Performance and Cooling own their controls. No identical 
 
 ## Motion
 
+- The left rail uses one shared selection capsule. It travels vertically over
+  320 ms with `cubic-bezier(0.2, 0, 0, 1)` rather than fading each item
+  independently, so the highlight visibly passes through intermediate rows.
 - Navigation uses a sliding content veil: it covers the workspace in 110 ms,
   swaps the live page behind the veil, then reveals the incoming page over
   190 ms while the page fades for 150 ms and rises/scales for 200 ms on the
-  Material emphasized curve `cubic-bezier(0.2, 0, 0, 1)`.
+  Material emphasized curve `cubic-bezier(0.2, 0, 0, 1)`. The veil is clipped
+  to the content viewport and can never sweep across or flash over the rail.
 - Option surfaces morph over 200–220 ms. Shared segmented controls move one
   highlight pill between items over 240 ms. Selection bars and radio dots use a
   240 ms `ease-out-back` settle. Press feedback includes a pointer-positioned
   radial glow and a 0.97 scale with a 260 ms release.
 - Toggle switches slide a 20 px thumb over 240 ms while the track cross-fades
-  colour and border state. Telemetry bars retain their 260 ms value animation.
+  colour and border state. The thumb has no font-glyph dependency, keeping it
+  centred at every DPI. Telemetry bars retain their 260 ms value animation.
 - Light/dark switching interpolates the full palette and gradient stops over
   260 ms with ease-out-cubic. It never inserts an opaque theme-coloured flash
   frame; repeated switches retarget from the current interpolated value.

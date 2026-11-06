@@ -14,7 +14,7 @@ import {
     MetricBar,
     MicroLabel,
     NavGlyph,
-    NavItem,
+    NavMenu,
     PowerOption,
     ReadoutRow,
     SectionTitle,
@@ -398,18 +398,10 @@ export component MainWindow inherits Window {
                     MicroLabel { text: @tr("WORKSPACE"); }
                 }
                 Rectangle { height: 3px; }
-                NavItem { label: @tr("Overview"); glyph: 0; selected: root.navigation-page == 0; clicked => { root.select-page(0); } }
-                NavItem { label: @tr("Performance"); glyph: 1; selected: root.navigation-page == 1; clicked => { root.select-page(1); } }
-                NavItem { label: @tr("Cooling"); glyph: 2; selected: root.navigation-page == 2; clicked => { root.select-page(2); } }
-                NavItem { label: @tr("Fan curve"); glyph: 2; selected: root.navigation-page == 8; clicked => { root.select-page(8); } }
-                NavItem { label: @tr("Battery"); glyph: 3; selected: root.navigation-page == 3; clicked => { root.select-page(3); } }
-                NavItem { label: @tr("System"); glyph: 4; selected: root.navigation-page == 4; clicked => { root.select-page(4); } }
-                NavItem { label: @tr("Lighting"); glyph: 6; selected: root.navigation-page == 6; clicked => { root.select-page(6); } }
-                NavItem { label: @tr("FlexiKey"); glyph: 7; selected: root.navigation-page == 9; clicked => { root.select-page(9); } }
-                NavItem { label: @tr("Input & I/O"); glyph: 7; selected: root.navigation-page == 7; clicked => { root.select-page(7); } }
-                NavItem { label: @tr("Display care"); glyph: 8; selected: root.navigation-page == 10; clicked => { root.select-page(10); } }
-                Rectangle { height: 12px; }
-                NavItem { label: @tr("Settings"); glyph: 5; selected: root.navigation-page == 5; clicked => { root.select-page(5); } }
+                NavMenu {
+                    selected-page: root.navigation-page;
+                    select-page(page) => { root.select-page(page); }
+                }
 
                 Rectangle { vertical-stretch: 1; }
 
@@ -915,33 +907,42 @@ export component MainWindow inherits Window {
         }
 
     Rectangle {
-        x: 204px + root.page-veil-x * (root.width - 204px);
+        x: 204px;
         y: 60px;
         width: root.width - 204px;
         height: root.height - 60px;
         visible: root.page-veil-visible;
-        background: Palette.page-veil-gradient;
-        animate x { duration: root.page-veil-duration; easing: cubic-bezier(0.2, 0, 0, 1); }
+        clip: true;
+
         Rectangle {
-            x: parent.width - 3px;
-            width: 3px;
-            height: parent.height;
-            background: Palette.cyan;
-            opacity: 0.82;
-        }
-        Rectangle {
+            x: root.page-veil-x * (root.width - 204px);
             width: parent.width;
-            height: 1px;
-            background: Palette.cyan;
-            opacity: 0.32;
+            height: parent.height;
+            background: Palette.page-veil-gradient;
+            animate x { duration: root.page-veil-duration; easing: cubic-bezier(0.2, 0, 0, 1); }
+
+            Rectangle {
+                x: parent.width - 3px;
+                width: 3px;
+                height: parent.height;
+                background: Palette.cyan;
+                opacity: 0.82;
+            }
+            Rectangle {
+                width: parent.width;
+                height: 1px;
+                background: Palette.cyan;
+                opacity: 0.32;
+            }
+            Rectangle {
+                x: parent.width * 0.45;
+                y: parent.height * 0.18;
+                width: parent.width * 0.45;
+                height: parent.height * 0.64;
+                background: @radial-gradient(circle, Palette.cyan.with-alpha(0.13) 0%, transparent 68%);
+            }
         }
-        Rectangle {
-            x: parent.width * 0.45;
-            y: parent.height * 0.18;
-            width: parent.width * 0.45;
-            height: parent.height * 0.64;
-            background: @radial-gradient(circle, Palette.cyan.with-alpha(0.13) 0%, transparent 68%);
-        }
+
         if root.page-veil-visible : TouchArea {
             x: 0;
             y: 0;

@@ -13,8 +13,8 @@ target/x86_64-pc-windows-gnu/release/neo-dchu-probe.exe
 Last successful Release cross-build after the final audit fixes:
 
 ```text
-neo-control.exe        11,076,096 bytes
-sha256                 35d58a438e9fe5cc47e46bb631f1ba71f2137f62585d7e4dcf04cab16ff1599a
+neo-control.exe        10,990,592 bytes
+sha256                 6f0bb0702fa10f4d537a1277440946913f538a99e7493d1842ef1529fe27582e
 neo-dchu-probe.exe     347,648 bytes
 ```
 
@@ -417,6 +417,9 @@ driver-level route if it is needed for compatibility.
   workspace in 110 ms. The live page swaps behind the veil; the veil reveals the
   incoming page over 190 ms while the page fades for 150 ms and rises/scales for
   200 ms. The transition performs no snapshot or framebuffer readback.
+- The navigation rail now owns one shared capsule whose `y` position animates
+  over 320 ms. The page veil is clipped to the content viewport; its moving
+  rectangle is physically unable to reach the rail even at the end of reveal.
 - Continuous captured frames showed the old page, the veil covering the swap,
   the partially revealed incoming page, and the settled page. Page dispatch
   stayed between 28 and 250 µs across the sampled clicks.
@@ -445,9 +448,8 @@ driver-level route if it is needed for compatibility.
 
 ## 2026-11-06 interaction audit
 
-The shared Slint application was run under WSLg and captured at the production
-1180×820 size. The rendering notifier reported `GraphicsAPI::NativeOpenGL`;
-the Windows Release PE imports `opengl32.dll` and system DLLs only, with no
+The final navigation audit was performed against the native Windows process,
+not WSLg. The Release PE imports `opengl32.dll` and system DLLs only, with no
 `InsydeDCHU.dll`, `HKFltrLib.dll`, `CC40.exe` or `FnKey.exe` dependency.
 
 - A stress run that changed Settings→Performance→Cooling while an earlier
@@ -461,15 +463,20 @@ the Windows Release PE imports `opengl32.dll` and system DLLs only, with no
 - The theme transition was fixed after capture exposed an opaque 190 ms white
   flash followed by a black flash. The replacement interpolation was recaptured
   through the complete transition and with rapid repeated toggles.
+- Native Windows screen capture at roughly 60 fps changed Overview→Settings.
+  The rail stayed visible in every frame, the shared capsule was observed at
+  intermediate rows, and it settled on Settings without the former blue sweep
+  or rebound. This also reproduced and fixed the original per-item fade flash.
+- The Settings `Start with Windows` row was captured on Windows after the fix;
+  the switch uses a plain centred thumb and the full row aligns vertically.
 - Idle frame diagnostics reported zero rendered frames per two-second interval;
   animation intervals produced continuous frame counts. Rendering remains GPU
   backed rather than a CPU software-rendering fallback.
 
-The WSL→Windows interoperability socket timed out during this audit, so the
-already-built Release could not be relaunched from this shell for a second
-native Windows capture. The canonical path now contains the audited binary; the
-still-running previous process was moved to `neo-control.old.exe` and prevents
-that stale file from being deleted until the next application restart.
+The Windows deployment was relaunched with the audited binary and captured from
+its real Win32 window. Temporary scripts, BMP/PNG frame series, and logs were
+removed after verification; `C:\ProgramData\NeoControl` contains only the
+canonical executable and boot metadata.
 
 Thermal command 12 still takes roughly 330 ms at the firmware level. It runs on
 the hardware worker and does not block the UI thread.
