@@ -7,31 +7,23 @@
 
 #[cfg(windows)]
 mod platform {
-    use std::ffi::OsStr;
-    use std::os::windows::ffi::OsStrExt;
-    use std::path::Path;
-    use std::ptr;
+    use std::ffi::{OsStr, OsString};
     use std::time::Duration;
 
-    use windows_sys::Win32::Foundation::ERROR_SERVICE_SPECIFIC_ERROR;
+    use windows_service::define_windows_service;
+    use windows_service::service::{
+        ServiceAccess, ServiceAction, ServiceActionType, ServiceControlAccept, ServiceDependency,
+        ServiceErrorControl, ServiceExitCode, ServiceFailureActions, ServiceFailureResetPeriod,
+        ServiceInfo, ServiceStartType, ServiceState, ServiceStatus, ServiceType,
+    };
+    use windows_service::service_control_handler::{self, ServiceControlHandlerResult};
+    use windows_service::service_dispatcher;
+    use windows_service::service_manager::{ServiceManager, ServiceManagerAccess};
     use windows_sys::Win32::Foundation::{
         ERROR_SERVICE_ALREADY_RUNNING, ERROR_SERVICE_DOES_NOT_EXIST, ERROR_SERVICE_EXISTS,
     };
-    use windows_sys::Win32::Storage::FileSystem::DELETE;
-    use windows_sys::Win32::System::Services::{
-        ChangeServiceConfig2W, ChangeServiceConfigW, ControlService, CreateServiceW, DeleteService,
-        RegisterServiceCtrlHandlerExW, SC_ACTION, SC_ACTION_RESTART, SC_MANAGER_CONNECT,
-        SC_MANAGER_CREATE_SERVICE, SERVICE_ALL_ACCESS, SERVICE_AUTO_START, SERVICE_CHANGE_CONFIG,
-        SERVICE_CONFIG_DESCRIPTION, SERVICE_CONFIG_FAILURE_ACTIONS,
-        SERVICE_CONFIG_FAILURE_ACTIONS_FLAG, SERVICE_CONTROL_STOP, SERVICE_DESCRIPTIONW,
-        SERVICE_ERROR_NORMAL, SERVICE_FAILURE_ACTIONS_FLAG, SERVICE_FAILURE_ACTIONSW,
-        SERVICE_QUERY_STATUS, SERVICE_RUNNING, SERVICE_START, SERVICE_START_PENDING,
-        SERVICE_STATUS, SERVICE_STATUS_HANDLE, SERVICE_STOP, SERVICE_STOPPED, SERVICE_TABLE_ENTRYW,
-        SERVICE_WIN32_OWN_PROCESS, SetServiceStatus, StartServiceCtrlDispatcherW, StartServiceW,
-    };
 
     use crate::boot_agent;
-    use crate::service_handle::{ScHandle, error_code};
 
     const SERVICE_NAME: &str = "NeoControlBoot";
     const SERVICE_DISPLAY_NAME: &str = "Neo Control Boot Agent";
@@ -40,84 +32,86 @@ mod platform {
     const SERVICE_DEPENDENCY: &str = "AcpiBridge";
     const SERVICE_WAIT_MS: u32 = 120_000;
 
-    pub fn run_dispatcher() -> i32 {
-        let mut name = wide(SERVICE_NAME);
-        let table = [
-            SERVICE_TABLE_ENTRYW {
-                lpServiceName: name.as_mut_ptr(),
-                lpServiceProc: Some(service_main),
-            },
-            SERVICE_TABLE_ENTRYW {
-                lpServiceName: ptr::null_mut(),
-                lpServiceProc: None,
-            },
-        ];
+    define_windows_service!(ffi_service_main, service_main);
 
-        let started = unsafe { StartServiceCtrlDispatcherW(table.as_ptr()) };
-        if started == 0 {
-            let code = error_code();
-            eprintln!(
-                "could not connect to the Windows service dispatcher: {} (code {code})",
-                std::io::Error::from_raw_os_error(code as i32)
-            );
-            return 1;
+    pub fn run_dispatcher() -> i32 {
+        match service_dispatcher::start(SERVICE_NAME, ffi_service_main) {
+            Ok(()) => 0,
+            Err(error) => {
+                eprintln!(
+                    "could not connect to the Windows service dispatcher: {}",
+                    describe("StartServiceCtrlDispatcherW", error)
+                );
+                1
+            }
         }
-        0
     }
 
-    unsafe extern "system" fn service_main(_argc: u32, _argv: *mut *mut u16) {
-        let name = wide(SERVICE_NAME);
-        let status_handle = unsafe {
-            RegisterServiceCtrlHandlerExW(name.as_ptr(), Some(service_handler), ptr::null())
+    fn service_main(_arguments: Vec<OsString>) {
+        let status_handle = match service_control_handler::register(SERVICE_NAME, |_| {
+            ServiceControlHandlerResult::NoError
+        }) {
+            Ok(handle) => handle,
+            Err(error) => {
+                eprintln!(
+                    "could not register the Windows service control handler: {}",
+                    describe("RegisterServiceCtrlHandlerExW", error)
+                );
+                return;
+            }
         };
-        if status_handle.is_null() {
-            return;
-        }
 
-        set_status(status_handle, SERVICE_START_PENDING, 0, 0, 15_000);
-        set_status(status_handle, SERVICE_RUNNING, 0, 0, 0);
+        set_status(
+            &status_handle,
+            ServiceState::StartPending,
+            ServiceExitCode::NO_ERROR,
+        );
+        set_status(
+            &status_handle,
+            ServiceState::Running,
+            ServiceExitCode::NO_ERROR,
+        );
 
         let result = std::panic::catch_unwind(boot_agent::run).unwrap_or(1);
         if result == 0 {
-            set_status(status_handle, SERVICE_STOPPED, 0, 0, 0);
+            set_status(
+                &status_handle,
+                ServiceState::Stopped,
+                ServiceExitCode::NO_ERROR,
+            );
         } else {
             set_status(
-                status_handle,
-                SERVICE_STOPPED,
-                ERROR_SERVICE_SPECIFIC_ERROR,
-                result as u32,
-                0,
+                &status_handle,
+                ServiceState::Stopped,
+                ServiceExitCode::ServiceSpecific(result as u32),
             );
         }
     }
 
-    unsafe extern "system" fn service_handler(
-        _control: u32,
-        _event_type: u32,
-        _event_data: *mut std::ffi::c_void,
-        _context: *mut std::ffi::c_void,
-    ) -> u32 {
-        0
-    }
-
     fn set_status(
-        handle: SERVICE_STATUS_HANDLE,
-        state: u32,
-        win32_exit_code: u32,
-        service_exit_code: u32,
-        wait_hint: u32,
+        status_handle: &service_control_handler::ServiceStatusHandle,
+        state: ServiceState,
+        exit_code: ServiceExitCode,
     ) {
-        let status = SERVICE_STATUS {
-            dwServiceType: SERVICE_WIN32_OWN_PROCESS,
-            dwCurrentState: state,
-            dwControlsAccepted: 0,
-            dwWin32ExitCode: win32_exit_code,
-            dwServiceSpecificExitCode: service_exit_code,
-            dwCheckPoint: u32::from(state == SERVICE_START_PENDING),
-            dwWaitHint: wait_hint,
+        let pending = state == ServiceState::StartPending;
+        let status = ServiceStatus {
+            service_type: ServiceType::OWN_PROCESS,
+            current_state: state,
+            controls_accepted: ServiceControlAccept::empty(),
+            exit_code,
+            checkpoint: u32::from(pending),
+            wait_hint: if pending {
+                Duration::from_secs(15)
+            } else {
+                Duration::ZERO
+            },
+            process_id: None,
         };
-        unsafe {
-            SetServiceStatus(handle, &status);
+        if let Err(error) = status_handle.set_service_status(status) {
+            eprintln!(
+                "could not update the Windows service status: {}",
+                describe("SetServiceStatus", error)
+            );
         }
     }
 
@@ -137,145 +131,91 @@ mod platform {
     fn install_inner() -> Result<String, String> {
         let executable = std::env::current_exe()
             .map_err(|error| format!("could not resolve the current executable: {error}"))?;
-        let command_line = service_command_line(&executable)?;
-        let service_name = wide(SERVICE_NAME);
-        let display_name = wide(SERVICE_DISPLAY_NAME);
-        let mut description = wide(SERVICE_DESCRIPTION);
-        let dependency = wide_multi(&[SERVICE_DEPENDENCY]);
-        let command_line_wide = wide(&command_line);
-
-        let manager = ScHandle::open_manager(SC_MANAGER_CREATE_SERVICE | SC_MANAGER_CONNECT)?;
-        let created = unsafe {
-            CreateServiceW(
-                manager.raw(),
-                service_name.as_ptr(),
-                display_name.as_ptr(),
-                SERVICE_ALL_ACCESS,
-                SERVICE_WIN32_OWN_PROCESS,
-                SERVICE_AUTO_START,
-                SERVICE_ERROR_NORMAL,
-                command_line_wide.as_ptr(),
-                ptr::null(),
-                ptr::null_mut(),
-                dependency.as_ptr(),
-                ptr::null(),
-                ptr::null(),
-            )
+        let service_info = ServiceInfo {
+            name: OsString::from(SERVICE_NAME),
+            display_name: OsString::from(SERVICE_DISPLAY_NAME),
+            service_type: ServiceType::OWN_PROCESS,
+            start_type: ServiceStartType::AutoStart,
+            error_control: ServiceErrorControl::Normal,
+            executable_path: executable.clone(),
+            launch_arguments: vec![
+                OsString::from("--boot-service"),
+                OsString::from("--wait-ms"),
+                OsString::from(SERVICE_WAIT_MS.to_string()),
+            ],
+            dependencies: vec![ServiceDependency::Service(OsString::from(
+                SERVICE_DEPENDENCY,
+            ))],
+            account_name: None,
+            account_password: None,
         };
-        let service = if let Some(service) = ScHandle::owned(created) {
-            service
-        } else {
-            let code = error_code();
-            if code != ERROR_SERVICE_EXISTS {
-                return Err(format!(
-                    "CreateServiceW failed: {} (code {code})",
-                    std::io::Error::from_raw_os_error(code as i32)
-                ));
+
+        let manager = ServiceManager::local_computer(
+            None::<&str>,
+            ServiceManagerAccess::CONNECT | ServiceManagerAccess::CREATE_SERVICE,
+        )
+        .map_err(|error| describe("OpenSCManagerW", error))?;
+
+        let service_access =
+            ServiceAccess::CHANGE_CONFIG | ServiceAccess::START | ServiceAccess::QUERY_STATUS;
+        let service = match manager.create_service(&service_info, service_access) {
+            Ok(service) => service,
+            Err(error) if error_code(&error) == Some(ERROR_SERVICE_EXISTS as i32) => {
+                let service = manager
+                    .open_service(SERVICE_NAME, service_access)
+                    .map_err(|error| describe("OpenServiceW(NeoControlBoot)", error))?;
+                service
+                    .change_config(&service_info)
+                    .map_err(|error| describe("ChangeServiceConfigW", error))?;
+                service
             }
-            let service = manager
-                .open_service(
-                    &service_name,
-                    SERVICE_CHANGE_CONFIG | SERVICE_START | SERVICE_QUERY_STATUS,
-                )
-                .map_err(|code| {
-                    format!(
-                        "OpenServiceW failed: {} (code {code})",
-                        std::io::Error::from_raw_os_error(code as i32)
-                    )
-                })?;
-            let changed = unsafe {
-                ChangeServiceConfigW(
-                    service.raw(),
-                    SERVICE_WIN32_OWN_PROCESS,
-                    SERVICE_AUTO_START,
-                    SERVICE_ERROR_NORMAL,
-                    command_line_wide.as_ptr(),
-                    ptr::null(),
-                    ptr::null_mut(),
-                    dependency.as_ptr(),
-                    ptr::null(),
-                    ptr::null(),
-                    display_name.as_ptr(),
-                )
-            };
-            if changed == 0 {
-                return Err(last_error("ChangeServiceConfigW"));
-            }
-            service
+            Err(error) => return Err(describe("CreateServiceW", error)),
         };
 
-        let service_description = SERVICE_DESCRIPTIONW {
-            lpDescription: description.as_mut_ptr(),
-        };
-        unsafe {
-            ChangeServiceConfig2W(
-                service.raw(),
-                SERVICE_CONFIG_DESCRIPTION,
-                (&service_description as *const SERVICE_DESCRIPTIONW).cast(),
-            );
-        }
-
+        service
+            .set_description(SERVICE_DESCRIPTION)
+            .map_err(|error| describe("ChangeServiceConfig2W(description)", error))?;
         configure_failure_actions(&service)?;
 
-        let started = unsafe { StartServiceW(service.raw(), 0, ptr::null()) };
-        let code = error_code();
-        if started == 0 && code != ERROR_SERVICE_ALREADY_RUNNING {
-            return Err(format!(
-                "StartServiceW failed: {} (code {code})",
-                std::io::Error::from_raw_os_error(code as i32)
-            ));
+        match service.start::<&OsStr>(&[]) {
+            Ok(()) => {}
+            Err(error) if error_code(&error) == Some(ERROR_SERVICE_ALREADY_RUNNING as i32) => {}
+            Err(error) => return Err(describe("StartServiceW", error)),
         }
 
-        Ok(command_line)
+        Ok(format!(
+            "{} --boot-service --wait-ms {SERVICE_WAIT_MS}",
+            executable.display()
+        ))
     }
 
-    fn configure_failure_actions(service: &ScHandle) -> Result<(), String> {
-        let mut actions = [
-            SC_ACTION {
-                Type: SC_ACTION_RESTART,
-                Delay: 1_000,
-            },
-            SC_ACTION {
-                Type: SC_ACTION_RESTART,
-                Delay: 2_000,
-            },
-            SC_ACTION {
-                Type: SC_ACTION_RESTART,
-                Delay: 5_000,
-            },
-        ];
-        let failure_actions = SERVICE_FAILURE_ACTIONSW {
-            dwResetPeriod: 86_400,
-            lpRebootMsg: ptr::null_mut(),
-            lpCommand: ptr::null_mut(),
-            cActions: actions.len() as u32,
-            lpsaActions: actions.as_mut_ptr(),
-        };
-        let configured = unsafe {
-            ChangeServiceConfig2W(
-                service.raw(),
-                SERVICE_CONFIG_FAILURE_ACTIONS,
-                (&failure_actions as *const SERVICE_FAILURE_ACTIONSW).cast(),
-            )
-        };
-        if configured == 0 {
-            return Err(last_error("ChangeServiceConfig2W(failure actions)"));
-        }
-
-        let failure_flag = SERVICE_FAILURE_ACTIONS_FLAG {
-            fFailureActionsOnNonCrashFailures: 1,
-        };
-        let configured = unsafe {
-            ChangeServiceConfig2W(
-                service.raw(),
-                SERVICE_CONFIG_FAILURE_ACTIONS_FLAG,
-                (&failure_flag as *const SERVICE_FAILURE_ACTIONS_FLAG).cast(),
-            )
-        };
-        if configured == 0 {
-            return Err(last_error("ChangeServiceConfig2W(non-crash failures)"));
-        }
-        Ok(())
+    fn configure_failure_actions(
+        service: &windows_service::service::Service,
+    ) -> Result<(), String> {
+        service
+            .update_failure_actions(ServiceFailureActions {
+                reset_period: ServiceFailureResetPeriod::After(Duration::from_secs(86_400)),
+                reboot_msg: None,
+                command: None,
+                actions: Some(vec![
+                    ServiceAction {
+                        action_type: ServiceActionType::Restart,
+                        delay: Duration::from_secs(1),
+                    },
+                    ServiceAction {
+                        action_type: ServiceActionType::Restart,
+                        delay: Duration::from_secs(2),
+                    },
+                    ServiceAction {
+                        action_type: ServiceActionType::Restart,
+                        delay: Duration::from_secs(5),
+                    },
+                ]),
+            })
+            .map_err(|error| describe("ChangeServiceConfig2W(failure actions)", error))?;
+        service
+            .set_failure_actions_on_non_crash_failures(true)
+            .map_err(|error| describe("ChangeServiceConfig2W(non-crash failures)", error))
     }
 
     pub fn uninstall() -> i32 {
@@ -292,69 +232,48 @@ mod platform {
     }
 
     fn uninstall_inner() -> Result<(), String> {
-        let service_name = wide(SERVICE_NAME);
-        let manager = ScHandle::open_manager(SC_MANAGER_CONNECT)?;
-        let service = match manager
-            .open_service(&service_name, DELETE | SERVICE_STOP | SERVICE_QUERY_STATUS)
-        {
+        let manager = ServiceManager::local_computer(None::<&str>, ServiceManagerAccess::CONNECT)
+            .map_err(|error| describe("OpenSCManagerW", error))?;
+        let service = match manager.open_service(
+            SERVICE_NAME,
+            ServiceAccess::DELETE | ServiceAccess::STOP | ServiceAccess::QUERY_STATUS,
+        ) {
             Ok(service) => service,
-            Err(_) => {
-                let code = error_code();
-                if code == ERROR_SERVICE_DOES_NOT_EXIST {
-                    return Ok(());
-                }
-                return Err(format!(
-                    "OpenServiceW failed: {} (code {code})",
-                    std::io::Error::from_raw_os_error(code as i32)
-                ));
+            Err(error) if error_code(&error) == Some(ERROR_SERVICE_DOES_NOT_EXIST as i32) => {
+                return Ok(());
             }
+            Err(error) => return Err(describe("OpenServiceW(NeoControlBoot)", error)),
         };
 
-        let mut status = SERVICE_STATUS::default();
-        unsafe {
-            ControlService(service.raw(), SERVICE_CONTROL_STOP, &mut status);
+        if service
+            .query_status()
+            .map(|status| status.current_state != ServiceState::Stopped)
+            .unwrap_or(true)
+        {
+            let _ = service.stop();
             std::thread::sleep(Duration::from_millis(100));
         }
 
-        let deleted = unsafe { DeleteService(service.raw()) };
-        let code = error_code();
-        if deleted == 0 {
-            return Err(format!(
-                "DeleteService failed: {} (code {code})",
-                std::io::Error::from_raw_os_error(code as i32)
-            ));
+        service
+            .delete()
+            .map_err(|error| describe("DeleteService", error))
+    }
+
+    fn error_code(error: &windows_service::Error) -> Option<i32> {
+        match error {
+            windows_service::Error::Winapi(error) => error.raw_os_error(),
+            _ => None,
         }
-        Ok(())
     }
 
-    fn service_command_line(executable: &Path) -> Result<String, String> {
-        let path = executable
-            .to_str()
-            .ok_or_else(|| "the executable path is not valid UTF-16".to_owned())?;
-        if path.contains('"') {
-            return Err("the executable path contains a quote".to_owned());
+    fn describe(operation: &str, error: windows_service::Error) -> String {
+        match error {
+            windows_service::Error::Winapi(error) => {
+                let code = error.raw_os_error().unwrap_or_default();
+                format!("{operation} failed: {error} (code {code})")
+            }
+            error => format!("{operation} failed: {error}"),
         }
-        Ok(format!(
-            "\"{path}\" --boot-service --wait-ms {SERVICE_WAIT_MS}"
-        ))
-    }
-
-    fn wide(value: &str) -> Vec<u16> {
-        OsStr::new(value).encode_wide().chain([0]).collect()
-    }
-
-    fn wide_multi(values: &[&str]) -> Vec<u16> {
-        let mut output = Vec::new();
-        for value in values {
-            output.extend(OsStr::new(value).encode_wide());
-            output.push(0);
-        }
-        output.push(0);
-        output
-    }
-
-    fn last_error(operation: &str) -> String {
-        crate::service_handle::last_error(operation)
     }
 }
 

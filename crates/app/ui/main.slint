@@ -46,16 +46,16 @@ export component MainWindow inherits Window {
     default-font-size: 13px;
 
     in property <int> selected-page: 0;
+    in-out property <int> navigation-page: 0;
     in-out property <int> requested-power-mode: 2;
     in-out property <int> requested-fan-mode: 0;
     in property <bool> busy: false;
     in-out property <bool> language-zh: true;
     in-out property <float> page-opacity: 1.0;
     in-out property <float> page-shift: 0.0;
-    in-out property <image> page-snapshot: @image-url("../../../assets/neo_control_logo.svg");
-    in-out property <bool> page-transitioning: false;
-    in-out property <float> page-overlay-opacity: 1.0;
-    in-out property <float> page-overlay-shift: 0.0;
+    in-out property <float> page-scale: 1.0;
+    in-out property <duration> page-fade-duration: 150ms;
+    in-out property <duration> page-motion-duration: 220ms;
     in-out property <float> theme-flash: 0.0;
     in-out property <bool> quiet-dialog-open: false;
     in property <bool> transport-ready: false;
@@ -396,18 +396,18 @@ export component MainWindow inherits Window {
                     MicroLabel { text: @tr("WORKSPACE"); }
                 }
                 Rectangle { height: 3px; }
-                NavItem { label: @tr("Overview"); glyph: 0; selected: root.selected-page == 0; clicked => { root.select-page(0); } }
-                NavItem { label: @tr("Performance"); glyph: 1; selected: root.selected-page == 1; clicked => { root.select-page(1); } }
-                NavItem { label: @tr("Cooling"); glyph: 2; selected: root.selected-page == 2; clicked => { root.select-page(2); } }
-                NavItem { label: @tr("Fan curve"); glyph: 2; selected: root.selected-page == 8; clicked => { root.select-page(8); } }
-                NavItem { label: @tr("Battery"); glyph: 3; selected: root.selected-page == 3; clicked => { root.select-page(3); } }
-                NavItem { label: @tr("System"); glyph: 4; selected: root.selected-page == 4; clicked => { root.select-page(4); } }
-                NavItem { label: @tr("Lighting"); glyph: 6; selected: root.selected-page == 6; clicked => { root.select-page(6); } }
-                NavItem { label: @tr("FlexiKey"); glyph: 7; selected: root.selected-page == 9; clicked => { root.select-page(9); } }
-                NavItem { label: @tr("Input & I/O"); glyph: 7; selected: root.selected-page == 7; clicked => { root.select-page(7); } }
-                NavItem { label: @tr("Display care"); glyph: 8; selected: root.selected-page == 10; clicked => { root.select-page(10); } }
+                NavItem { label: @tr("Overview"); glyph: 0; selected: root.navigation-page == 0; clicked => { root.select-page(0); } }
+                NavItem { label: @tr("Performance"); glyph: 1; selected: root.navigation-page == 1; clicked => { root.select-page(1); } }
+                NavItem { label: @tr("Cooling"); glyph: 2; selected: root.navigation-page == 2; clicked => { root.select-page(2); } }
+                NavItem { label: @tr("Fan curve"); glyph: 2; selected: root.navigation-page == 8; clicked => { root.select-page(8); } }
+                NavItem { label: @tr("Battery"); glyph: 3; selected: root.navigation-page == 3; clicked => { root.select-page(3); } }
+                NavItem { label: @tr("System"); glyph: 4; selected: root.navigation-page == 4; clicked => { root.select-page(4); } }
+                NavItem { label: @tr("Lighting"); glyph: 6; selected: root.navigation-page == 6; clicked => { root.select-page(6); } }
+                NavItem { label: @tr("FlexiKey"); glyph: 7; selected: root.navigation-page == 9; clicked => { root.select-page(9); } }
+                NavItem { label: @tr("Input & I/O"); glyph: 7; selected: root.navigation-page == 7; clicked => { root.select-page(7); } }
+                NavItem { label: @tr("Display care"); glyph: 8; selected: root.navigation-page == 10; clicked => { root.select-page(10); } }
                 Rectangle { height: 12px; }
-                NavItem { label: @tr("Settings"); glyph: 5; selected: root.selected-page == 5; clicked => { root.select-page(5); } }
+                NavItem { label: @tr("Settings"); glyph: 5; selected: root.navigation-page == 5; clicked => { root.select-page(5); } }
 
                 Rectangle { vertical-stretch: 1; }
 
@@ -551,12 +551,16 @@ export component MainWindow inherits Window {
                     vertical-stretch: 1;
                     clip: true;
                     opacity: root.page-opacity;
-                    animate opacity { duration: 240ms; easing: cubic-bezier(0.22, 1, 0.36, 1); }
+                    animate opacity { duration: root.page-fade-duration; easing: cubic-bezier(0.2, 0, 0, 1); }
                     page-surface := Rectangle {
                         y: root.page-shift * 1px;
                         width: parent.width;
                         height: parent.height;
-                        animate y { duration: 240ms; easing: cubic-bezier(0.22, 1, 0.36, 1); }
+                        transform-scale-x: root.page-scale * 100%;
+                        transform-scale-y: root.page-scale * 100%;
+                        animate y { duration: root.page-motion-duration; easing: cubic-bezier(0.2, 0, 0, 1); }
+                        animate transform-scale-x { duration: root.page-motion-duration; easing: cubic-bezier(0.2, 0, 0, 1); }
+                        animate transform-scale-y { duration: root.page-motion-duration; easing: cubic-bezier(0.2, 0, 0, 1); }
                         page-scroll := Flickable {
                             width: parent.width;
                             height: parent.height;
@@ -905,27 +909,6 @@ export component MainWindow inherits Window {
                 }
             }
         }
-
-    Rectangle {
-        x: 204px;
-        y: 0;
-        width: parent.width - 204px;
-        height: parent.height;
-        clip: true;
-        visible: root.page-transitioning;
-        opacity: root.page-overlay-opacity;
-        animate opacity { duration: 240ms; easing: cubic-bezier(0.22, 1, 0.36, 1); }
-
-        Image {
-            x: -204px;
-            y: root.page-overlay-shift * 1px;
-            width: root.width;
-            height: root.height;
-            source: root.page-snapshot;
-            image-fit: fill;
-            animate y { duration: 240ms; easing: cubic-bezier(0.22, 1, 0.36, 1); }
-        }
-    }
 
     Rectangle {
         x: 0;

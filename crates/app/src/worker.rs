@@ -151,7 +151,7 @@ impl WorkerRuntime {
 
     fn run(mut self, receiver: mpsc::Receiver<WorkerCommand>) {
         loop {
-            match receiver.recv_timeout(Duration::from_secs(2)) {
+            match receiver.recv_timeout(Duration::from_secs(1)) {
                 Ok(WorkerCommand::ApplyPower(mode)) => {
                     self.finish(power_fan::apply_power(self.dchu.as_ref(), mode));
                 }
@@ -266,7 +266,7 @@ impl WorkerRuntime {
                 Ok(WorkerCommand::Refresh) => self.refresh(),
                 Ok(WorkerCommand::ClearStatus) => {
                     self.status = None;
-                    self.push(false, true);
+                    self.push_quick(false);
                 }
                 Err(RecvTimeoutError::Timeout) => self.on_timeout(),
                 Err(RecvTimeoutError::Disconnected) => break,
@@ -276,7 +276,8 @@ impl WorkerRuntime {
 
     fn finish(&mut self, outcome: CommandOutcome) {
         self.status = outcome.status;
-        self.push(outcome.sync_selection, true);
+        self.sync_selection_once |= outcome.sync_selection;
+        self.push_quick(false);
     }
 
     fn push(&mut self, sync_selection: bool, extended_reads: bool) {
@@ -285,9 +286,21 @@ impl WorkerRuntime {
             &mut self.sampler,
             self.dchu.as_ref(),
             self.status.clone(),
-            false,
             sync_selection,
             extended_reads,
+            extended_reads,
+        );
+    }
+
+    fn push_quick(&mut self, sync_selection: bool) {
+        snapshot::push_snapshot(
+            &self.weak,
+            &mut self.sampler,
+            self.dchu.as_ref(),
+            self.status.clone(),
+            sync_selection,
+            false,
+            false,
         );
     }
 
@@ -320,8 +333,13 @@ impl WorkerRuntime {
             }
             self.next_retry = Instant::now() + Duration::from_secs(5);
         }
-        let sync_selection = std::mem::take(&mut self.sync_selection_once);
-        self.push(sync_selection, self.tick % 2 == 1);
+        let full_read = self.tick == 1 || self.tick.is_multiple_of(5);
+        let sync_selection = if full_read {
+            std::mem::take(&mut self.sync_selection_once)
+        } else {
+            false
+        };
+        self.push(sync_selection, full_read);
     }
 }
 

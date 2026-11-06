@@ -11,7 +11,6 @@ mod formatting;
 mod input;
 mod localization;
 mod runtime_state;
-mod service_handle;
 mod smoke;
 mod system_controls;
 mod telemetry;
@@ -85,7 +84,7 @@ fn schedule_tray_start(
     });
 }
 
-#[cfg(debug_assertions)]
+#[cfg(any(debug_assertions, feature = "snapshot-tools"))]
 fn write_snapshot_ppm(
     path: &std::path::Path,
     buffer: &slint::SharedPixelBuffer<slint::Rgba8Pixel>,
@@ -100,14 +99,16 @@ fn write_snapshot_ppm(
     Ok(())
 }
 
-#[cfg(debug_assertions)]
+#[cfg(any(debug_assertions, feature = "snapshot-tools"))]
 fn run_snapshot(page: usize, path: std::path::PathBuf) -> Result<(), Box<dyn std::error::Error>> {
     let ui = MainWindow::new()?;
     if let Err(error) = slint::select_bundled_translation("zh-CN") {
         log_action(&format!("snapshot translation unavailable: {error}"));
     }
     ui.set_language_zh(true);
-    ui.set_selected_page(page.min(10) as i32);
+    let page = page.min(10) as i32;
+    ui.set_selected_page(page);
+    ui.set_navigation_page(page);
     ui.show()?;
     let weak = ui.as_weak();
     slint::Timer::single_shot(Duration::from_millis(700), move || {
@@ -127,35 +128,39 @@ fn run_snapshot(page: usize, path: std::path::PathBuf) -> Result<(), Box<dyn std
     Ok(())
 }
 
-#[cfg(debug_assertions)]
+#[cfg(any(debug_assertions, feature = "snapshot-tools"))]
+struct CapturedFrame {
+    step: usize,
+    elapsed_ms: u128,
+    buffer: slint::SharedPixelBuffer<slint::Rgba8Pixel>,
+}
+
+#[cfg(any(debug_assertions, feature = "snapshot-tools"))]
 fn schedule_transition_capture(
     weak: slint::Weak<MainWindow>,
-    directory: std::path::PathBuf,
+    frames: Rc<RefCell<Vec<CapturedFrame>>>,
     step: usize,
     start: std::time::Instant,
 ) {
-    const DELAYS: [u64; 4] = [0, 60, 120, 260];
+    const DELAYS: [u64; 7] = [0, 32, 64, 96, 144, 208, 280];
     slint::Timer::single_shot(Duration::from_millis(DELAYS[step]), {
         let weak = weak.clone();
-        let directory = directory.clone();
+        let frames = Rc::clone(&frames);
         move || {
-            eprintln!(
-                "transition snapshot step={step} elapsed_ms={}",
-                start.elapsed().as_millis()
-            );
+            let elapsed_ms = start.elapsed().as_millis();
+            eprintln!("transition snapshot step={step} elapsed_ms={elapsed_ms}");
             if let Some(ui) = weak.upgrade() {
-                let path = directory.join(format!("frame-{step}.ppm"));
                 match ui.window().take_snapshot() {
-                    Ok(buffer) => {
-                        if let Err(error) = write_snapshot_ppm(&path, &buffer) {
-                            eprintln!("transition snapshot write failed: {error}");
-                        }
-                    }
+                    Ok(buffer) => frames.borrow_mut().push(CapturedFrame {
+                        step,
+                        elapsed_ms,
+                        buffer,
+                    }),
                     Err(error) => eprintln!("transition snapshot failed: {error}"),
                 }
             }
             if step + 1 < DELAYS.len() {
-                schedule_transition_capture(weak, directory, step + 1, start);
+                schedule_transition_capture(weak, frames, step + 1, start);
             } else {
                 let _ = slint::quit_event_loop();
             }
@@ -163,7 +168,7 @@ fn schedule_transition_capture(
     });
 }
 
-#[cfg(debug_assertions)]
+#[cfg(any(debug_assertions, feature = "snapshot-tools"))]
 fn run_transition_snapshot(
     directory: std::path::PathBuf,
 ) -> Result<(), Box<dyn std::error::Error>> {
@@ -178,12 +183,14 @@ fn run_transition_snapshot(
     let flexikey_state = wire_flexikey(&ui, engine);
     wire_ui(&ui, sender, flexikey_state);
     let weak = ui.as_weak();
+    let frames = Rc::new(RefCell::new(Vec::<CapturedFrame>::new()));
+    let frames_for_timer = Rc::clone(&frames);
     slint::Timer::single_shot(Duration::from_millis(700), move || {
         if let Some(ui) = weak.upgrade() {
             ui.invoke_select_page(1);
             schedule_transition_capture(
                 ui.as_weak(),
-                directory.clone(),
+                frames_for_timer,
                 0,
                 std::time::Instant::now(),
             );
@@ -191,11 +198,20 @@ fn run_transition_snapshot(
         drop(receiver);
     });
     slint::run_event_loop()?;
+    for frame in frames.borrow().iter() {
+        let path = directory.join(format!(
+            "frame-{:02}-{:03}ms.ppm",
+            frame.step, frame.elapsed_ms
+        ));
+        if let Err(error) = write_snapshot_ppm(&path, &frame.buffer) {
+            eprintln!("transition snapshot write failed: {error}");
+        }
+    }
     Ok(())
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    #[cfg(debug_assertions)]
+    #[cfg(any(debug_assertions, feature = "snapshot-tools"))]
     if let Some(directory) = std::env::args().nth(1).and_then(|arg| {
         arg.strip_prefix("--transition-snapshot=")
             .map(str::to_owned)
@@ -203,7 +219,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         return run_transition_snapshot(std::path::PathBuf::from(directory));
     }
 
-    #[cfg(debug_assertions)]
+    #[cfg(any(debug_assertions, feature = "snapshot-tools"))]
     if let Some(page) = std::env::args()
         .nth(1)
         .and_then(|arg| arg.strip_prefix("--snapshot=").map(str::to_owned))

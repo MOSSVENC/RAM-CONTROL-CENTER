@@ -17,22 +17,31 @@ pub(super) fn push_snapshot(
     sampler: &mut SystemSampler,
     dchu: Option<&Dchu>,
     status: Option<(String, i32)>,
-    busy: bool,
     sync_selection: bool,
     extended_reads: bool,
+    read_thermal: bool,
 ) {
-    log_action("worker: snapshot begin");
+    log_action(if extended_reads {
+        "worker: snapshot begin full"
+    } else {
+        "worker: snapshot begin light"
+    });
     let system = sampler.sample();
     log_action(&format!(
         "worker: system sampled cpu={:.0}% clock={} MHz max={} MHz",
         system.cpu_load_percent, system.cpu_clock_mhz, system.cpu_max_clock_mhz
     ));
-    let thermal_started = Instant::now();
-    let thermal = dchu.and_then(|dchu| dchu.read_thermal().ok());
-    log_action(&format!(
-        "worker: thermal sampled in {} us",
-        thermal_started.elapsed().as_micros()
-    ));
+    let thermal = if read_thermal {
+        let thermal_started = Instant::now();
+        let thermal = dchu.and_then(|dchu| dchu.read_thermal().ok());
+        log_action(&format!(
+            "worker: thermal sampled in {} us",
+            thermal_started.elapsed().as_micros()
+        ));
+        thermal
+    } else {
+        None
+    };
     let (
         platform,
         quick_toggles,
@@ -184,7 +193,7 @@ pub(super) fn push_snapshot(
             transport_label,
             transport_detail,
             transport_device_path,
-            busy,
+            busy: false,
             status,
             sync_selection,
             extended_reads,

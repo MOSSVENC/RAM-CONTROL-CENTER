@@ -34,7 +34,7 @@ worker/             power/fan, RGB, input, I/O controls and snapshot sampling
 ui_update.rs        typed update snapshot -> Slint property application
 flexikey_ui.rs      FlexiKey page/editor state and profile persistence
 system_controls/    audio, display, display-care, radio and registry helpers
-service_handle.rs   shared service-control-manager RAII handle
+boot_service.rs     safe service lifecycle through the windows-service crate
 smoke.rs            reversible transport/control smoke commands
 ```
 
@@ -53,6 +53,14 @@ they do not depend on a monolithic UI file. Imported Slint files are covered by
 the `build.rs` rebuild watch.
 
 ## Transport
+
+## Deployment naming
+
+The installed executable has one canonical name: `neo-control.exe`. Source
+versions are represented by Git commits; build output is never deployed as
+`-final`, `-preview` or numbered side-by-side executables. Replacing the running
+app is a stop, atomic file replacement and restart operation against the single
+canonical path.
 
 Device interface:
 

@@ -81,6 +81,23 @@ import {
                     height: 38px;
                     border-radius: 8px;
                     background: index == root.flexikey-active-index ? Palette.panel-selected : (profile-tap.has-hover ? Palette.panel-hover : transparent);
+                    transform-scale-x: profile-tap.pressed ? 98.5% : 100%;
+                    transform-scale-y: profile-tap.pressed ? 98.5% : 100%;
+                    animate background { duration: 200ms; easing: cubic-bezier(0.2, 0, 0, 1); }
+                    animate transform-scale-x { duration: 240ms; easing: ease-out-back; }
+                    animate transform-scale-y { duration: 240ms; easing: ease-out-back; }
+                    Rectangle {
+                        x: 0;
+                        y: 9px;
+                        width: 2px;
+                        height: 20px;
+                        border-radius: 1px;
+                        background: Palette.cyan;
+                        opacity: index == root.flexikey-active-index ? 1 : 0;
+                        transform-scale-y: index == root.flexikey-active-index ? 100% : 35%;
+                        animate opacity { duration: 180ms; easing: cubic-bezier(0.2, 0, 0, 1); }
+                        animate transform-scale-y { duration: 240ms; easing: ease-out-back; }
+                    }
                     Text {
                         x: 10px;
                         width: parent.width - 20px;
@@ -91,6 +108,7 @@ import {
                         font-size: 12px;
                         vertical-alignment: center;
                         overflow: elide;
+                        animate color { duration: 180ms; easing: cubic-bezier(0.2, 0, 0, 1); }
                     }
                     profile-tap := TouchArea {
                         mouse-cursor: pointer;

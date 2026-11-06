@@ -1013,6 +1013,7 @@ fn format_flexikey_profile(profile: &FlexiKeyProfile) -> String {
 }
 
 fn save_flexikey_store(path: &Path, store: &FlexiKeyStore) -> Result<(), String> {
+    let started = std::time::Instant::now();
     if let Some(parent) = path.parent()
         && !parent.as_os_str().is_empty()
     {
@@ -1030,9 +1031,7 @@ fn save_flexikey_store(path: &Path, store: &FlexiKeyStore) -> Result<(), String>
     #[cfg(windows)]
     {
         use std::os::windows::ffi::OsStrExt as _;
-        use windows_sys::Win32::Storage::FileSystem::{
-            MOVEFILE_REPLACE_EXISTING, MOVEFILE_WRITE_THROUGH, MoveFileExW,
-        };
+        use windows_sys::Win32::Storage::FileSystem::{MOVEFILE_REPLACE_EXISTING, MoveFileExW};
         let source = temporary
             .as_os_str()
             .encode_wide()
@@ -1043,11 +1042,13 @@ fn save_flexikey_store(path: &Path, store: &FlexiKeyStore) -> Result<(), String>
             .encode_wide()
             .chain(std::iter::once(0))
             .collect::<Vec<_>>();
+        // SAFETY: both paths are live NUL-terminated UTF-16 buffers, and the
+        // source file remains available until this synchronous move returns.
         let moved = unsafe {
             MoveFileExW(
                 source.as_ptr(),
                 destination.as_ptr(),
-                MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH,
+                MOVEFILE_REPLACE_EXISTING,
             )
         };
         if moved == 0 {
@@ -1061,6 +1062,11 @@ fn save_flexikey_store(path: &Path, store: &FlexiKeyStore) -> Result<(), String>
         std::fs::rename(&temporary, path)
             .map_err(|error| format!("could not replace {}: {error}", path.display()))?;
     }
+    log_action(&format!(
+        "flexikey: saved {} in {}us",
+        path.display(),
+        started.elapsed().as_micros()
+    ));
     Ok(())
 }
 

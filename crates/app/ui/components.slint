@@ -51,8 +51,12 @@ export component NavItem inherits Rectangle {
     callback clicked();
     height: 44px;
     border-radius: 9px;
-    background: selected ? Palette.panel-selected : (tap.has-hover ? Palette.panel-hover : transparent);
-    animate background { duration: 120ms; easing: ease-out; }
+    background: selected ? Palette.panel-selected : (tap.has-hover ? Palette.panel-hover.with-alpha(0.55) : transparent);
+    transform-scale-x: tap.pressed ? 99% : 100%;
+    transform-scale-y: tap.pressed ? 99% : 100%;
+    animate background { duration: 200ms; easing: cubic-bezier(0.2, 0, 0, 1); }
+    animate transform-scale-x { duration: 220ms; easing: ease-out-back; }
+    animate transform-scale-y { duration: 220ms; easing: ease-out-back; }
 
     HorizontalLayout {
         padding-left: 13px;
@@ -67,7 +71,7 @@ export component NavItem inherits Rectangle {
             font-size: 13px;
             font-weight: root.selected ? 600 : 400;
             vertical-alignment: center;
-            animate color { duration: 120ms; easing: ease-out; }
+            animate color { duration: 180ms; easing: cubic-bezier(0.2, 0, 0, 1); }
         }
     }
 
@@ -79,7 +83,9 @@ export component NavItem inherits Rectangle {
         border-radius: 1px;
         background: Palette.cyan;
         opacity: root.selected ? 1 : 0;
-        animate opacity { duration: 120ms; easing: ease-out; }
+        transform-scale-y: root.selected ? 100% : 40%;
+        animate opacity { duration: 180ms; easing: cubic-bezier(0.2, 0, 0, 1); }
+        animate transform-scale-y { duration: 240ms; easing: ease-out-back; }
     }
 
     tap := TouchArea {
@@ -207,9 +213,28 @@ export component ChromeButton inherits Rectangle {
         ? (root.emphasized ? Palette.accent-soft : Palette.panel-hover)
         : Palette.surface-hi;
     opacity: root.enabled ? 1 : 0.45;
-    animate background { duration: 220ms; easing: ease-in-out; }
-    animate border-color { duration: 220ms; easing: ease-in-out; }
+    transform-scale-x: tap.pressed && root.enabled ? 97% : 100%;
+    transform-scale-y: tap.pressed && root.enabled ? 97% : 100%;
+    animate background { duration: 220ms; easing: cubic-bezier(0.2, 0, 0, 1); }
+    animate border-color { duration: 220ms; easing: cubic-bezier(0.2, 0, 0, 1); }
     animate opacity { duration: 180ms; easing: ease-in-out; }
+    animate transform-scale-x { duration: 260ms; easing: ease-out-back; }
+    animate transform-scale-y { duration: 260ms; easing: ease-out-back; }
+
+    Rectangle {
+        x: 1px;
+        y: 1px;
+        width: parent.width - 2px;
+        height: parent.height - 2px;
+        border-radius: 13px;
+        background: Palette.accent-soft;
+        opacity: root.emphasized ? 1 : 0;
+        transform-scale-x: root.emphasized ? 100% : 82%;
+        transform-scale-y: root.emphasized ? 100% : 90%;
+        animate opacity { duration: 180ms; easing: cubic-bezier(0.2, 0, 0, 1); }
+        animate transform-scale-x { duration: 240ms; easing: ease-out-back; }
+        animate transform-scale-y { duration: 240ms; easing: ease-out-back; }
+    }
 
     Text {
         text: root.text;
@@ -219,6 +244,7 @@ export component ChromeButton inherits Rectangle {
         font-weight: 600;
         horizontal-alignment: center;
         vertical-alignment: center;
+        animate color { duration: 180ms; easing: cubic-bezier(0.2, 0, 0, 1); }
     }
     tap := TouchArea {
         mouse-cursor: root.enabled ? pointer : default;
@@ -239,8 +265,13 @@ export component StageButton inherits Rectangle {
         ? (tap.has-hover && root.enabled ? Palette.accent-hover : Palette.accent-gradient)
         : (tap.has-hover && root.enabled ? Palette.panel-hover : Palette.surface);
     opacity: root.enabled ? 1 : 0.42;
-    animate background { duration: 120ms; easing: ease-out; }
+    transform-scale-x: tap.pressed && root.enabled ? 97.5% : 100%;
+    transform-scale-y: tap.pressed && root.enabled ? 97.5% : 100%;
+    animate background { duration: 180ms; easing: cubic-bezier(0.2, 0, 0, 1); }
+    animate border-color { duration: 180ms; easing: cubic-bezier(0.2, 0, 0, 1); }
     animate opacity { duration: 120ms; easing: ease-out; }
+    animate transform-scale-x { duration: 260ms; easing: ease-out-back; }
+    animate transform-scale-y { duration: 260ms; easing: ease-out-back; }
 
     Text {
         text: root.text;
@@ -318,8 +349,25 @@ export component ChoiceChip inherits Rectangle {
     border-width: 1px;
     border-color: root.selected ? Palette.cyan : Palette.line;
     background: root.selected ? Palette.accent-soft : (tap.has-hover ? Palette.panel-hover : Palette.surface);
-    animate background { duration: 140ms; easing: ease-out; }
-    animate border-color { duration: 140ms; easing: ease-out; }
+    transform-scale-x: tap.pressed ? 97% : 100%;
+    transform-scale-y: tap.pressed ? 97% : 100%;
+    animate background { duration: 200ms; easing: cubic-bezier(0.2, 0, 0, 1); }
+    animate border-color { duration: 200ms; easing: cubic-bezier(0.2, 0, 0, 1); }
+    animate transform-scale-x { duration: 260ms; easing: ease-out-back; }
+    animate transform-scale-y { duration: 260ms; easing: ease-out-back; }
+
+    Rectangle {
+        x: 10px;
+        y: parent.height - 4px;
+        width: parent.width - 20px;
+        height: 2px;
+        border-radius: 1px;
+        background: Palette.cyan;
+        opacity: root.selected ? 1 : 0;
+        transform-scale-x: root.selected ? 100% : 0%;
+        animate opacity { duration: 160ms; easing: cubic-bezier(0.2, 0, 0, 1); }
+        animate transform-scale-x { duration: 240ms; easing: ease-out-back; }
+    }
     Text {
         text: root.text;
         color: root.selected ? Palette.cyan : Palette.text-dim;
@@ -328,6 +376,7 @@ export component ChoiceChip inherits Rectangle {
         font-weight: root.selected ? 600 : 400;
         horizontal-alignment: center;
         vertical-alignment: center;
+        animate color { duration: 180ms; easing: cubic-bezier(0.2, 0, 0, 1); }
     }
     tap := TouchArea {
         mouse-cursor: pointer;
@@ -346,18 +395,24 @@ export component PowerOption inherits Rectangle {
     border-width: 1px;
     border-color: selected ? Palette.amber : Palette.line;
     background: selected ? Palette.panel-selected : (tap.has-hover ? Palette.panel-hover : transparent);
-    animate background { duration: 140ms; easing: ease-out; }
-    animate border-color { duration: 140ms; easing: ease-out; }
+    transform-scale-x: tap.pressed ? 98.5% : 100%;
+    transform-scale-y: tap.pressed ? 98.5% : 100%;
+    animate background { duration: 220ms; easing: cubic-bezier(0.2, 0, 0, 1); }
+    animate border-color { duration: 220ms; easing: cubic-bezier(0.2, 0, 0, 1); }
+    animate transform-scale-x { duration: 260ms; easing: ease-out-back; }
+    animate transform-scale-y { duration: 260ms; easing: ease-out-back; }
 
     Rectangle {
         x: 0;
-        y: 15px;
+        y: selected ? 15px : 29px;
         width: 3px;
-        height: 48px;
+        height: selected ? 48px : 20px;
         border-radius: 2px;
         background: Palette.amber;
         opacity: selected ? 1 : 0;
-        animate opacity { duration: 140ms; easing: ease-out; }
+        animate y { duration: 240ms; easing: ease-out-back; }
+        animate height { duration: 240ms; easing: ease-out-back; }
+        animate opacity { duration: 180ms; easing: cubic-bezier(0.2, 0, 0, 1); }
     }
 
     HorizontalLayout {
@@ -389,6 +444,7 @@ export component PowerOption inherits Rectangle {
             border-radius: 9px;
             border-width: 1px;
             border-color: selected ? Palette.amber : Palette.line-hi;
+            animate border-color { duration: 200ms; easing: cubic-bezier(0.2, 0, 0, 1); }
             Rectangle {
                 x: 5px;
                 y: 5px;
@@ -397,7 +453,11 @@ export component PowerOption inherits Rectangle {
                 border-radius: 4px;
                 background: Palette.amber;
                 opacity: root.selected ? 1 : 0;
-                animate opacity { duration: 120ms; }
+                transform-scale-x: root.selected ? 100% : 30%;
+                transform-scale-y: root.selected ? 100% : 30%;
+                animate opacity { duration: 160ms; easing: cubic-bezier(0.2, 0, 0, 1); }
+                animate transform-scale-x { duration: 260ms; easing: ease-out-back; }
+                animate transform-scale-y { duration: 260ms; easing: ease-out-back; }
             }
         }
     }
@@ -424,8 +484,25 @@ export component FanOption inherits Rectangle {
     border-width: 1px;
     border-color: selected ? Palette.cyan : Palette.line;
     background: selected ? Palette.accent-soft : (tap.has-hover ? Palette.panel-hover : Palette.surface);
-    animate background { duration: 140ms; easing: ease-out; }
-    animate border-color { duration: 140ms; easing: ease-out; }
+    transform-scale-x: tap.pressed ? 98.5% : 100%;
+    transform-scale-y: tap.pressed ? 98.5% : 100%;
+    animate background { duration: 220ms; easing: cubic-bezier(0.2, 0, 0, 1); }
+    animate border-color { duration: 220ms; easing: cubic-bezier(0.2, 0, 0, 1); }
+    animate transform-scale-x { duration: 260ms; easing: ease-out-back; }
+    animate transform-scale-y { duration: 260ms; easing: ease-out-back; }
+
+    Rectangle {
+        x: 0;
+        y: 14px;
+        width: 3px;
+        height: 48px;
+        border-radius: 2px;
+        background: Palette.cyan;
+        opacity: root.selected ? 1 : 0;
+        transform-scale-y: root.selected ? 100% : 42%;
+        animate opacity { duration: 180ms; easing: cubic-bezier(0.2, 0, 0, 1); }
+        animate transform-scale-y { duration: 240ms; easing: ease-out-back; }
+    }
 
     VerticalLayout {
         padding-left: 14px;
@@ -447,6 +524,10 @@ export component FanOption inherits Rectangle {
                 height: 20px;
                 border-radius: 10px;
                 background: root.active ? Palette.green-soft : Palette.track;
+                border-width: 1px;
+                border-color: root.active ? Palette.green : Palette.line;
+                animate background { duration: 200ms; easing: cubic-bezier(0.2, 0, 0, 1); }
+                animate border-color { duration: 200ms; easing: cubic-bezier(0.2, 0, 0, 1); }
                 Text {
                     text: root.active ? @tr("Current") : @tr("Standby");
                     color: root.active ? Palette.green : Palette.text-faint;
@@ -454,6 +535,7 @@ export component FanOption inherits Rectangle {
                     font-size: 10px;
                     horizontal-alignment: center;
                     vertical-alignment: center;
+                    animate color { duration: 180ms; easing: cubic-bezier(0.2, 0, 0, 1); }
                 }
             }
         }
@@ -508,6 +590,11 @@ export component CurveStepper inherits Rectangle {
             height: 22px;
             border-radius: 7px;
             background: minus-tap.has-hover && root.enabled ? Palette.panel-selected : Palette.surface-hi;
+            transform-scale-x: minus-tap.pressed && root.enabled ? 88% : 100%;
+            transform-scale-y: minus-tap.pressed && root.enabled ? 88% : 100%;
+            animate background { duration: 160ms; easing: cubic-bezier(0.2, 0, 0, 1); }
+            animate transform-scale-x { duration: 220ms; easing: ease-out-back; }
+            animate transform-scale-y { duration: 220ms; easing: ease-out-back; }
             Text { text: @tr("−"); color: root.enabled ? Palette.text-dim : Palette.text-faint; font-size: 15px; horizontal-alignment: center; vertical-alignment: center; }
             minus-tap := TouchArea {
                 mouse-cursor: root.enabled ? pointer : default;
@@ -528,6 +615,11 @@ export component CurveStepper inherits Rectangle {
             height: 22px;
             border-radius: 7px;
             background: plus-tap.has-hover && root.enabled ? Palette.panel-selected : Palette.surface-hi;
+            transform-scale-x: plus-tap.pressed && root.enabled ? 88% : 100%;
+            transform-scale-y: plus-tap.pressed && root.enabled ? 88% : 100%;
+            animate background { duration: 160ms; easing: cubic-bezier(0.2, 0, 0, 1); }
+            animate transform-scale-x { duration: 220ms; easing: ease-out-back; }
+            animate transform-scale-y { duration: 220ms; easing: ease-out-back; }
             Text { text: @tr("+"); color: root.enabled ? Palette.text-dim : Palette.text-faint; font-size: 14px; horizontal-alignment: center; vertical-alignment: center; }
             plus-tap := TouchArea {
                 mouse-cursor: root.enabled ? pointer : default;
@@ -586,7 +678,9 @@ export component ToggleStatusRow inherits Rectangle {
     height: 40px;
     border-radius: 8px;
     background: tap.has-hover && root.known && !root.busy ? Palette.panel-hover : transparent;
-    animate background { duration: 120ms; }
+    opacity: root.busy ? 0.72 : 1;
+    animate background { duration: 180ms; easing: cubic-bezier(0.2, 0, 0, 1); }
+    animate opacity { duration: 160ms; easing: cubic-bezier(0.2, 0, 0, 1); }
 
     HorizontalLayout {
         padding-left: 8px;
@@ -601,20 +695,48 @@ export component ToggleStatusRow inherits Rectangle {
             vertical-alignment: center;
             horizontal-stretch: 1;
         }
+        Text {
+            width: 62px;
+            text: root.known ? (root.value ? @tr("Enabled") : @tr("Disabled")) : @tr("Initialize");
+            color: root.known ? (root.value ? Palette.green : Palette.text-faint) : Palette.amber;
+            font-family: "Bahnschrift";
+            font-size: 9px;
+            horizontal-alignment: right;
+            vertical-alignment: center;
+            animate color { duration: 180ms; easing: cubic-bezier(0.2, 0, 0, 1); }
+        }
         Rectangle {
-            width: 96px;
-            height: 24px;
-            border-radius: 12px;
-            background: root.value ? Palette.green-soft : Palette.track;
+            width: 48px;
+            height: 26px;
+            border-radius: 13px;
+            clip: true;
+            background: root.value && root.known ? Palette.green-soft : Palette.track;
             border-width: 1px;
-            border-color: root.value ? Palette.green : Palette.line;
-            Text {
-                text: root.known ? (root.value ? @tr("Enabled") : @tr("Disabled")) : @tr("Initialize");
-                color: root.known ? (root.value ? Palette.green : Palette.text-faint) : Palette.amber;
-                font-family: "Bahnschrift";
-                font-size: 9px;
-                horizontal-alignment: center;
-                vertical-alignment: center;
+            border-color: root.value && root.known ? Palette.green : Palette.line-hi;
+            animate background { duration: 200ms; easing: cubic-bezier(0.2, 0, 0, 1); }
+            animate border-color { duration: 200ms; easing: cubic-bezier(0.2, 0, 0, 1); }
+            Rectangle {
+                x: root.value && root.known ? 24px : 3px;
+                y: 2px;
+                width: 20px;
+                height: 20px;
+                border-radius: 10px;
+                background: root.value && root.known ? Palette.green : Palette.surface-hi;
+                border-width: 1px;
+                border-color: root.value && root.known ? Palette.green : Palette.line-hi;
+                animate x { duration: 240ms; easing: ease-out-back; }
+                animate background { duration: 200ms; easing: cubic-bezier(0.2, 0, 0, 1); }
+                animate border-color { duration: 200ms; easing: cubic-bezier(0.2, 0, 0, 1); }
+                Text {
+                    text: root.known ? (root.value ? "✓" : "×") : "·";
+                    color: root.value && root.known ? Palette.primary-text : Palette.text-faint;
+                    font-family: "Bahnschrift";
+                    font-size: 11px;
+                    font-weight: 600;
+                    horizontal-alignment: center;
+                    vertical-alignment: center;
+                    animate color { duration: 160ms; }
+                }
             }
         }
     }

@@ -277,8 +277,8 @@ marker file created: true
 ```
 
 The XML replacement path is atomic through a `.neo.tmp` file and
-`MoveFileExW(MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH)`. The saved
-active profile was reloaded successfully in the live UI test and unit test.
+`MoveFileExW(MOVEFILE_REPLACE_EXISTING)`. The saved active profile was reloaded
+successfully in the live UI test and unit test.
 Keypress, text, launch and disable share the same hook table. The hook lives in
 the resident tray process, so closing the main window does not stop profile
 dispatch.
@@ -412,11 +412,17 @@ driver-level route if it is needed for compatibility.
 - Slint notifier: `GraphicsAPI::NativeOpenGL`.
 - GPU 3D engine activity was observed while the window is visible.
 - UI animation and hardware polling are separated by a worker channel.
-- Page motion captures the outgoing workspace as a snapshot, switches the live
-  page, then fades and lifts the snapshot while the incoming page rises from a
-  24 px offset. The motion uses a 240 ms `cubic-bezier(0.22, 1, 0.36, 1)` curve.
-- The page area uses a Flickable content surface with a viewport-height
-  minimum, so short pages fill the window and tall pages remain scrollable.
+- Navigation updates the rail immediately, then runs a two-stage fade-through:
+  the current workspace fades and contracts for 72 ms, the content switches at
+  zero opacity, and the incoming workspace fades, rises 14 px, and scales from
+  0.988 to 1.0 over 190/240 ms. The transition uses no snapshot or framebuffer
+  readback.
+- Captured transition frames showed the outgoing page at 96 ms, the incoming
+  page at partial opacity and scale at 204 ms, and the settled page by 326 ms.
+  Page dispatch stayed between 28 and 250 µs across the sampled clicks.
+- Option controls share the same motion system: 200–220 ms surface/radius
+  morphs, 240 ms `ease-out-back` selection indicators, 240 ms toggle-thumb
+  travel, and 260 ms pressed-scale release feedback.
 - Debug snapshots at the production 1180×820 size were used to verify the
   overview, performance, cooling, battery, settings, FlexiKey and display-care
   layouts after the empty status-container fix. Windows frame tracing remains
@@ -424,10 +430,14 @@ driver-level route if it is needed for compatibility.
   claim.
 - `scripts/check-unsafe.sh` fails if a new source file gains an `unsafe` token
   or any allowlisted FFI file exceeds its current ceiling. The current total is
-  109.
+  83.
 
 Thermal command 12 still takes roughly 330 ms at the firmware level. It runs on
 the hardware worker and does not block the UI thread.
+
+The worker uses a 1 s light system sample and a 5 s full thermal/extended read.
+Completed control commands publish their status through a light snapshot first;
+the next full read reconciles persisted and hardware values.
 
 
 ## Maintainability refactor runtime check
@@ -469,7 +479,7 @@ app/src/system_controls/display.rs             96 lines
 app/src/system_controls/power.rs              126 lines
 app/src/system_controls/display_care.rs       465 lines
 app/src/system_controls/radio.rs               85 lines
-app/src/system_controls/registry.rs           220 lines
+app/src/system_controls/registry.rs           108 lines
 ```
 
 `windows_backend.rs` now contains handle lifecycle, raw IOCTL/settings access

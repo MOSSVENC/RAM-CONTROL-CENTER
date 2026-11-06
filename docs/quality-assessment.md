@@ -1,36 +1,38 @@
 # Neo Control quality assessment
 
-Date: 2026-11-05. Measurements are from the current project and the installed
+Date: 2026-11-06. Measurements are from the current project and the installed
 vendor package; no BIOS, EC, driver or vendor binary was modified for them.
 
 ## Executive assessment
 
 | Dimension | Score | Reading |
 |---|---:|---|
-| Protocol-layer cohesion | 9.0 / 10 | One transport boundary with typed telemetry, power/fan, RGB, GPU, charging, input and quick-toggle modules |
-| OS-integration cohesion | 8.8 / 10 | Boot, tray, telemetry, input and display concerns have named modules; Win32 handles and resources are wrapped behind RAII helpers |
-| App/UI cohesion | 8.5 / 10 | Startup orchestration, worker, callbacks, controls, pages and dialogs are separated; the latest motion path still needs native-frame confirmation |
-| Module coupling | 9.2 / 10 | Crate graph is acyclic; worker commands, UI updates and page callback boundaries are typed |
-| Maintainability | 9.1 / 10 | Hardware worker and native resource lifetimes are split by responsibility; an unsafe ratchet prevents new FFI escape points |
-| Portability | 8.0 / 10 | Capability-driven UI and an ACPI-device override support other CC4.0 models; model offsets and validation remain machine-specific |
-| Overall | **8.9 / 10** | Strong boundary architecture, green native CI, repeatable verification and a documented compatibility path |
+| Protocol-layer cohesion | 8.8 / 10 | One transport boundary with typed telemetry, power/fan, RGB, GPU, charging, input and quick-toggle modules |
+| OS-integration cohesion | 8.5 / 10 | Boot, tray, telemetry, input and display concerns have named modules; Win32 handles and resources are wrapped behind RAII helpers |
+| Functional coverage | 7.6 / 10 | The tested CC4.0 controls work on this machine, but capability-gated branches and uncommon hardware paths still need broader validation |
+| Visual design | 6.2 / 10 | The hierarchy is coherent, but repeated bordered cards, sparse compositions and limited visual identity still read as an engineering control panel |
+| Motion and interaction | 6.8 / 10 | Page and option motion now have real intermediate frames, but shared-element choreography, stagger and reduced-motion behavior are still absent |
+| Accessibility and responsiveness | 4.5 / 10 | No complete keyboard focus system, focus rings, screen-reader semantics or compact layout policy |
+| Packaging and deployment | 7.0 / 10 | The canonical executable path and Git-based versioning are now defined; stale side-by-side artifacts still need final removal |
+| Overall | **7.0 / 10** | Solid native backend and real hardware controls, but not yet a finished product in visual polish, accessibility and edge-case parity |
 
-This is a sound native implementation. Composition, protocol, control and
-hardware-worker files are split by responsibility while preserving the typed
-protocol boundary. The remaining debt is concentrated in the FlexiKey editor
-and the unavoidable low-level Windows/FFI surface.
+This is a functional native control panel, not an 8.9/10 finished product. The
+backend architecture is substantially stronger than the product surface. The
+next quality gain must come from interaction design, layout responsiveness,
+accessibility and stricter end-to-end validation rather than another backend
+split.
 
 ## Code metrics
 
 ```text
-total measured lines       19,691
-Rust lines                 13,861
+total measured lines       19,480
+Rust lines                 13,650
 Slint lines                 4,767
 translation lines           1,063
-Rust source modules            46
+Rust source modules            45
 Slint source modules           16
-unsafe token occurrences      109
-test functions                 42
+unsafe token occurrences      83
+test functions                 43
 host-executed tests            39
 ```
 
@@ -87,6 +89,7 @@ The crate graph remains deliberately small and acyclic:
 neo-control
   -> neo-control-protocol
   -> slint / raw-window-handle / windows-sys / windows
+  -> windows-registry / windows-service
 
 neo-control-protocol
   -> roxmltree / windows-sys
@@ -113,6 +116,9 @@ Strong points:
 - Win32 registry operations are behind safe helpers in
   `system_controls/registry.rs`; display-care and tray startup consume those
   helpers.
+- Microsoft `windows-registry` owns registry handles and typed values; Mullvad
+  `windows-service` owns SCM/service handles, dispatcher startup, status
+  reporting and failure actions. The app contains no service-manager FFI.
 - Service, registry, power-scheme, device-context, PDH and NVML resources are
   released through RAII wrappers, including all early-return paths.
 - The application imports no `InsydeDCHU.dll`, `HKFltrLib.dll`, `CC40.exe` or
@@ -123,10 +129,10 @@ Remaining debt:
 - `flexikey_ui.rs` is 1,213 lines; its editor/profile state is the next
   candidate for functional split. The hardware worker is now 330 lines plus
   five focused submodules.
-- There are 109 `unsafe` token occurrences. They are localized around Windows
-  IOCTL/FFI, with `telemetry.rs` (26), `tray.rs` (21), `boot_service.rs` (13)
-  and `flexikey_engine.rs` (10) as the largest clusters. `scripts/check-unsafe.sh`
-  fails on a new file or any per-file count increase.
+- There are 83 `unsafe` token occurrences. They are localized around Windows
+  IOCTL/FFI, with `telemetry.rs` (26), `tray.rs` (21) and
+  `flexikey_engine.rs` (10) as the largest clusters.
+  `scripts/check-unsafe.sh` fails on a new file or any per-file count increase.
 - The automated suite covers protocol encoding and app-side logic. Live
   AcpiBridge/EC behavior is exercised by `scripts/hardware-smoke.ps1`, which
   cannot run on a generic CI runner.

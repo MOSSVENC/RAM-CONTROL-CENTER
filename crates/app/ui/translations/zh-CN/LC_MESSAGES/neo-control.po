@@ -414,8 +414,8 @@ msgstr "GPU 合成"
 msgid "Animation"
 msgstr "动画"
 
-msgid "Layered upward fade"
-msgstr "分层上移淡入"
+msgid "Two-stage fade · lift · scale"
+msgstr "两段式淡入 · 上浮缩放"
 
 msgid "Neo Control uses the Slint winit renderer. The scene is composed by the GPU; the hardware worker only samples telemetry off the UI thread."
 msgstr "Neo Control 使用 Slint winit 渲染器，画面由 GPU 合成；硬件采样在工作线程中进行，不阻塞 UI。"

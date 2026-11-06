@@ -1,190 +1,76 @@
 #[cfg(windows)]
-use windows_sys::Win32::System::Registry::HKEY;
+use windows_registry::CURRENT_USER;
 
 #[cfg(windows)]
-struct RegKey(HKEY);
+const HRESULT_FILE_NOT_FOUND: u32 = 0x8007_0002;
+#[cfg(windows)]
+const HRESULT_PATH_NOT_FOUND: u32 = 0x8007_0003;
 
 #[cfg(windows)]
-impl RegKey {
-    fn create(subkey: &[u16]) -> Result<Self, u32> {
-        use windows_sys::Win32::System::Registry::{
-            HKEY_CURRENT_USER, KEY_SET_VALUE, REG_OPTION_NON_VOLATILE, RegCreateKeyExW,
-        };
-
-        let mut key = std::ptr::null_mut();
-        let status = unsafe {
-            RegCreateKeyExW(
-                HKEY_CURRENT_USER,
-                subkey.as_ptr(),
-                0,
-                std::ptr::null(),
-                REG_OPTION_NON_VOLATILE,
-                KEY_SET_VALUE,
-                std::ptr::null(),
-                &mut key,
-                std::ptr::null_mut(),
-            )
-        };
-        if status == 0 {
-            Ok(Self(key))
-        } else {
-            Err(status)
-        }
-    }
-
-    fn open(subkey: &[u16], access: u32) -> Result<Self, u32> {
-        use windows_sys::Win32::System::Registry::{HKEY_CURRENT_USER, RegOpenKeyExW};
-
-        let mut key = std::ptr::null_mut();
-        let status =
-            unsafe { RegOpenKeyExW(HKEY_CURRENT_USER, subkey.as_ptr(), 0, access, &mut key) };
-        if status == 0 {
-            Ok(Self(key))
-        } else {
-            Err(status)
-        }
-    }
-
-    fn raw(&self) -> HKEY {
-        self.0
-    }
+fn is_not_found(error: &windows::core::Error) -> bool {
+    matches!(
+        error.code().0 as u32,
+        HRESULT_FILE_NOT_FOUND | HRESULT_PATH_NOT_FOUND
+    )
 }
 
 #[cfg(windows)]
-impl Drop for RegKey {
-    fn drop(&mut self) {
-        use windows_sys::Win32::System::Registry::RegCloseKey;
-
-        if !self.0.is_null() {
-            unsafe { RegCloseKey(self.0) };
-        }
+fn optional_value<T>(
+    operation: &str,
+    result: windows_registry::Result<T>,
+) -> Result<Option<T>, String> {
+    match result {
+        Ok(value) => Ok(Some(value)),
+        Err(error) if is_not_found(&error) => Ok(None),
+        Err(error) => Err(format!("{operation} failed: {}", error.message())),
     }
 }
 
 #[cfg(windows)]
 pub(crate) fn read_registry_dword(subkey: &str, value: &str) -> Result<Option<u32>, String> {
-    use windows_sys::Win32::Foundation::{ERROR_FILE_NOT_FOUND, ERROR_SUCCESS};
-    use windows_sys::Win32::System::Registry::{HKEY_CURRENT_USER, RRF_RT_REG_DWORD, RegGetValueW};
-
-    let subkey = wide(subkey);
-    let value = wide(value);
-    let mut data = 0_u32;
-    let mut size = std::mem::size_of::<u32>() as u32;
-    let result = unsafe {
-        RegGetValueW(
-            HKEY_CURRENT_USER,
-            subkey.as_ptr(),
-            value.as_ptr(),
-            RRF_RT_REG_DWORD,
-            std::ptr::null_mut(),
-            (&mut data as *mut u32).cast(),
-            &mut size,
-        )
-    };
-    match result {
-        ERROR_SUCCESS => Ok(Some(data)),
-        ERROR_FILE_NOT_FOUND => Ok(None),
-        code => Err(format!("RegGetValueW failed with code {code}")),
-    }
+    optional_value(
+        "read registry DWORD",
+        CURRENT_USER.open(subkey).and_then(|key| key.get_u32(value)),
+    )
 }
 
 #[cfg(windows)]
 pub(crate) fn read_registry_string(subkey: &str, value: &str) -> Result<Option<String>, String> {
-    use windows_sys::Win32::Foundation::{ERROR_FILE_NOT_FOUND, ERROR_SUCCESS};
-    use windows_sys::Win32::System::Registry::{HKEY_CURRENT_USER, RRF_RT_REG_SZ, RegGetValueW};
-
-    let subkey = wide(subkey);
-    let value = wide(value);
-    let mut buffer = [0_u16; 512];
-    let mut size = (buffer.len() * 2) as u32;
-    let result = unsafe {
-        RegGetValueW(
-            HKEY_CURRENT_USER,
-            subkey.as_ptr(),
-            value.as_ptr(),
-            RRF_RT_REG_SZ,
-            std::ptr::null_mut(),
-            buffer.as_mut_ptr().cast(),
-            &mut size,
-        )
-    };
-    match result {
-        ERROR_SUCCESS => {
-            let length = buffer
-                .iter()
-                .position(|character| *character == 0)
-                .unwrap_or(buffer.len());
-            Ok(Some(String::from_utf16_lossy(&buffer[..length])))
-        }
-        ERROR_FILE_NOT_FOUND => Ok(None),
-        code => Err(format!("RegGetValueW(string) failed with code {code}")),
-    }
+    optional_value(
+        "read registry string",
+        CURRENT_USER
+            .open(subkey)
+            .and_then(|key| key.get_string(value)),
+    )
 }
 
 #[cfg(windows)]
 pub(crate) fn write_registry_dword(subkey: &str, value: &str, data: u32) -> Result<(), String> {
-    use windows_sys::Win32::System::Registry::{REG_DWORD, RegSetValueExW};
-
-    let key = RegKey::create(&wide(subkey))
-        .map_err(|code| format!("RegCreateKeyExW failed with code {code}"))?;
-    let value = wide(value);
-    let result = unsafe {
-        RegSetValueExW(
-            key.raw(),
-            value.as_ptr(),
-            0,
-            REG_DWORD,
-            (&data as *const u32).cast(),
-            std::mem::size_of::<u32>() as u32,
-        )
-    };
-    if result == 0 {
-        Ok(())
-    } else {
-        Err(format!("RegSetValueExW failed with code {result}"))
-    }
+    CURRENT_USER
+        .create(subkey)
+        .and_then(|key| key.set_u32(value, data))
+        .map_err(|error| format!("write registry DWORD failed: {}", error.message()))
 }
 
 #[cfg(windows)]
 pub(crate) fn write_registry_string(subkey: &str, value: &str, data: &str) -> Result<(), String> {
-    use windows_sys::Win32::System::Registry::{REG_SZ, RegSetValueExW};
-
-    let key = RegKey::create(&wide(subkey))
-        .map_err(|code| format!("RegCreateKeyExW failed with code {code}"))?;
-    let value = wide(value);
-    let data = wide(data);
-    let result = unsafe {
-        RegSetValueExW(
-            key.raw(),
-            value.as_ptr(),
-            0,
-            REG_SZ,
-            data.as_ptr().cast(),
-            (data.len() * 2) as u32,
-        )
-    };
-    if result == 0 {
-        Ok(())
-    } else {
-        Err(format!("RegSetValueExW failed with code {result}"))
-    }
+    CURRENT_USER
+        .create(subkey)
+        .and_then(|key| key.set_string(value, data))
+        .map_err(|error| format!("write registry string failed: {}", error.message()))
 }
 
 #[cfg(windows)]
 pub(crate) fn delete_registry_value(subkey: &str, value: &str) -> Result<(), String> {
-    use windows_sys::Win32::Foundation::ERROR_FILE_NOT_FOUND;
-    use windows_sys::Win32::System::Registry::{KEY_SET_VALUE, RegDeleteValueW};
-
-    let key = match RegKey::open(&wide(subkey), KEY_SET_VALUE) {
-        Ok(key) => key,
-        Err(ERROR_FILE_NOT_FOUND) => return Ok(()),
-        Err(code) => return Err(format!("RegOpenKeyExW failed with code {code}")),
-    };
-    let value = wide(value);
-    let result = unsafe { RegDeleteValueW(key.raw(), value.as_ptr()) };
-    match result {
-        0 | ERROR_FILE_NOT_FOUND => Ok(()),
-        code => Err(format!("RegDeleteValueW failed with code {code}")),
+    match CURRENT_USER
+        .options()
+        .write()
+        .open(subkey)
+        .and_then(|key| key.remove_value(value))
+    {
+        Ok(()) => Ok(()),
+        Err(error) if is_not_found(&error) => Ok(()),
+        Err(error) => Err(format!("delete registry value failed: {}", error.message())),
     }
 }
 
@@ -196,6 +82,8 @@ pub(crate) fn broadcast_setting_change(area: &str) {
 
     let area = wide(area);
     let mut result = 0_usize;
+    // SAFETY: `area` is a live NUL-terminated UTF-16 string for this synchronous
+    // call, and `result` is valid writable storage for the duration of the call.
     unsafe {
         SendMessageTimeoutW(
             HWND_BROADCAST,
@@ -217,4 +105,31 @@ pub(crate) fn wide(value: &str) -> Vec<u16> {
         .encode_wide()
         .chain(std::iter::once(0))
         .collect()
+}
+
+#[cfg(all(test, windows))]
+mod tests {
+    use super::*;
+    use windows_registry::CURRENT_USER;
+
+    const TEST_KEY: &str = r"Software\NeoControl\Tests";
+
+    #[test]
+    fn registry_values_round_trip_and_missing_values_are_none() {
+        let _ = write_registry_dword(TEST_KEY, "dword", 42);
+        let _ = write_registry_string(TEST_KEY, "string", "Neo Control");
+
+        assert_eq!(read_registry_dword(TEST_KEY, "dword").unwrap(), Some(42));
+        assert_eq!(
+            read_registry_string(TEST_KEY, "string").unwrap().as_deref(),
+            Some("Neo Control")
+        );
+        assert_eq!(read_registry_dword(TEST_KEY, "absent").unwrap(), None);
+
+        delete_registry_value(TEST_KEY, "dword").unwrap();
+        delete_registry_value(TEST_KEY, "string").unwrap();
+        assert_eq!(read_registry_dword(TEST_KEY, "dword").unwrap(), None);
+        assert_eq!(read_registry_string(TEST_KEY, "string").unwrap(), None);
+        let _ = CURRENT_USER.remove_tree(TEST_KEY);
+    }
 }

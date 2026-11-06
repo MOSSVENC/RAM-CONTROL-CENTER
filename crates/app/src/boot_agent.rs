@@ -224,38 +224,36 @@ pub fn run() -> i32 {
 
 #[cfg(windows)]
 fn ensure_acpi_bridge_service() -> Result<(), String> {
-    use crate::service_handle::{ScHandle, error_code};
-    use std::os::windows::ffi::OsStrExt;
-    use windows_sys::Win32::System::Services::{SC_MANAGER_CONNECT, SERVICE_START, StartServiceW};
+    use std::ffi::OsStr;
+    use windows_service::service::ServiceAccess;
+    use windows_service::service_manager::{ServiceManager, ServiceManagerAccess};
+    use windows_sys::Win32::Foundation::ERROR_SERVICE_ALREADY_RUNNING;
 
-    const ERROR_SERVICE_ALREADY_RUNNING: u32 = 1056;
-
-    fn wide(value: &str) -> Vec<u16> {
-        std::ffi::OsStr::new(value)
-            .encode_wide()
-            .chain(std::iter::once(0))
-            .collect()
-    }
-
-    let manager_name = wide("AcpiBridge");
-    let manager = ScHandle::open_manager(SC_MANAGER_CONNECT)?;
+    let manager = ServiceManager::local_computer(None::<&str>, ServiceManagerAccess::CONNECT)
+        .map_err(|error| describe_service_error("OpenSCManagerW", error))?;
     let service = manager
-        .open_service(&manager_name, SERVICE_START)
-        .map_err(|code| {
-            format!(
-                "OpenServiceW(AcpiBridge) failed: {} (code {code})",
-                std::io::Error::from_raw_os_error(code as i32)
-            )
-        })?;
-    let started = unsafe { StartServiceW(service.raw(), 0, std::ptr::null()) };
-    let code = error_code();
-    if started != 0 || code == ERROR_SERVICE_ALREADY_RUNNING {
-        return Ok(());
+        .open_service("AcpiBridge", ServiceAccess::START)
+        .map_err(|error| describe_service_error("OpenServiceW(AcpiBridge)", error))?;
+    match service.start::<&OsStr>(&[]) {
+        Ok(()) => Ok(()),
+        Err(windows_service::Error::Winapi(error))
+            if error.raw_os_error() == Some(ERROR_SERVICE_ALREADY_RUNNING as i32) =>
+        {
+            Ok(())
+        }
+        Err(error) => Err(describe_service_error("StartServiceW(AcpiBridge)", error)),
     }
-    Err(format!(
-        "StartServiceW(AcpiBridge) failed: {} (code {code})",
-        std::io::Error::from_raw_os_error(code as i32)
-    ))
+}
+
+#[cfg(windows)]
+fn describe_service_error(operation: &str, error: windows_service::Error) -> String {
+    match error {
+        windows_service::Error::Winapi(error) => {
+            let code = error.raw_os_error().unwrap_or_default();
+            format!("{operation} failed: {error} (code {code})")
+        }
+        error => format!("{operation} failed: {error}"),
+    }
 }
 
 #[cfg(not(windows))]

@@ -1,8 +1,8 @@
 use std::cell::RefCell;
 use std::rc::Rc;
-use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
+use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::mpsc::Sender;
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 use neo_control_protocol::{
     AntiDustSchedule, CustomFanCurve, FanMode, GpuSwitchMode, PowerMode, RgbColor,
@@ -20,63 +20,74 @@ use crate::worker::WorkerCommand;
 use crate::{MainWindow, Palette};
 
 static PAGE_EPOCH: AtomicU64 = AtomicU64::new(0);
-static PAGE_NAV_LOCK: AtomicBool = AtomicBool::new(false);
 static THEME_EPOCH: AtomicU64 = AtomicU64::new(0);
 
-const PAGE_ENTER_DELAY_MS: u64 = 1;
-const PAGE_HIDE_MS: u64 = 260;
-const PAGE_UNLOCK_MS: u64 = 520;
-const PAGE_ENTER_PX: f32 = 24.0;
-const PAGE_OVERLAY_EXIT_PX: f32 = -20.0;
+const PAGE_EXIT_MS: u64 = 72;
+const PAGE_SWAP_DELAY_MS: u64 = 78;
+const PAGE_ENTER_DELAY_MS: u64 = 8;
+const PAGE_ENTER_FADE_MS: u64 = 190;
+const PAGE_ENTER_MOTION_MS: u64 = 240;
+const PAGE_EXIT_SHIFT_PX: f32 = -5.0;
+const PAGE_EXIT_SCALE: f32 = 0.996;
+const PAGE_ENTER_SHIFT_PX: f32 = 14.0;
+const PAGE_ENTER_SCALE: f32 = 0.988;
 const THEME_COVER_MS: u64 = 190;
 const THEME_HOLD_MS: u64 = 24;
 
-fn take_page_snapshot(ui: &MainWindow) -> Option<slint::Image> {
-    match ui.window().take_snapshot() {
-        Ok(buffer) => Some(slint::Image::from_rgba8(buffer)),
-        Err(error) => {
-            log_action(&format!("page snapshot unavailable: {error}"));
-            None
+fn begin_page_switch(ui: &MainWindow, page: i32, epoch: u64) {
+    ui.set_page_fade_duration(PAGE_EXIT_MS as i64);
+    ui.set_page_motion_duration(PAGE_EXIT_MS as i64);
+    let weak = ui.as_weak();
+    slint::Timer::single_shot(Duration::from_millis(1), move || {
+        if PAGE_EPOCH.load(Ordering::Relaxed) != epoch {
+            return;
         }
-    }
-}
-
-fn begin_page_motion(ui: &MainWindow, epoch: u64, has_overlay: bool) {
-    ui.set_page_shift(PAGE_ENTER_PX);
-    if !has_overlay {
+        let Some(ui) = weak.upgrade() else {
+            return;
+        };
         ui.set_page_opacity(0.0);
-    }
-    let weak = ui.as_weak();
-    slint::Timer::single_shot(Duration::from_millis(PAGE_ENTER_DELAY_MS), move || {
-        if PAGE_EPOCH.load(Ordering::Relaxed) == epoch
-            && let Some(ui) = weak.upgrade()
-        {
-            ui.set_page_opacity(1.0);
-            ui.set_page_shift(0.0);
-            if has_overlay {
-                ui.set_page_overlay_opacity(0.0);
-                ui.set_page_overlay_shift(PAGE_OVERLAY_EXIT_PX);
+        ui.set_page_shift(PAGE_EXIT_SHIFT_PX);
+        ui.set_page_scale(PAGE_EXIT_SCALE);
+
+        let weak = ui.as_weak();
+        slint::Timer::single_shot(Duration::from_millis(PAGE_SWAP_DELAY_MS), move || {
+            if PAGE_EPOCH.load(Ordering::Relaxed) != epoch {
+                return;
             }
-        }
-    });
+            let Some(ui) = weak.upgrade() else {
+                return;
+            };
 
-    let weak = ui.as_weak();
-    slint::Timer::single_shot(Duration::from_millis(PAGE_HIDE_MS), move || {
-        if PAGE_EPOCH.load(Ordering::Relaxed) == epoch
-            && let Some(ui) = weak.upgrade()
-        {
-            ui.set_page_transitioning(false);
-            ui.set_page_overlay_opacity(1.0);
-            ui.set_page_overlay_shift(0.0);
-        }
-    });
+            ui.set_page_fade_duration(0);
+            ui.set_page_motion_duration(0);
+            ui.set_page_opacity(0.0);
+            ui.set_page_shift(PAGE_ENTER_SHIFT_PX);
+            ui.set_page_scale(PAGE_ENTER_SCALE);
+            ui.set_selected_page(page);
 
-    let weak = ui.as_weak();
-    slint::Timer::single_shot(Duration::from_millis(PAGE_UNLOCK_MS), move || {
-        if PAGE_EPOCH.load(Ordering::Relaxed) == epoch {
-            let _ = weak;
-            PAGE_NAV_LOCK.store(false, Ordering::Relaxed);
-        }
+            let weak = ui.as_weak();
+            slint::Timer::single_shot(Duration::from_millis(PAGE_ENTER_DELAY_MS), move || {
+                if PAGE_EPOCH.load(Ordering::Relaxed) != epoch {
+                    return;
+                }
+                let Some(ui) = weak.upgrade() else {
+                    return;
+                };
+                ui.set_page_fade_duration(PAGE_ENTER_FADE_MS as i64);
+                ui.set_page_motion_duration(PAGE_ENTER_MOTION_MS as i64);
+
+                let weak = ui.as_weak();
+                slint::Timer::single_shot(Duration::from_millis(1), move || {
+                    if PAGE_EPOCH.load(Ordering::Relaxed) == epoch
+                        && let Some(ui) = weak.upgrade()
+                    {
+                        ui.set_page_opacity(1.0);
+                        ui.set_page_shift(0.0);
+                        ui.set_page_scale(1.0);
+                    }
+                });
+            });
+        });
     });
 }
 
@@ -88,26 +99,21 @@ pub(crate) fn wire_ui(
     let weak = ui.as_weak();
     ui.on_select_page(move |page| {
         let page = page.clamp(0, 10);
-        log_action(&format!("select-page {page}"));
+        let started = Instant::now();
         let Some(ui) = weak.upgrade() else {
             return;
         };
-        if ui.get_selected_page() == page || PAGE_NAV_LOCK.load(Ordering::Relaxed) {
+        let current = ui.get_selected_page();
+        if current == page && ui.get_navigation_page() == page {
             return;
         }
-        PAGE_NAV_LOCK.store(true, Ordering::Relaxed);
-        let snapshot = take_page_snapshot(&ui);
-        let has_overlay = snapshot.is_some();
-        if let Some(snapshot) = snapshot {
-            ui.set_page_snapshot(snapshot);
-        }
-        ui.set_page_transitioning(has_overlay);
-        ui.set_page_overlay_opacity(1.0);
-        ui.set_page_overlay_shift(0.0);
-        ui.set_page_opacity(1.0);
-        ui.set_selected_page(page);
         let epoch = PAGE_EPOCH.fetch_add(1, Ordering::Relaxed) + 1;
-        begin_page_motion(&ui, epoch, has_overlay);
+        ui.set_navigation_page(page);
+        begin_page_switch(&ui, page, epoch);
+        log_action(&format!(
+            "select-page {current}->{page} dispatched in {}us",
+            started.elapsed().as_micros()
+        ));
     });
 
     let weak = ui.as_weak();
@@ -119,20 +125,9 @@ pub(crate) fn wire_ui(
         let Some(ui) = weak.upgrade() else {
             return;
         };
-        if PAGE_NAV_LOCK.load(Ordering::Relaxed) {
-            return;
-        }
-        PAGE_NAV_LOCK.store(true, Ordering::Relaxed);
-        let snapshot = take_page_snapshot(&ui);
-        let has_overlay = snapshot.is_some();
-        if let Some(snapshot) = snapshot {
-            ui.set_page_snapshot(snapshot);
-        }
-        ui.set_page_transitioning(has_overlay);
-        ui.set_page_overlay_opacity(1.0);
-        ui.set_page_overlay_shift(0.0);
-        ui.set_page_opacity(1.0);
-
+        let page = ui.get_selected_page();
+        let epoch = PAGE_EPOCH.fetch_add(1, Ordering::Relaxed) + 1;
+        begin_page_switch(&ui, page, epoch);
         set_zh(zh);
         let locale = if zh { "zh-CN" } else { "en" };
         if let Err(error) = slint::select_bundled_translation(locale) {
@@ -140,8 +135,6 @@ pub(crate) fn wire_ui(
         }
         ui.set_language_zh(zh);
         render_flexikey(&ui, &flexikey_state.borrow());
-        let epoch = PAGE_EPOCH.fetch_add(1, Ordering::Relaxed) + 1;
-        begin_page_motion(&ui, epoch, has_overlay);
         let _ = tx.send(WorkerCommand::Refresh);
     });
 

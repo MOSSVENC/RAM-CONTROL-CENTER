@@ -6,6 +6,9 @@ license.workspace = true
 rust-version.workspace = true
 build = "build.rs"
 
+[features]
+snapshot-tools = []
+
 [dependencies]
 neo-control-protocol = { path = "../protocol" }
 raw-window-handle = { workspace = true }
@@ -27,3 +30,5 @@ windows = { version = "0.62.2", features = [
     "Foundation",
     "Foundation_Collections",
 ] }
+windows-registry = { workspace = true }
+windows-service = { workspace = true }
