@@ -3,6 +3,7 @@ import {
     ChromeButton, ChoiceChip, CurveStepper, DataLabel, DataValue, FanOption, FanReadout,
     FieldInput, Hairline, InfoRow, MetricBar, MicroLabel, NavGlyph, NavItem, PowerOption,
     ReadoutRow, SectionTitle, SignalDot, StageButton, ToggleStatusRow,
+    SegmentedChoice,
 } from "../components.slint";
 
                         export component LightingPage inherits VerticalLayout {
@@ -114,24 +115,20 @@ import {
                 SectionTitle { text: @tr("Backlight behavior"); }
                 Hairline {}
                 MicroLabel { text: @tr("BRIGHTNESS"); }
-                HorizontalLayout {
-                    spacing: 7px;
-                    for level in [0, 1, 2, 3, 4] : ChromeButton {
-                        width: 64px;
-                        emphasized: root.rgb-brightness == level;
-                        text: level == 0 ? @tr("OFF") : level;
-                        enabled: !root.busy;
-                        clicked => { root.apply-rgb-brightness(level); }
-                    }
-                    Rectangle { horizontal-stretch: 1; }
+                SegmentedChoice {
+                    width: min(340px, parent.width);
+                    labels: [@tr("OFF"), "1", "2", "3", "4"];
+                    selected-index: min(4, max(0, root.rgb-brightness));
+                    enabled: !root.busy;
+                    selected(index) => { root.apply-rgb-brightness(index); }
                 }
                 MicroLabel { text: @tr("EFFECT"); }
-                HorizontalLayout {
-                    spacing: 7px;
-                    ChromeButton { width: 118px; emphasized: root.rgb-effect == 8; text: @tr("Static"); enabled: !root.busy; clicked => { root.apply-rgb-effect(8); } }
-                    ChromeButton { width: 118px; emphasized: root.rgb-effect == 2; text: @tr("Breathe"); enabled: !root.busy; clicked => { root.apply-rgb-effect(2); } }
-                    ChromeButton { width: 118px; emphasized: root.rgb-effect == 3; text: @tr("Cycle"); enabled: !root.busy; clicked => { root.apply-rgb-effect(3); } }
-                    Rectangle { horizontal-stretch: 1; }
+                SegmentedChoice {
+                    width: min(360px, parent.width);
+                    labels: [@tr("Static"), @tr("Breathe"), @tr("Cycle")];
+                    selected-index: root.rgb-effect == 8 ? 0 : (root.rgb-effect == 2 ? 1 : 2);
+                    enabled: !root.busy;
+                    selected(index) => { root.apply-rgb-effect(index == 0 ? 8 : (index == 1 ? 2 : 3)); }
                 }
                 ToggleStatusRow {
                     label: @tr("Override boot effect");
@@ -142,11 +139,11 @@ import {
                 }
                 Hairline {}
                 MicroLabel { text: @tr("SLEEP TIMER"); }
-                HorizontalLayout {
-                    spacing: 7px;
-                    ChromeButton { width: 112px; emphasized: root.rgb-requested-sleep-enabled; text: @tr("Enabled"); clicked => { root.rgb-requested-sleep-enabled = true; } }
-                    ChromeButton { width: 112px; emphasized: !root.rgb-requested-sleep-enabled; text: @tr("Disabled"); clicked => { root.rgb-requested-sleep-enabled = false; } }
-                    Rectangle { horizontal-stretch: 1; }
+                SegmentedChoice {
+                    width: 230px;
+                    labels: [@tr("Enabled"), @tr("Disabled")];
+                    selected-index: root.rgb-requested-sleep-enabled ? 0 : 1;
+                    selected(index) => { root.rgb-requested-sleep-enabled = index == 0; }
                 }
                 HorizontalLayout {
                     spacing: 7px;

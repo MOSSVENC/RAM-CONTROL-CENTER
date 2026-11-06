@@ -3,6 +3,7 @@ import {
     ChromeButton, ChoiceChip, CurveStepper, DataLabel, DataValue, FanOption, FanReadout,
     FieldInput, Hairline, InfoRow, MetricBar, MicroLabel, NavGlyph, NavItem, PowerOption,
     ReadoutRow, SectionTitle, SignalDot, StageButton, ToggleStatusRow,
+    SegmentedChoice,
 } from "../components.slint";
 
                         export component SettingsPage inherits VerticalLayout {
@@ -56,21 +57,11 @@ import {
                     font-size: 13px;
                     font-weight: 600;
                 }
-                HorizontalLayout {
-                    spacing: 10px;
-                    ChromeButton {
-                        width: 156px;
-                        emphasized: root.language-zh;
-                        text: "简体中文";
-                        clicked => { root.set-language(true); }
-                    }
-                    ChromeButton {
-                        width: 132px;
-                        emphasized: !root.language-zh;
-                        text: "English";
-                        clicked => { root.set-language(false); }
-                    }
-                    Rectangle { horizontal-stretch: 1; }
+                SegmentedChoice {
+                    width: 300px;
+                    labels: ["简体中文", "English"];
+                    selected-index: root.language-zh ? 0 : 1;
+                    selected(index) => { root.set-language(index == 0); }
                 }
                 Text {
                     text: @tr("The interface and diagnostic labels switch immediately. Technical vendor names stay unchanged.");
@@ -89,21 +80,14 @@ import {
                     font-size: 13px;
                     font-weight: 600;
                 }
-                HorizontalLayout {
-                    spacing: 10px;
-                    ChromeButton {
-                        width: 156px;
-                        emphasized: !Palette.dark;
-                        text: root.language-zh ? "浅色 · 冷瓷" : "Light · Porcelain";
-                        clicked => { root.set-theme(false); }
-                    }
-                    ChromeButton {
-                        width: 156px;
-                        emphasized: Palette.dark;
-                        text: root.language-zh ? "深色 · 石墨" : "Dark · Graphite";
-                        clicked => { root.set-theme(true); }
-                    }
-                    Rectangle { horizontal-stretch: 1; }
+                SegmentedChoice {
+                    width: 330px;
+                    labels: [
+                        root.language-zh ? "浅色 · 冷瓷" : "Light · Porcelain",
+                        root.language-zh ? "深色 · 石墨" : "Dark · Graphite",
+                    ];
+                    selected-index: Palette.dark ? 1 : 0;
+                    selected(index) => { root.set-theme(index == 1); }
                 }
                 Text {
                     text: @tr("Switching theme uses a short cross-fade instead of an abrupt color jump.");
@@ -156,7 +140,7 @@ import {
                 Hairline {}
                 InfoRow { label: @tr("Backend"); value: root.renderer-text; value-tone: Palette.cyan; }
                 InfoRow { label: @tr("Acceleration"); value: @tr("GPU compositing"); value-tone: Palette.green; }
-                InfoRow { label: @tr("Animation"); value: @tr("Two-stage fade · lift · scale"); }
+                InfoRow { label: @tr("Animation"); value: @tr("Slide veil · lift · scale"); }
                 Text {
                     text: @tr("Neo Control uses the Slint winit renderer. The scene is composed by the GPU; the hardware worker only samples telemetry off the UI thread.");
                     color: Palette.text-dim;

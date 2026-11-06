@@ -43,12 +43,14 @@ Overview is read-only. Performance and Cooling own their controls. No identical 
 
 ## Motion
 
-- Navigation uses a two-stage fade-through: 72 ms exit, an instant swap at zero
-  opacity, then 190 ms fade and 240 ms rise/scale on the Material emphasized
-  curve `cubic-bezier(0.2, 0, 0, 1)`.
-- Option surfaces morph over 200–220 ms. Selection bars and radio dots use a
-  240 ms `ease-out-back` settle. Press feedback scales controls to 0.97 and
-  releases over 260 ms.
+- Navigation uses a sliding content veil: it covers the workspace in 110 ms,
+  swaps the live page behind the veil, then reveals the incoming page over
+  190 ms while the page fades for 150 ms and rises/scales for 200 ms on the
+  Material emphasized curve `cubic-bezier(0.2, 0, 0, 1)`.
+- Option surfaces morph over 200–220 ms. Shared segmented controls move one
+  highlight pill between items over 240 ms. Selection bars and radio dots use a
+  240 ms `ease-out-back` settle. Press feedback includes a pointer-positioned
+  radial glow and a 0.97 scale with a 260 ms release.
 - Toggle switches slide a 20 px thumb over 240 ms while the track cross-fades
   colour and border state. Telemetry bars retain their 260 ms value animation.
 - No infinite glow, rotating fan, parallax, snapshot texture or decorative loop.

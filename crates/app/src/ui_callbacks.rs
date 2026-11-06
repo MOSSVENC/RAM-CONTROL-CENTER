@@ -22,21 +22,21 @@ use crate::{MainWindow, Palette};
 static PAGE_EPOCH: AtomicU64 = AtomicU64::new(0);
 static THEME_EPOCH: AtomicU64 = AtomicU64::new(0);
 
-const PAGE_EXIT_MS: u64 = 72;
-const PAGE_SWAP_DELAY_MS: u64 = 78;
-const PAGE_ENTER_DELAY_MS: u64 = 8;
-const PAGE_ENTER_FADE_MS: u64 = 190;
-const PAGE_ENTER_MOTION_MS: u64 = 240;
-const PAGE_EXIT_SHIFT_PX: f32 = -5.0;
-const PAGE_EXIT_SCALE: f32 = 0.996;
-const PAGE_ENTER_SHIFT_PX: f32 = 14.0;
+const PAGE_COVER_MS: u64 = 110;
+const PAGE_COVER_SETTLE_MS: u64 = 2;
+const PAGE_REVEAL_MS: u64 = 190;
+const PAGE_ENTER_FADE_MS: u64 = 150;
+const PAGE_ENTER_MOTION_MS: u64 = 200;
+const PAGE_ENTER_SHIFT_PX: f32 = 12.0;
 const PAGE_ENTER_SCALE: f32 = 0.988;
 const THEME_COVER_MS: u64 = 190;
 const THEME_HOLD_MS: u64 = 24;
 
 fn begin_page_switch(ui: &MainWindow, page: i32, epoch: u64) {
-    ui.set_page_fade_duration(PAGE_EXIT_MS as i64);
-    ui.set_page_motion_duration(PAGE_EXIT_MS as i64);
+    ui.set_page_veil_visible(true);
+    ui.set_page_veil_duration(0);
+    ui.set_page_veil_x(1.0);
+
     let weak = ui.as_weak();
     slint::Timer::single_shot(Duration::from_millis(1), move || {
         if PAGE_EPOCH.load(Ordering::Relaxed) != epoch {
@@ -45,49 +45,64 @@ fn begin_page_switch(ui: &MainWindow, page: i32, epoch: u64) {
         let Some(ui) = weak.upgrade() else {
             return;
         };
-        ui.set_page_opacity(0.0);
-        ui.set_page_shift(PAGE_EXIT_SHIFT_PX);
-        ui.set_page_scale(PAGE_EXIT_SCALE);
+        ui.set_page_veil_duration(PAGE_COVER_MS as i64);
+        ui.set_page_veil_x(0.0);
 
         let weak = ui.as_weak();
-        slint::Timer::single_shot(Duration::from_millis(PAGE_SWAP_DELAY_MS), move || {
-            if PAGE_EPOCH.load(Ordering::Relaxed) != epoch {
-                return;
-            }
-            let Some(ui) = weak.upgrade() else {
-                return;
-            };
-
-            ui.set_page_fade_duration(0);
-            ui.set_page_motion_duration(0);
-            ui.set_page_opacity(0.0);
-            ui.set_page_shift(PAGE_ENTER_SHIFT_PX);
-            ui.set_page_scale(PAGE_ENTER_SCALE);
-            ui.set_selected_page(page);
-
-            let weak = ui.as_weak();
-            slint::Timer::single_shot(Duration::from_millis(PAGE_ENTER_DELAY_MS), move || {
+        slint::Timer::single_shot(
+            Duration::from_millis(PAGE_COVER_MS + PAGE_COVER_SETTLE_MS),
+            move || {
                 if PAGE_EPOCH.load(Ordering::Relaxed) != epoch {
                     return;
                 }
                 let Some(ui) = weak.upgrade() else {
                     return;
                 };
-                ui.set_page_fade_duration(PAGE_ENTER_FADE_MS as i64);
-                ui.set_page_motion_duration(PAGE_ENTER_MOTION_MS as i64);
+
+                ui.set_page_fade_duration(0);
+                ui.set_page_motion_duration(0);
+                ui.set_page_opacity(0.72);
+                ui.set_page_shift(PAGE_ENTER_SHIFT_PX);
+                ui.set_page_scale(PAGE_ENTER_SCALE);
+                ui.set_selected_page(page);
 
                 let weak = ui.as_weak();
                 slint::Timer::single_shot(Duration::from_millis(1), move || {
+                    if PAGE_EPOCH.load(Ordering::Relaxed) != epoch {
+                        return;
+                    }
+                    let Some(ui) = weak.upgrade() else {
+                        return;
+                    };
+                    ui.set_page_fade_duration(PAGE_ENTER_FADE_MS as i64);
+                    ui.set_page_motion_duration(PAGE_ENTER_MOTION_MS as i64);
+                    ui.set_page_veil_duration(PAGE_REVEAL_MS as i64);
+                    ui.set_page_veil_x(-1.0);
+
+                    let weak = ui.as_weak();
+                    slint::Timer::single_shot(Duration::from_millis(1), move || {
+                        if PAGE_EPOCH.load(Ordering::Relaxed) == epoch
+                            && let Some(ui) = weak.upgrade()
+                        {
+                            ui.set_page_opacity(1.0);
+                            ui.set_page_shift(0.0);
+                            ui.set_page_scale(1.0);
+                        }
+                    });
+                });
+
+                let weak = ui.as_weak();
+                slint::Timer::single_shot(Duration::from_millis(PAGE_REVEAL_MS + 8), move || {
                     if PAGE_EPOCH.load(Ordering::Relaxed) == epoch
                         && let Some(ui) = weak.upgrade()
                     {
-                        ui.set_page_opacity(1.0);
-                        ui.set_page_shift(0.0);
-                        ui.set_page_scale(1.0);
+                        ui.set_page_veil_visible(false);
+                        ui.set_page_veil_duration(0);
+                        ui.set_page_veil_x(1.0);
                     }
                 });
-            });
-        });
+            },
+        );
     });
 }
 

@@ -412,14 +412,17 @@ driver-level route if it is needed for compatibility.
 - Slint notifier: `GraphicsAPI::NativeOpenGL`.
 - GPU 3D engine activity was observed while the window is visible.
 - UI animation and hardware polling are separated by a worker channel.
-- Navigation updates the rail immediately, then runs a two-stage fade-through:
-  the current workspace fades and contracts for 72 ms, the content switches at
-  zero opacity, and the incoming workspace fades, rises 14 px, and scales from
-  0.988 to 1.0 over 190/240 ms. The transition uses no snapshot or framebuffer
-  readback.
-- Captured transition frames showed the outgoing page at 96 ms, the incoming
-  page at partial opacity and scale at 204 ms, and the settled page by 326 ms.
-  Page dispatch stayed between 28 and 250 µs across the sampled clicks.
+- Navigation updates the rail immediately, then a gradient veil covers the
+  workspace in 110 ms. The live page swaps behind the veil; the veil reveals the
+  incoming page over 190 ms while the page fades for 150 ms and rises/scales for
+  200 ms. The transition performs no snapshot or framebuffer readback.
+- Continuous captured frames showed the old page, the veil covering the swap,
+  the partially revealed incoming page, and the settled page. Page dispatch
+  stayed between 28 and 250 µs across the sampled clicks.
+- Segmented controls share a single moving highlight pill rather than changing
+  each button independently; supported groups use a 240 ms `ease-out-back`
+  translation. Pointer presses also render a radial highlight like KernelSU's
+  InteractiveHighlight.
 - Option controls share the same motion system: 200–220 ms surface/radius
   morphs, 240 ms `ease-out-back` selection indicators, 240 ms toggle-thumb
   travel, and 260 ms pressed-scale release feedback.

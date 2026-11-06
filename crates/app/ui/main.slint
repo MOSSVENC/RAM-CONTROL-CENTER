@@ -56,6 +56,9 @@ export component MainWindow inherits Window {
     in-out property <float> page-scale: 1.0;
     in-out property <duration> page-fade-duration: 150ms;
     in-out property <duration> page-motion-duration: 220ms;
+    in-out property <float> page-veil-x: 1.0;
+    in-out property <bool> page-veil-visible: false;
+    in-out property <duration> page-veil-duration: 140ms;
     in-out property <float> theme-flash: 0.0;
     in-out property <bool> quiet-dialog-open: false;
     in property <bool> transport-ready: false;
@@ -550,14 +553,14 @@ export component MainWindow inherits Window {
                 Rectangle {
                     vertical-stretch: 1;
                     clip: true;
-                    opacity: root.page-opacity;
-                    animate opacity { duration: root.page-fade-duration; easing: cubic-bezier(0.2, 0, 0, 1); }
                     page-surface := Rectangle {
                         y: root.page-shift * 1px;
                         width: parent.width;
                         height: parent.height;
+                        opacity: root.page-opacity;
                         transform-scale-x: root.page-scale * 100%;
                         transform-scale-y: root.page-scale * 100%;
+                        animate opacity { duration: root.page-fade-duration; easing: cubic-bezier(0.2, 0, 0, 1); }
                         animate y { duration: root.page-motion-duration; easing: cubic-bezier(0.2, 0, 0, 1); }
                         animate transform-scale-x { duration: root.page-motion-duration; easing: cubic-bezier(0.2, 0, 0, 1); }
                         animate transform-scale-y { duration: root.page-motion-duration; easing: cubic-bezier(0.2, 0, 0, 1); }
@@ -906,9 +909,41 @@ export component MainWindow inherits Window {
                             }
                         }
                     }
+
+
                 }
             }
         }
+
+    Rectangle {
+        x: 204px + root.page-veil-x * (root.width - 204px);
+        y: 60px;
+        width: root.width - 204px;
+        height: root.height - 60px;
+        visible: root.page-veil-visible;
+        background: Palette.page-veil-gradient;
+        animate x { duration: root.page-veil-duration; easing: cubic-bezier(0.2, 0, 0, 1); }
+        Rectangle {
+            x: parent.width - 3px;
+            width: 3px;
+            height: parent.height;
+            background: Palette.cyan;
+            opacity: 0.82;
+        }
+        Rectangle {
+            width: parent.width;
+            height: 1px;
+            background: Palette.cyan;
+            opacity: 0.32;
+        }
+        Rectangle {
+            x: parent.width * 0.45;
+            y: parent.height * 0.18;
+            width: parent.width * 0.45;
+            height: parent.height * 0.64;
+            background: @radial-gradient(circle, Palette.cyan.with-alpha(0.13) 0%, transparent 68%);
+        }
+    }
 
     Rectangle {
         x: 0;

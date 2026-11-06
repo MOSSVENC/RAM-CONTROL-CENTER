@@ -3,6 +3,7 @@ import {
     ChromeButton, ChoiceChip, CurveStepper, DataLabel, DataValue, FanOption, FanReadout,
     FieldInput, Hairline, InfoRow, MetricBar, MicroLabel, NavGlyph, NavItem, PowerOption,
     ReadoutRow, SectionTitle, SignalDot, StageButton, ToggleStatusRow,
+    SegmentedChoice,
 } from "../components.slint";
 
                         export component BatteryPage inherits VerticalLayout {
@@ -158,28 +159,20 @@ import {
                     font-size: 11px;
                     wrap: word-wrap;
                 }
-                HorizontalLayout {
-                    spacing: 6px;
-                    ChromeButton {
-                        width: 92px;
-                        emphasized: root.requested-flexi-mode == 0;
-                        enabled: root.flexi-ready && !root.busy;
-                        text: @tr("100%");
-                        clicked => { root.requested-flexi-mode = 0; root.flexi-start-choice = 95; root.flexi-stop-choice = 100; }
-                    }
-                    ChromeButton {
-                        width: 92px;
-                        emphasized: root.requested-flexi-mode == 1;
-                        enabled: root.flexi-ready && !root.busy;
-                        text: "70–80%";
-                        clicked => { root.requested-flexi-mode = 1; root.flexi-start-choice = 70; root.flexi-stop-choice = 80; }
-                    }
-                    ChromeButton {
-                        width: 92px;
-                        emphasized: root.requested-flexi-mode == 2;
-                        enabled: root.flexi-ready && !root.busy;
-                        text: @tr("Custom");
-                        clicked => { root.requested-flexi-mode = 2; }
+                SegmentedChoice {
+                    width: 300px;
+                    labels: [@tr("100%"), "70–80%", @tr("Custom")];
+                    selected-index: root.requested-flexi-mode;
+                    enabled: root.flexi-ready && !root.busy;
+                    selected(index) => {
+                        root.requested-flexi-mode = index;
+                        if (index == 0) {
+                            root.flexi-start-choice = 95;
+                            root.flexi-stop-choice = 100;
+                        } else if (index == 1) {
+                            root.flexi-start-choice = 70;
+                            root.flexi-stop-choice = 80;
+                        }
                     }
                 }
                 HorizontalLayout {

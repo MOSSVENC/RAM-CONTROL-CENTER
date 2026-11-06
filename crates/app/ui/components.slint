@@ -16,6 +16,19 @@ export component SignalDot inherits Rectangle {
     animate background { duration: 160ms; easing: ease-out; }
 }
 
+component PressGlow inherits Rectangle {
+    in property <bool> active: false;
+    in property <length> pointer-x: 0px;
+    in property <length> pointer-y: 0px;
+    in property <length> glow-radius: 88px;
+    in property <length> corner-radius: 0px;
+    background: @radial-gradient(circle root.glow-radius at root.pointer-x root.pointer-y, Palette.cyan.with-alpha(0.16) 0%, transparent 72%);
+    border-radius: root.corner-radius;
+    clip: true;
+    opacity: root.active ? 1 : 0;
+    animate opacity { duration: 110ms; easing: ease-out; }
+}
+
 export component NavGlyph inherits Path {
     in property <int> kind: 0;
     in property <color> tone: Palette.text-dim;
@@ -86,6 +99,16 @@ export component NavItem inherits Rectangle {
         transform-scale-y: root.selected ? 100% : 40%;
         animate opacity { duration: 180ms; easing: cubic-bezier(0.2, 0, 0, 1); }
         animate transform-scale-y { duration: 240ms; easing: ease-out-back; }
+    }
+
+    PressGlow {
+        width: parent.width;
+        height: parent.height;
+        active: tap.pressed;
+        pointer-x: tap.mouse-x;
+        pointer-y: tap.mouse-y;
+        glow-radius: 110px;
+        corner-radius: 9px;
     }
 
     tap := TouchArea {
@@ -236,6 +259,16 @@ export component ChromeButton inherits Rectangle {
         animate transform-scale-y { duration: 240ms; easing: ease-out-back; }
     }
 
+    PressGlow {
+        width: parent.width;
+        height: parent.height;
+        active: tap.pressed && root.enabled;
+        pointer-x: tap.mouse-x;
+        pointer-y: tap.mouse-y;
+        glow-radius: 86px;
+        corner-radius: 14px;
+    }
+
     Text {
         text: root.text;
         color: root.emphasized ? Palette.cyan : Palette.text-dim;
@@ -272,6 +305,16 @@ export component StageButton inherits Rectangle {
     animate opacity { duration: 120ms; easing: ease-out; }
     animate transform-scale-x { duration: 260ms; easing: ease-out-back; }
     animate transform-scale-y { duration: 260ms; easing: ease-out-back; }
+
+    PressGlow {
+        width: parent.width;
+        height: parent.height;
+        active: tap.pressed && root.enabled;
+        pointer-x: tap.mouse-x;
+        pointer-y: tap.mouse-y;
+        glow-radius: 96px;
+        corner-radius: 8px;
+    }
 
     Text {
         text: root.text;
@@ -368,6 +411,16 @@ export component ChoiceChip inherits Rectangle {
         animate opacity { duration: 160ms; easing: cubic-bezier(0.2, 0, 0, 1); }
         animate transform-scale-x { duration: 240ms; easing: ease-out-back; }
     }
+
+    PressGlow {
+        width: parent.width;
+        height: parent.height;
+        active: tap.pressed;
+        pointer-x: tap.mouse-x;
+        pointer-y: tap.mouse-y;
+        glow-radius: 72px;
+        corner-radius: 7px;
+    }
     Text {
         text: root.text;
         color: root.selected ? Palette.cyan : Palette.text-dim;
@@ -381,6 +434,67 @@ export component ChoiceChip inherits Rectangle {
     tap := TouchArea {
         mouse-cursor: pointer;
         clicked => { root.clicked(); }
+    }
+}
+
+export component SegmentedChoice inherits Rectangle {
+    in property <[string]> labels: [];
+    in property <int> selected-index: 0;
+    in property <bool> enabled: true;
+    callback selected(int);
+    height: 36px;
+    border-radius: 10px;
+    border-width: 1px;
+    border-color: Palette.line;
+    background: Palette.surface;
+    clip: true;
+    opacity: root.enabled ? 1 : 0.55;
+    animate opacity { duration: 160ms; easing: cubic-bezier(0.2, 0, 0, 1); }
+
+    Rectangle {
+        x: 4px + root.selected-index * ((root.width - 8px) / max(1, root.labels.length));
+        y: 4px;
+        width: (root.width - 8px) / max(1, root.labels.length);
+        height: root.height - 8px;
+        border-radius: 7px;
+        background: Palette.accent-soft;
+        border-width: 1px;
+        border-color: Palette.cyan;
+        animate x { duration: 240ms; easing: ease-out-back; }
+    }
+
+    HorizontalLayout {
+        x: 4px;
+        y: 0;
+        width: root.width - 8px;
+        height: root.height;
+        for label[index] in root.labels : Rectangle {
+            horizontal-stretch: 1;
+            height: parent.height;
+            transform-scale-x: item-tap.pressed && root.enabled ? 96% : 100%;
+            transform-scale-y: item-tap.pressed && root.enabled ? 96% : 100%;
+            animate transform-scale-x { duration: 240ms; easing: ease-out-back; }
+            animate transform-scale-y { duration: 240ms; easing: ease-out-back; }
+            Text {
+                text: label;
+                color: index == root.selected-index ? Palette.cyan : Palette.text-dim;
+                font-family: "Bahnschrift";
+                font-size: 10px;
+                font-weight: index == root.selected-index ? 600 : 400;
+                horizontal-alignment: center;
+                vertical-alignment: center;
+                animate color { duration: 180ms; easing: cubic-bezier(0.2, 0, 0, 1); }
+            }
+            item-tap := TouchArea {
+                x: 0;
+                y: 0;
+                width: parent.width;
+                height: parent.height;
+                enabled: root.enabled;
+                mouse-cursor: root.enabled ? pointer : default;
+                clicked => { if (root.enabled) { root.selected(index); } }
+            }
+        }
     }
 }
 
@@ -413,6 +527,16 @@ export component PowerOption inherits Rectangle {
         animate y { duration: 240ms; easing: ease-out-back; }
         animate height { duration: 240ms; easing: ease-out-back; }
         animate opacity { duration: 180ms; easing: cubic-bezier(0.2, 0, 0, 1); }
+    }
+
+    PressGlow {
+        width: parent.width;
+        height: parent.height;
+        active: tap.pressed;
+        pointer-x: tap.mouse-x;
+        pointer-y: tap.mouse-y;
+        glow-radius: 130px;
+        corner-radius: 10px;
     }
 
     HorizontalLayout {
@@ -502,6 +626,16 @@ export component FanOption inherits Rectangle {
         transform-scale-y: root.selected ? 100% : 42%;
         animate opacity { duration: 180ms; easing: cubic-bezier(0.2, 0, 0, 1); }
         animate transform-scale-y { duration: 240ms; easing: ease-out-back; }
+    }
+
+    PressGlow {
+        width: parent.width;
+        height: parent.height;
+        active: tap.pressed;
+        pointer-x: tap.mouse-x;
+        pointer-y: tap.mouse-y;
+        glow-radius: 120px;
+        corner-radius: 11px;
     }
 
     VerticalLayout {
