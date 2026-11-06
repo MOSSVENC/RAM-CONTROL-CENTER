@@ -147,6 +147,8 @@ mod windows_impl {
         let mut idle = FILETIME::default();
         let mut kernel = FILETIME::default();
         let mut user = FILETIME::default();
+        // SAFETY: all three FILETIME outputs refer to live local storage and
+        // GetSystemTimes writes exactly one initialized value to each.
         let ok = unsafe { GetSystemTimes(&mut idle, &mut kernel, &mut user) };
         (ok != 0).then(|| CpuTimes {
             idle: filetime(idle),
@@ -164,6 +166,8 @@ mod windows_impl {
             dwLength: std::mem::size_of::<MEMORYSTATUSEX>() as u32,
             ..Default::default()
         };
+        // SAFETY: dwLength is initialized to the exact structure size and the
+        // pointer refers to writable local storage for the duration of the call.
         if unsafe { GlobalMemoryStatusEx(&mut status) } == 0 {
             return (0, 0);
         }
@@ -181,6 +185,8 @@ mod windows_impl {
             .encode_wide()
             .chain(Some(0))
             .collect();
+        // SAFETY: `path` is NUL-terminated and all three output pointers refer
+        // to live u64 locals for the duration of GetDiskFreeSpaceExW.
         let ok =
             unsafe { GetDiskFreeSpaceExW(path.as_ptr(), &mut free, &mut total, &mut total_free) };
         if ok == 0 {
@@ -192,6 +198,8 @@ mod windows_impl {
 
     fn read_battery() -> Option<BatterySnapshot> {
         let mut status = SYSTEM_POWER_STATUS::default();
+        // SAFETY: `status` is a live SYSTEM_POWER_STATUS value that the Windows
+        // API initializes; no pointer escapes this function.
         if unsafe { GetSystemPowerStatus(&mut status) } == 0 {
             return None;
         }
@@ -201,6 +209,8 @@ mod windows_impl {
 
         let mut state = SYSTEM_BATTERY_STATE::default();
         let size = std::mem::size_of::<SYSTEM_BATTERY_STATE>() as u32;
+        // SAFETY: `state` is a live SYSTEM_BATTERY_STATE buffer whose size is
+        // passed exactly to CallNtPowerInformation for SystemBatteryState.
         let state_status = unsafe {
             CallNtPowerInformation(
                 SystemBatteryState,
@@ -240,6 +250,8 @@ mod windows_impl {
     impl PdhQuery {
         fn open() -> Option<Self> {
             let mut query = std::ptr::null_mut();
+            // SAFETY: `query` is a live output pointer; on success the returned
+            // PDH handle is owned by the PdhQuery wrapper.
             (unsafe { PdhOpenQueryW(std::ptr::null(), 0, &mut query) } == 0).then_some(Self(query))
         }
 
@@ -249,11 +261,14 @@ mod windows_impl {
                 .chain(std::iter::once(0))
                 .collect::<Vec<_>>();
             let mut counter = std::ptr::null_mut();
+            // SAFETY: the query handle is valid for `self`, `path` is
+            // NUL-terminated and alive for the call, and `counter` is writable.
             let status = unsafe { PdhAddEnglishCounterW(self.0, path.as_ptr(), 0, &mut counter) };
             (status == 0).then_some(counter)
         }
 
         fn collect(&self) -> bool {
+            // SAFETY: `self.0` is the live PDH query handle owned by this value.
             unsafe { PdhCollectQueryData(self.0) == 0 }
         }
     }
@@ -261,6 +276,8 @@ mod windows_impl {
     impl Drop for PdhQuery {
         fn drop(&mut self) {
             if !self.0.is_null() {
+                // SAFETY: this wrapper owns the non-null PDH query handle and
+                // closes it exactly once in Drop.
                 unsafe { PdhCloseQuery(self.0) };
             }
         }
@@ -311,6 +328,8 @@ mod windows_impl {
     }
 
     fn formatted_value(counter: PDH_HCOUNTER) -> Option<f64> {
+        // SAFETY: `counter` is a live PDH counter returned by this query; the
+        // format and output pointers match PdhGetFormattedCounterValue's ABI.
         let value = unsafe {
             let mut value = PDH_FMT_COUNTERVALUE::default();
             let mut counter_type = 0_u32;
@@ -340,9 +359,13 @@ mod windows_impl {
     }
 
     fn read_processor_power() -> (u32, u32) {
+        // SAFETY: GetActiveProcessorCount takes only a scalar group selector
+        // and has no pointer or lifetime preconditions.
         let count = unsafe { GetActiveProcessorCount(ALL_PROCESSOR_GROUPS) }.max(1) as usize;
         let mut info = vec![ProcessorPowerInformation::default(); count];
         let bytes = std::mem::size_of_val(info.as_slice()) as u32;
+        // SAFETY: `info` contains `count` repr(C) entries and `bytes` is exactly
+        // their allocated size; ProcessorInformation initializes that buffer.
         let status = unsafe {
             CallNtPowerInformation(
                 ProcessorInformation,
@@ -395,6 +418,8 @@ mod windows_impl {
     impl Drop for ModuleHandle {
         fn drop(&mut self) {
             if !self.0.is_null() {
+                // SAFETY: this wrapper owns the non-null module handle returned
+                // by LoadLibraryW and releases it exactly once in Drop.
                 unsafe { FreeLibrary(self.0) };
             }
         }
@@ -412,6 +437,9 @@ mod windows_impl {
     impl Nvml {
         fn open() -> Option<Self> {
             let module = load_nvml()?;
+            // SAFETY: `module` remains loaded for the lifetime of the returned
+            // Nvml value. Every symbol is requested by its exact NVML name and
+            // its function pointer type matches the documented C ABI.
             unsafe {
                 let init: Option<NvmlInitFn> = symbol(module.raw(), b"nvmlInit_v2\0");
                 let get_count: Option<NvmlCountFn> =
@@ -451,6 +479,9 @@ mod windows_impl {
             let mut clock = 0_u32;
             let mut max_clock = 0_u32;
             let mut memory = NvmlMemory::default();
+            // SAFETY: the NVML device handle was validated during initialization;
+            // all output pointers refer to live repr(C) structures with matching
+            // ABI layouts for these documented NVML entry points.
             unsafe {
                 if (self.get_utilization)(self.device, &mut utilization) != 0
                     || (self.get_temperature)(self.device, 0, &mut temperature) != 0
@@ -473,7 +504,11 @@ mod windows_impl {
     }
 
     unsafe fn symbol<T: Copy>(module: HMODULE, name: &[u8]) -> Option<T> {
+        // SAFETY: callers pass a live module and NUL-terminated symbol name;
+        // GetProcAddress reads both only for the duration of this call.
         let proc = unsafe { GetProcAddress(module, name.as_ptr()) }?;
+        // SAFETY: the caller selects `T` to match the named exported function's
+        // ABI; transmute_copy copies the function pointer representation.
         Some(unsafe { std::mem::transmute_copy(&proc) })
     }
 
@@ -498,6 +533,8 @@ mod windows_impl {
                 .encode_wide()
                 .chain(Some(0))
                 .collect();
+            // SAFETY: `wide` is NUL-terminated and valid for the duration of
+            // LoadLibraryW; the returned handle is owned by ModuleHandle.
             let module = unsafe { LoadLibraryW(wide.as_mut_ptr()) };
             if !module.is_null() {
                 return Some(ModuleHandle(module));

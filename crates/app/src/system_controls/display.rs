@@ -51,6 +51,8 @@ pub fn set_blue_light_filter(level: u8) -> Result<(), String> {
 
     impl DeviceContext {
         fn acquire() -> Result<Self, String> {
+            // SAFETY: a null HWND requests the screen DC and has no pointer
+            // aliasing requirements; ownership is tracked by DeviceContext.
             let dc = unsafe { GetDC(std::ptr::null_mut()) };
             if dc.is_null() {
                 Err("could not acquire the display device context".to_owned())
@@ -62,6 +64,8 @@ pub fn set_blue_light_filter(level: u8) -> Result<(), String> {
 
     impl Drop for DeviceContext {
         fn drop(&mut self) {
+            // SAFETY: this wrapper owns the non-null screen DC acquired above;
+            // the same HWND/HDC pair is released exactly once in Drop.
             unsafe { ReleaseDC(std::ptr::null_mut(), self.0) };
         }
     }
@@ -83,6 +87,8 @@ pub fn set_blue_light_filter(level: u8) -> Result<(), String> {
         ramp.green[index] = linear;
         ramp.blue[index] = (256.0 / scale * index as f64).min(65535.0) as u16;
     }
+    // SAFETY: `dc.0` is a live screen DC and `ramp` is a repr(C) structure
+    // containing the three 256-entry u16 ramps expected by SetDeviceGammaRamp.
     let written = unsafe { SetDeviceGammaRamp(dc.0, (&ramp as *const GammaRamp).cast()) };
     if written == 0 {
         return Err("the display driver rejected the gamma ramp".to_owned());

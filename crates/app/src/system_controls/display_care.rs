@@ -198,6 +198,8 @@ fn read_taskbar_auto_hide() -> Result<bool, String> {
         cbSize: std::mem::size_of::<APPBARDATA>() as u32,
         ..APPBARDATA::default()
     };
+    // SAFETY: `data` is a live APPBARDATA with cbSize initialized, satisfying
+    // SHAppBarMessage's pointer and layout requirements for ABM_GETSTATE.
     let state = unsafe { SHAppBarMessage(ABM_GETSTATE, &mut data) };
     Ok(state as u32 & ABS_AUTOHIDE != 0)
 }
@@ -210,6 +212,7 @@ fn set_taskbar_auto_hide_raw(enabled: bool) -> Result<(), String> {
     use windows_sys::Win32::UI::WindowsAndMessaging::FindWindowW;
 
     let class = wide("Shell_TrayWnd");
+    // SAFETY: `class` is NUL-terminated and remains alive through the call.
     let hwnd = unsafe { FindWindowW(class.as_ptr(), std::ptr::null()) };
     if hwnd.is_null() {
         return Err("the Windows taskbar window was not found".to_owned());
@@ -224,6 +227,8 @@ fn set_taskbar_auto_hide_raw(enabled: bool) -> Result<(), String> {
         },
         ..APPBARDATA::default()
     };
+    // SAFETY: `data` is a live APPBARDATA whose cbSize and hWnd are initialized
+    // for ABM_SETSTATE; SHAppBarMessage may update the structure in place.
     unsafe {
         SHAppBarMessage(ABM_SETSTATE, &mut data);
     }
@@ -300,6 +305,8 @@ fn read_screen_saver_parameters() -> Result<(bool, u32), String> {
 
     let mut active = 0_i32;
     let mut seconds = 0_u32;
+    // SAFETY: each SystemParametersInfoW call uses the documented output type
+    // and a live mutable local of the matching size.
     let (active_ok, timeout_ok) = unsafe {
         (
             SystemParametersInfoW(
@@ -398,6 +405,8 @@ fn set_screen_saver_raw(enabled: bool, screen_saver_type: u8, minutes: u32) -> R
         "ScreenSaveTimeOut",
         &seconds.to_string(),
     )?;
+    // SAFETY: the setter actions take scalar parameters and null output pointers;
+    // both calls use documented flags and need no additional buffer storage.
     let (active_ok, timeout_ok) = unsafe {
         (
             SystemParametersInfoW(

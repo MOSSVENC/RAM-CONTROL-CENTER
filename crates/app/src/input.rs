@@ -2,6 +2,8 @@
 fn send_key_events(events: &[(u8, u32)]) {
     use windows_sys::Win32::UI::Input::KeyboardAndMouse::keybd_event;
 
+    // SAFETY: keybd_event takes no pointers. The caller supplies only virtual
+    // key and flag values from the fixed sets defined in this module.
     unsafe {
         for &(virtual_key, flags) in events {
             keybd_event(virtual_key, 0, flags, 0);

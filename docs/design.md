@@ -53,6 +53,9 @@ Overview is read-only. Performance and Cooling own their controls. No identical 
   radial glow and a 0.97 scale with a 260 ms release.
 - Toggle switches slide a 20 px thumb over 240 ms while the track cross-fades
   colour and border state. Telemetry bars retain their 260 ms value animation.
+- Light/dark switching interpolates the full palette and gradient stops over
+  260 ms with ease-out-cubic. It never inserts an opaque theme-coloured flash
+  frame; repeated switches retarget from the current interpolated value.
 - No infinite glow, rotating fan, parallax, snapshot texture or decorative loop.
 - Light system sampling runs every second; thermal and extended vendor reads run
   every five seconds so live motion never forces extra AcpiBridge traffic.

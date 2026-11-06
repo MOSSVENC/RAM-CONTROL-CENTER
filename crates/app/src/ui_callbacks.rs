@@ -29,8 +29,39 @@ const PAGE_ENTER_FADE_MS: u64 = 150;
 const PAGE_ENTER_MOTION_MS: u64 = 200;
 const PAGE_ENTER_SHIFT_PX: f32 = 12.0;
 const PAGE_ENTER_SCALE: f32 = 0.988;
-const THEME_COVER_MS: u64 = 190;
-const THEME_HOLD_MS: u64 = 24;
+const THEME_ANIMATION_MS: u64 = 260;
+const THEME_FRAME_MS: u64 = 16;
+
+fn ease_out_cubic(progress: f32) -> f32 {
+    let inverse = 1.0 - progress;
+    1.0 - inverse * inverse * inverse
+}
+
+fn schedule_theme_frame(
+    weak: slint::Weak<MainWindow>,
+    start: f32,
+    target: f32,
+    started: Instant,
+    epoch: u64,
+) {
+    slint::Timer::single_shot(Duration::from_millis(THEME_FRAME_MS), move || {
+        if THEME_EPOCH.load(Ordering::Relaxed) != epoch {
+            return;
+        }
+        let Some(ui) = weak.upgrade() else {
+            return;
+        };
+        let progress =
+            (started.elapsed().as_secs_f32() * 1000.0 / THEME_ANIMATION_MS as f32).clamp(0.0, 1.0);
+        let value = start + (target - start) * ease_out_cubic(progress);
+        ui.global::<Palette>().set_blend(value);
+        if progress < 1.0 {
+            schedule_theme_frame(ui.as_weak(), start, target, started, epoch);
+        } else {
+            ui.global::<Palette>().set_blend(target);
+        }
+    });
+}
 
 fn begin_page_switch(ui: &MainWindow, page: i32, epoch: u64) {
     ui.set_page_veil_visible(true);
@@ -161,24 +192,15 @@ pub(crate) fn wire_ui(
         if ui.global::<Palette>().get_dark() == dark {
             return;
         }
+        ui.global::<Palette>().set_dark(dark);
         let epoch = THEME_EPOCH.fetch_add(1, Ordering::Relaxed) + 1;
-        ui.set_theme_flash(1.0);
-        let weak = ui.as_weak();
-        slint::Timer::single_shot(Duration::from_millis(THEME_COVER_MS), move || {
-            if THEME_EPOCH.load(Ordering::Relaxed) != epoch {
-                return;
-            }
-            if let Some(ui) = weak.upgrade() {
-                ui.global::<Palette>().set_dark(dark);
-            }
-            slint::Timer::single_shot(Duration::from_millis(THEME_HOLD_MS), move || {
-                if THEME_EPOCH.load(Ordering::Relaxed) == epoch
-                    && let Some(ui) = weak.upgrade()
-                {
-                    ui.set_theme_flash(0.0);
-                }
-            });
-        });
+        schedule_theme_frame(
+            ui.as_weak(),
+            ui.global::<Palette>().get_blend(),
+            if dark { 1.0 } else { 0.0 },
+            Instant::now(),
+            epoch,
+        );
     });
 
     let weak = ui.as_weak();

@@ -25,6 +25,8 @@ impl WinDevice {
             .encode_wide()
             .chain(std::iter::once(0))
             .collect::<Vec<_>>();
+        // SAFETY: `wide` is NUL-terminated and remains alive for the call. The
+        // remaining pointers are explicitly null, as required by CreateFileW.
         let handle = unsafe {
             CreateFileW(
                 wide.as_ptr(),
@@ -53,6 +55,9 @@ impl WinDevice {
         operation: &'static str,
     ) -> Result<u32> {
         let mut returned = 0_u32;
+        // SAFETY: `self.handle` is an open device handle owned by this value.
+        // The input/output pointers are null exactly when their lengths are
+        // zero, and otherwise refer to live slices for the duration of the call.
         let ok = unsafe {
             DeviceIoControl(
                 self.handle,
@@ -85,6 +90,8 @@ impl WinDevice {
 
 impl Drop for WinDevice {
     fn drop(&mut self) {
+        // SAFETY: this wrapper uniquely owns the non-null handle returned by
+        // CreateFileW, and Drop runs exactly once for the value.
         unsafe { CloseHandle(self.handle) };
     }
 }

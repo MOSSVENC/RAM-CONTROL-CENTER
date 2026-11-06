@@ -38,6 +38,8 @@ fn main() -> std::process::ExitCode {
         .encode_wide()
         .chain(std::iter::once(0))
         .collect::<Vec<_>>();
+    // SAFETY: `wide` is NUL-terminated and lives through the call; all null
+    // pointer arguments match CreateFileW's contract for this open mode.
     let handle = unsafe {
         CreateFileW(
             wide.as_ptr(),
@@ -65,6 +67,8 @@ fn main() -> std::process::ExitCode {
 
     let mut response = [0_u8; RESPONSE_LEN];
     let mut returned = 0_u32;
+    // SAFETY: `handle` is a valid device handle in this scope. Both fixed-size
+    // buffers are alive and the supplied lengths match their allocation sizes.
     let ok = unsafe {
         DeviceIoControl(
             handle,
@@ -77,6 +81,7 @@ fn main() -> std::process::ExitCode {
             std::ptr::null_mut(),
         )
     };
+    // SAFETY: `handle` was successfully opened above and is closed once here.
     unsafe { CloseHandle(handle) };
     if ok == 0 {
         eprintln!(

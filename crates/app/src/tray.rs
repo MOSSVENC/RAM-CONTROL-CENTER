@@ -66,6 +66,9 @@ mod platform {
             return;
         }
         let window = window as HWND;
+        // SAFETY: callers only pass non-zero top-level HWNDs previously obtained
+        // from Slint or this tray thread. The window remains owned by that event
+        // loop for the duration of these window-management calls.
         unsafe {
             let mut rect = RECT::default();
             let (width, height) = if GetWindowRect(window, &mut rect) != 0 {
@@ -107,6 +110,9 @@ mod platform {
             return;
         }
         let window = window as HWND;
+        // SAFETY: callers only pass non-zero top-level HWNDs owned by Slint;
+        // all measured values are scalar and the handle stays live during the
+        // positioning and visibility calls.
         unsafe {
             let mut rect = RECT::default();
             let (width, height) = if GetWindowRect(window, &mut rect) != 0 {
@@ -130,6 +136,8 @@ mod platform {
             return;
         }
         let window = window as HWND;
+        // SAFETY: `window` is a live top-level HWND and GetWindowLongPtrW /
+        // SetWindowLongPtrW operate on that same owned window.
         unsafe {
             let style = GetWindowLongPtrW(window, GWL_EXSTYLE);
             SetWindowLongPtrW(window, GWL_EXSTYLE, style | WS_EX_TOOLWINDOW as isize);
@@ -144,6 +152,7 @@ mod platform {
             return Some(window.hwnd.get() as usize);
         }
         let title = wide("NEO CONTROL");
+        // SAFETY: `title` is NUL-terminated and remains alive for the call.
         let window = unsafe { FindWindowW(ptr::null(), title.as_ptr()) };
         (!window.is_null()).then_some(window as usize)
     }
@@ -183,6 +192,8 @@ mod platform {
     impl SingleInstance {
         pub fn acquire() -> Result<Option<Self>, String> {
             let name = wide(MUTEX_NAME);
+            // SAFETY: `name` is NUL-terminated and lives through the call; the
+            // returned mutex handle is immediately checked and owned by Self.
             let (handle, already_exists) = unsafe {
                 let handle = CreateMutexW(ptr::null(), 1, name.as_ptr());
                 let already_exists = !handle.is_null() && GetLastError() == ERROR_ALREADY_EXISTS;
@@ -237,6 +248,8 @@ mod platform {
         }
 
         pub fn shutdown(&self) {
+            // SAFETY: the tray thread owns `self.window` for the lifetime of
+            // Tray; PostMessageW only queues a message to that live HWND.
             unsafe {
                 PostMessageW(self.window, WM_CLOSE, 0, 0);
             }
@@ -264,6 +277,8 @@ mod platform {
             lpszMenuName: ptr::null(),
             lpszClassName: class_name.as_ptr(),
         };
+        // SAFETY: the wide names and WNDCLASSW pointers remain alive through
+        // registration. The class stores no Rust-owned pointer after the call.
         let (module, registered, taskbar_created) = unsafe {
             let module = GetModuleHandleW(ptr::null());
             let mut window_class = window_class;
@@ -289,6 +304,8 @@ mod platform {
             taskbar_created,
         };
         let _ = CONTEXT.set(Mutex::new(context));
+        // SAFETY: class/title are NUL-terminated, `module` is the live module
+        // handle used for registration, and the returned HWND is checked below.
         let window = unsafe {
             CreateWindowExW(
                 0,
@@ -321,6 +338,8 @@ mod platform {
 
         let mut message = windows_sys::Win32::UI::WindowsAndMessaging::MSG::default();
         loop {
+            // SAFETY: this is the tray thread's own message loop; `message` is
+            // live local storage and dispatch only occurs for positive results.
             let result = unsafe {
                 let result = GetMessageW(&mut message, ptr::null_mut(), 0, 0);
                 if result > 0 {
@@ -363,6 +382,8 @@ mod platform {
             }
             WM_DESTROY => {
                 remove_icon(hwnd);
+                // SAFETY: `context` records the icon handle owned by this tray
+                // thread; DestroyIcon is called once before clearing the field.
                 unsafe {
                     if let Ok(mut context) = context.lock()
                         && context.owns_icon
@@ -392,6 +413,8 @@ mod platform {
                 match wparam & 0xffff {
                     MENU_OPEN => show_ui(context),
                     MENU_EXIT => {
+                        // SAFETY: `hwnd` is the live window receiving this
+                        // WM_COMMAND notification, so PostMessageW may target it.
                         unsafe { PostMessageW(hwnd, WM_CLOSE, 0, 0) };
                     }
                     _ => {}
@@ -437,6 +460,8 @@ mod platform {
     fn show_menu(hwnd: HWND) {
         let open = wide("打开 Neo Control");
         let exit = wide("退出");
+        // SAFETY: `hwnd` is the live tray window. The menu and both menu labels
+        // stay alive until after TrackPopupMenu and DestroyMenu complete.
         unsafe {
             let menu = CreatePopupMenu();
             if menu.is_null() {
@@ -462,19 +487,27 @@ mod platform {
     }
 
     fn default_window_proc(hwnd: HWND, message: u32, wparam: usize, lparam: isize) -> isize {
+        // SAFETY: parameters are forwarded unchanged from the registered window
+        // procedure, satisfying DefWindowProcW's callback contract.
         unsafe { DefWindowProcW(hwnd, message, wparam, lparam) }
     }
 
     fn destroy_window(hwnd: HWND) {
+        // SAFETY: `hwnd` is a live window owned by this tray thread, as required
+        // by DestroyWindow.
         unsafe { DestroyWindow(hwnd) };
     }
 
     fn notify_icon(action: u32, data: &NOTIFYICONDATAW) -> bool {
+        // SAFETY: `data` is a live NOTIFYICONDATAW with cbSize and hWnd set by
+        // notify_data; Shell_NotifyIconW reads it only for this call.
         unsafe { Shell_NotifyIconW(action, data) != 0 }
     }
 
     fn close_handle(handle: HANDLE) {
         if !handle.is_null() {
+            // SAFETY: every caller transfers ownership of a non-null handle that
+            // has not previously been closed; this closes it exactly once.
             unsafe { CloseHandle(handle) };
         }
     }
@@ -498,6 +531,8 @@ mod platform {
 
     fn signal_existing() -> bool {
         let class_name = wide(WINDOW_CLASS);
+        // SAFETY: the class name is NUL-terminated and valid for the call; the
+        // window handle is checked before PostMessageW uses it.
         unsafe {
             let window = FindWindowW(class_name.as_ptr(), ptr::null());
             !window.is_null() && PostMessageW(window, SHOW_MESSAGE, 0, 0) != 0
@@ -510,6 +545,8 @@ mod platform {
             return (icon, true);
         }
         crate::log_action("tray icon: embedded logo failed, using fallback");
+        // SAFETY: a null module handle requests a predefined system icon, and
+        // IDI_APPLICATION is one of the documented predefined identifiers.
         let icon = unsafe { LoadIconW(ptr::null_mut(), IDI_APPLICATION) };
         (icon, false)
     }
@@ -539,6 +576,8 @@ mod platform {
             }
         }
         let ((width, height, offset, size), _) = best?;
+        // SAFETY: the ICO directory bounds were validated above; the resource
+        // slice is live and its length is passed exactly to the API.
         let icon = unsafe {
             CreateIconFromResourceEx(
                 bytes[offset..offset + size].as_ptr(),
@@ -561,6 +600,8 @@ mod platform {
     }
 
     fn last_error(operation: &str) -> String {
+        // SAFETY: GetLastError has no pointer preconditions and reads only the
+        // calling thread's last-error state.
         let code = unsafe { GetLastError() };
         format!(
             "{operation} failed: {} (code {code})",

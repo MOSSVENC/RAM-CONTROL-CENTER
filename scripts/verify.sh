@@ -24,7 +24,9 @@ echo "==> host tests"
 cargo test --workspace
 
 echo "==> Windows clippy"
-cargo clippy --workspace --all-targets --target "$target" -- -D warnings
+cargo clippy --workspace --all-targets --target "$target" -- \
+    -D warnings \
+    -D clippy::undocumented_unsafe_blocks
 
 echo "==> Windows release build"
 cargo build --release --target "$target" --workspace

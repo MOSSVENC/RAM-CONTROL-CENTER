@@ -1,6 +1,6 @@
 # Verification log
 
-Date: 2026-11-05  
+Date: 2026-11-06
 Target: Firebat/Clevo ZY-T6K, Windows host, signed AcpiBridge device
 
 ## Build
@@ -13,9 +13,9 @@ target/x86_64-pc-windows-gnu/release/neo-dchu-probe.exe
 Last successful Release cross-build after the final audit fixes:
 
 ```text
-neo-control.exe        10,759,168 bytes
-sha256                 b4866417be6ef9089d9c6c87dbefdf63aa207e6adfb9b53f1877fc74a85c673e
-neo-dchu-probe.exe     about 346 KB
+neo-control.exe        11,076,096 bytes
+sha256                 35d58a438e9fe5cc47e46bb631f1ba71f2137f62585d7e4dcf04cab16ff1599a
+neo-dchu-probe.exe     347,648 bytes
 ```
 
 The main executable imports no `InsydeDCHU.dll`, `HKFltrLib.dll`, `CC40.exe` or
@@ -30,7 +30,8 @@ Final source gates:
 cargo fmt --all -- --check                         passed
 cargo test --workspace                             39 passed
 cargo clippy --workspace --all-targets \
-  --target x86_64-pc-windows-gnu -- -D warnings    passed
+  --target x86_64-pc-windows-gnu -- \
+  -D warnings -D clippy::undocumented_unsafe_blocks passed
 cargo build --release --target x86_64-pc-windows-gnu --workspace  passed
 Windows-target test executables                    42 passed
 clean-target full verification                     passed
@@ -423,6 +424,12 @@ driver-level route if it is needed for compatibility.
   each button independently; supported groups use a 240 ms `ease-out-back`
   translation. Pointer presses also render a radial highlight like KernelSU's
   InteractiveHighlight.
+- Light/dark switching interpolates the complete palette and gradient set over
+  260 ms with an ease-out-cubic curve. Continuous capture showed the page mean
+  RGB move from approximately `(235, 237, 244)` through ten intermediate values
+  to `(28.6, 31.2, 42.7)`; there is no opaque white-to-black flash frame anymore.
+  Rapid repeated toggles cancelled stale animation epochs and settled on the
+  correct final theme and segmented-control selection.
 - Option controls share the same motion system: 200–220 ms surface/radius
   morphs, 240 ms `ease-out-back` selection indicators, 240 ms toggle-thumb
   travel, and 260 ms pressed-scale release feedback.
@@ -433,7 +440,36 @@ driver-level route if it is needed for compatibility.
   claim.
 - `scripts/check-unsafe.sh` fails if a new source file gains an `unsafe` token
   or any allowlisted FFI file exceeds its current ceiling. The current total is
-  83.
+  83 tokens across 70 raw blocks. All 70 blocks have individual `SAFETY:`
+  comments, and Windows Clippy fails on any undocumented block.
+
+## 2026-11-06 interaction audit
+
+The shared Slint application was run under WSLg and captured at the production
+1180×820 size. The rendering notifier reported `GraphicsAPI::NativeOpenGL`;
+the Windows Release PE imports `opengl32.dll` and system DLLs only, with no
+`InsydeDCHU.dll`, `HKFltrLib.dll`, `CC40.exe` or `FnKey.exe` dependency.
+
+- A stress run that changed Settings→Performance→Cooling while an earlier
+  transition was still active produced 20 distinct changing frames and settled
+  on Cooling without a stuck veil. Rapid Overview→Performance→Cooling→Battery→
+  Overview clicks then ended on Overview with the correct rail selection.
+- A click aimed at an underlying power option while the transition was active
+  did not change the selected option, confirming the veil input guard.
+- Pressing the Refresh control produced a stable pressed frame across two
+  captures and released to a distinct frame, confirming live press feedback.
+- The theme transition was fixed after capture exposed an opaque 190 ms white
+  flash followed by a black flash. The replacement interpolation was recaptured
+  through the complete transition and with rapid repeated toggles.
+- Idle frame diagnostics reported zero rendered frames per two-second interval;
+  animation intervals produced continuous frame counts. Rendering remains GPU
+  backed rather than a CPU software-rendering fallback.
+
+The WSL→Windows interoperability socket timed out during this audit, so the
+already-built Release could not be relaunched from this shell for a second
+native Windows capture. The canonical path now contains the audited binary; the
+still-running previous process was moved to `neo-control.old.exe` and prevents
+that stale file from being deleted until the next application restart.
 
 Thermal command 12 still takes roughly 330 ms at the firmware level. It runs on
 the hardware worker and does not block the UI thread.

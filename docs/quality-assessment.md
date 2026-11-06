@@ -8,13 +8,13 @@ vendor package; no BIOS, EC, driver or vendor binary was modified for them.
 | Dimension | Score | Reading |
 |---|---:|---|
 | Protocol-layer cohesion | 8.8 / 10 | One transport boundary with typed telemetry, power/fan, RGB, GPU, charging, input and quick-toggle modules |
-| OS-integration cohesion | 8.5 / 10 | Boot, tray, telemetry, input and display concerns have named modules; Win32 handles and resources are wrapped behind RAII helpers |
+| OS-integration cohesion | 8.6 / 10 | Boot, tray, telemetry, input and display concerns have named modules; Win32 handles and resources are wrapped behind RAII helpers and every raw FFI block has a documented safety contract |
 | Functional coverage | 7.6 / 10 | The tested CC4.0 controls work on this machine, but capability-gated branches and uncommon hardware paths still need broader validation |
 | Visual design | 6.2 / 10 | The hierarchy is coherent, but repeated bordered cards, sparse compositions and limited visual identity still read as an engineering control panel |
-| Motion and interaction | 7.2 / 10 | Sliding page veil, shared segmented indicator, radial press feedback and expressive switches are implemented; stagger and reduced-motion behavior remain absent |
+| Motion and interaction | 7.4 / 10 | Sliding page veil, interpolated light/dark palettes, shared segmented indicator, radial press feedback and expressive switches are implemented; stagger and reduced-motion behavior remain absent |
 | Accessibility and responsiveness | 4.5 / 10 | No complete keyboard focus system, focus rings, screen-reader semantics or compact layout policy |
-| Packaging and deployment | 7.0 / 10 | The canonical executable path and Git-based versioning are now defined; stale side-by-side artifacts still need final removal |
-| Overall | **7.1 / 10** | Solid native backend, verified hardware controls and a real motion system; visual-system depth, accessibility and edge-case parity still keep it below finished-product quality |
+| Packaging and deployment | 7.1 / 10 | The canonical path and Git-based versioning are defined; one locked previous executable remains until the running application is restarted |
+| Overall | **7.2 / 10** | Solid native backend, verified hardware controls and a real motion system; visual-system depth, accessibility and edge-case parity still keep it below finished-product quality |
 
 This is a functional native control panel, not an 8.9/10 finished product. The
 backend architecture is substantially stronger than the product surface. The
@@ -26,24 +26,31 @@ split.
 
 - Host Clippy across all targets and features now passes with `-D warnings`;
   Windows-only FlexiKey mapping helpers are gated out of non-test host builds.
+- All 70 Win32/NVML `unsafe` blocks now carry an individual `SAFETY:` contract.
+  The Windows Clippy gate fails on any undocumented block.
 - The page-transition veil blocks pointer input while visible, so controls
   underneath cannot be triggered during the swap.
-- Page, option and segmented-control transitions were exercised through live
-  frame capture, not only compile checks.
-- Remaining debt: many FFI blocks still lack individual `SAFETY` comments; the
-  1,213-line FlexiKey editor still performs XML/engine work synchronously on the
-  UI thread; no automated visual-regression or keyboard-focus suite exists.
+- Page, option, segmented-control and press-feedback transitions were exercised
+  through live frame capture, not only compile checks.
+- Light/dark switching no longer uses an opaque white/black flash. Palette
+  colours and gradients are interpolated over 260 ms with an ease-out-cubic
+  curve; rapid repeated switches settle on the correct final theme.
+- Remaining debt: the 1,213-line FlexiKey editor still performs XML/engine work
+  synchronously on the UI thread; `wire_ui` (699 lines), `apply_update` (520
+  lines) and `wire_flexikey` (544 lines) need functional decomposition; no
+  automated visual-regression, keyboard-focus or reduced-motion suite exists.
 
 ## Code metrics
 
 ```text
-total measured lines       19,480
-Rust lines                 13,650
-Slint lines                 4,767
+total measured lines       19,985
+Rust lines                 13,876
+Slint lines                 5,046
 translation lines           1,063
 Rust source modules            45
 Slint source modules           16
 unsafe token occurrences      83
+documented unsafe blocks       70
 test functions                 43
 host-executed tests            39
 ```
@@ -141,10 +148,11 @@ Remaining debt:
 - `flexikey_ui.rs` is 1,213 lines; its editor/profile state is the next
   candidate for functional split. The hardware worker is now 330 lines plus
   five focused submodules.
-- There are 83 `unsafe` token occurrences. They are localized around Windows
-  IOCTL/FFI, with `telemetry.rs` (26), `tray.rs` (21) and
-  `flexikey_engine.rs` (10) as the largest clusters.
-  `scripts/check-unsafe.sh` fails on a new file or any per-file count increase.
+- There are 83 `unsafe` token occurrences and 70 raw blocks. They are localized
+  around Windows IOCTL/FFI, with `telemetry.rs` (18 blocks), `tray.rs` (20) and
+  `flexikey_engine.rs` (8) as the largest clusters. Every block has a specific
+  `SAFETY:` invariant. `scripts/check-unsafe.sh` ratchets the token count and
+  Clippy rejects undocumented blocks.
 - The automated suite covers protocol encoding and app-side logic. Live
   AcpiBridge/EC behavior is exercised by `scripts/hardware-smoke.ps1`, which
   cannot run on a generic CI runner.
@@ -160,7 +168,8 @@ cargo fmt --all -- --check
 ./scripts/check-unsafe.sh
 cargo test --workspace
 cargo clippy --workspace --all-targets \
-  --target x86_64-pc-windows-gnu -- -D warnings
+  --target x86_64-pc-windows-gnu -- \
+  -D warnings -D clippy::undocumented_unsafe_blocks
 cargo build --release --target x86_64-pc-windows-gnu --workspace
 ```
 
@@ -168,12 +177,12 @@ The script prefers the rustup-managed toolchain when `$HOME/.cargo/bin` exists,
 then uses the configured Zig cross linker. `.github/workflows/ci.yml` runs the
 same script on GitHub-hosted Ubuntu with Rust and Zig 0.14.1.
 
-Local result on 2026-11-05:
+Local result on 2026-11-06:
 
 ```text
 rustfmt                                      passed
 host tests                                   39 passed
-Windows-target clippy with -D warnings       passed
+Windows-target clippy with both hard gates   passed
 Windows-target release build                 passed
 Windows-native test suite                    42 passed
 clean-target full verification                passed
@@ -212,12 +221,12 @@ CC40 plus two DLLs       33,246,592 bytes
 Current Neo Control:
 
 ```text
-neo-control.exe          10,759,168 bytes
+neo-control.exe          11,076,096 bytes
 ```
 
 ```text
-Neo / CC40.exe                       35.54%  (64.46% smaller)
-Neo / (CC40 + DLLs)                  32.39%  (67.61% smaller)
+Neo / CC40.exe                       36.56%  (63.44% smaller)
+Neo / (CC40 + DLLs)                  33.31%  (66.69% smaller)
 ```
 
 The latest background process sample was:

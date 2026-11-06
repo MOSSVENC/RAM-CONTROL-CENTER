@@ -59,7 +59,6 @@ export component MainWindow inherits Window {
     in-out property <float> page-veil-x: 1.0;
     in-out property <bool> page-veil-visible: false;
     in-out property <duration> page-veil-duration: 140ms;
-    in-out property <float> theme-flash: 0.0;
     in-out property <bool> quiet-dialog-open: false;
     in property <bool> transport-ready: false;
     in property <string> transport-label: @tr("Connecting to DCHU");
@@ -950,17 +949,6 @@ export component MainWindow inherits Window {
             height: parent.height;
             mouse-cursor: default;
         }
-    }
-
-    Rectangle {
-        x: 0;
-        y: 0;
-        width: parent.width;
-        height: parent.height;
-        background: Palette.dark ? #12151E : #E8ECF3;
-        opacity: root.theme-flash;
-        visible: self.opacity > 0.001;
-        animate opacity { duration: 180ms; easing: cubic-bezier(0.22, 1, 0.36, 1); }
     }
 
     QuietDialog {

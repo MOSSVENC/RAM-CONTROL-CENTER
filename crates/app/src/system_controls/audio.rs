@@ -21,6 +21,9 @@ fn with_default_endpoint(action: AudioAction) -> Result<AudioState, String> {
         CLSCTX_ALL, COINIT_MULTITHREADED, CoCreateInstance, CoInitializeEx, CoUninitialize,
     };
 
+    // SAFETY: COM is initialized on this thread before creating the
+    // multithreaded apartment objects. All COM interfaces are dropped before
+    // the matching CoUninitialize call below and never escape this closure.
     let (initialized, result) = unsafe {
         let initialized = CoInitializeEx(None, COINIT_MULTITHREADED).is_ok();
         let result = (|| -> windows::core::Result<AudioState> {
@@ -51,6 +54,8 @@ fn with_default_endpoint(action: AudioAction) -> Result<AudioState, String> {
     };
     let result = result.map_err(|error| error.to_string());
     if initialized {
+        // SAFETY: this thread initialized COM successfully in the block above;
+        // every created COM interface has been dropped by this point.
         unsafe { CoUninitialize() };
     }
     result

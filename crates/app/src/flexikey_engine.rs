@@ -187,6 +187,9 @@ mod platform {
             }
 
             let (hook_tx, hook_rx) = mpsc::channel();
+            // SAFETY: Win32 low-level hooks require a thread-owned message loop.
+            // All handles are checked, kept local to this thread, and unhooked
+            // before it exits; the callback functions have system ABI signatures.
             thread::spawn(move || unsafe {
                 let module = GetModuleHandleW(ptr::null());
                 let keyboard = SetWindowsHookExW(WH_KEYBOARD_LL, Some(keyboard_hook), module, 0);
@@ -335,10 +338,14 @@ mod platform {
     }
 
     fn call_next_hook(code: i32, wparam: WPARAM, lparam: LPARAM) -> LRESULT {
+        // SAFETY: the parameters are forwarded unchanged from the active hook
+        // callback, which is CallNextHookEx's documented calling contract.
         unsafe { CallNextHookEx(ptr::null_mut(), code, wparam, lparam) }
     }
 
     fn map_virtual_key(code: u32, mode: u32) -> u32 {
+        // SAFETY: MapVirtualKeyW takes only scalar values and has no pointer
+        // or lifetime prerequisites.
         unsafe { MapVirtualKeyW(code, mode) }
     }
 
@@ -353,6 +360,9 @@ mod platform {
             return call_next_hook(code, wparam, lparam);
         }
 
+        // SAFETY: for WH_KEYBOARD_LL, Windows supplies a live KBDLLHOOKSTRUCT
+        // pointer in lparam for the duration of this callback; the reference is
+        // immutable and does not escape the callback.
         let keyboard = unsafe { &*(lparam as *const KBDLLHOOKSTRUCT) };
         if keyboard.flags & LLKHF_INJECTED != 0 && keyboard.dwExtraInfo == INJECTION_MAGIC {
             return call_next_hook(code, wparam, lparam);
@@ -415,6 +425,9 @@ mod platform {
         if !down && !up {
             return call_next_hook(code, wparam, lparam);
         }
+        // SAFETY: for WH_MOUSE_LL, Windows supplies a live MSLLHOOKSTRUCT
+        // pointer in lparam for the duration of this callback; the reference is
+        // immutable and does not escape the callback.
         let mouse = unsafe { &*(lparam as *const MSLLHOOKSTRUCT) };
         if matches!(message, WM_XBUTTONDOWN | WM_XBUTTONUP) {
             log_line(&format!(
@@ -502,6 +515,8 @@ mod platform {
         };
         let lparam = ((keyboard.scanCode as i32) << 16) | extended;
         let mut buffer = [0_u16; 64];
+        // SAFETY: `buffer` owns 64 writable UTF-16 elements and its length is
+        // passed exactly; GetKeyNameTextW writes at most that many elements.
         let length = unsafe { GetKeyNameTextW(lparam, buffer.as_mut_ptr(), buffer.len() as i32) };
         if length > 0 {
             String::from_utf16_lossy(&buffer[..length as usize])
@@ -753,6 +768,8 @@ mod platform {
     }
 
     fn send_input(inputs: &[INPUT]) -> Result<(), String> {
+        // SAFETY: `inputs` is a live slice of initialized INPUT structures;
+        // its length and the exact INPUT stride are passed to SendInput.
         let sent = unsafe {
             SendInput(
                 inputs.len() as u32,
@@ -769,6 +786,8 @@ mod platform {
     fn launch(path: &str) -> Result<(), String> {
         let operation = wide("open");
         let path = wide(path);
+        // SAFETY: both wide strings are NUL-terminated and remain alive for the
+        // call; all other pointer parameters are explicitly null as permitted.
         let result = unsafe {
             ShellExecuteW(
                 ptr::null_mut(),

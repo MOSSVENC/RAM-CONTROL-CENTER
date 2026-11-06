@@ -55,6 +55,7 @@ pub(crate) fn flexi_recovery_ready() -> bool {
             return false;
         }
     };
+    // SAFETY: GetTickCount64 has no pointer preconditions or memory effects.
     let uptime_ms = unsafe { GetTickCount64() };
     let boot_time = now
         .checked_sub(Duration::from_millis(uptime_ms))
