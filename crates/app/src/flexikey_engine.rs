@@ -25,6 +25,7 @@ pub struct FlexiKeyEngine {
     error: Option<String>,
 }
 
+#[cfg(any(windows, test))]
 pub(crate) fn cc40_key_code_from_parts(virtual_key: u16, scan_code: u16, extended: bool) -> u16 {
     if virtual_key == 0xff || extended {
         if virtual_key != 161 && virtual_key != 144 {
@@ -93,6 +94,7 @@ mod tests {
     }
 }
 
+#[cfg(any(windows, test))]
 pub(crate) fn cc40_mouse_code(message: u32, mouse_data: u32) -> Option<u16> {
     match message {
         0x0201 | 0x0202 => Some(1),

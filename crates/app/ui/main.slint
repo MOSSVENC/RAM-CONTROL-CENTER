@@ -943,6 +943,13 @@ export component MainWindow inherits Window {
             height: parent.height * 0.64;
             background: @radial-gradient(circle, Palette.cyan.with-alpha(0.13) 0%, transparent 68%);
         }
+        if root.page-veil-visible : TouchArea {
+            x: 0;
+            y: 0;
+            width: parent.width;
+            height: parent.height;
+            mouse-cursor: default;
+        }
     }
 
     Rectangle {

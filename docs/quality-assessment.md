@@ -11,16 +11,28 @@ vendor package; no BIOS, EC, driver or vendor binary was modified for them.
 | OS-integration cohesion | 8.5 / 10 | Boot, tray, telemetry, input and display concerns have named modules; Win32 handles and resources are wrapped behind RAII helpers |
 | Functional coverage | 7.6 / 10 | The tested CC4.0 controls work on this machine, but capability-gated branches and uncommon hardware paths still need broader validation |
 | Visual design | 6.2 / 10 | The hierarchy is coherent, but repeated bordered cards, sparse compositions and limited visual identity still read as an engineering control panel |
-| Motion and interaction | 6.8 / 10 | Page and option motion now have real intermediate frames, but shared-element choreography, stagger and reduced-motion behavior are still absent |
+| Motion and interaction | 7.2 / 10 | Sliding page veil, shared segmented indicator, radial press feedback and expressive switches are implemented; stagger and reduced-motion behavior remain absent |
 | Accessibility and responsiveness | 4.5 / 10 | No complete keyboard focus system, focus rings, screen-reader semantics or compact layout policy |
 | Packaging and deployment | 7.0 / 10 | The canonical executable path and Git-based versioning are now defined; stale side-by-side artifacts still need final removal |
-| Overall | **7.0 / 10** | Solid native backend and real hardware controls, but not yet a finished product in visual polish, accessibility and edge-case parity |
+| Overall | **7.1 / 10** | Solid native backend, verified hardware controls and a real motion system; visual-system depth, accessibility and edge-case parity still keep it below finished-product quality |
 
 This is a functional native control panel, not an 8.9/10 finished product. The
 backend architecture is substantially stronger than the product surface. The
 next quality gain must come from interaction design, layout responsiveness,
 accessibility and stricter end-to-end validation rather than another backend
 split.
+
+## 2026-11-06 audit
+
+- Host Clippy across all targets and features now passes with `-D warnings`;
+  Windows-only FlexiKey mapping helpers are gated out of non-test host builds.
+- The page-transition veil blocks pointer input while visible, so controls
+  underneath cannot be triggered during the swap.
+- Page, option and segmented-control transitions were exercised through live
+  frame capture, not only compile checks.
+- Remaining debt: many FFI blocks still lack individual `SAFETY` comments; the
+  1,213-line FlexiKey editor still performs XML/engine work synchronously on the
+  UI thread; no automated visual-regression or keyboard-focus suite exists.
 
 ## Code metrics
 
