@@ -9,7 +9,8 @@ import {
                         export component SettingsPage inherits VerticalLayout {
     in property <int> selected-page: 0;
     in-out property <bool> language-zh: true;
-    in property <string> renderer-text: "检测中";
+    in property <string> renderer-text: @tr("Detecting");
+    in property <bool> renderer-ready: false;
     in property <bool> startup-enabled: false;
     callback set-startup(bool);
     callback set-language(bool);
@@ -135,7 +136,7 @@ import {
                 HorizontalLayout {
                     SectionTitle { text: @tr("Graphics renderer"); }
                     Rectangle { horizontal-stretch: 1; }
-                    SignalDot { active: root.renderer-text != "检测中"; tone: Palette.green; }
+                    SignalDot { active: root.renderer-ready; tone: Palette.green; }
                 }
                 Hairline {}
                 InfoRow { label: @tr("Backend"); value: root.renderer-text; value-tone: Palette.cyan; }

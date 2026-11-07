@@ -1103,3 +1103,6 @@ msgstr "必需驱动已就绪"
 
 msgid "Available"
 msgstr "可用"
+
+msgid "Detecting"
+msgstr "检测中"

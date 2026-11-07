@@ -173,7 +173,8 @@ export component MainWindow inherits Window {
     in property <string> capabilities-text: @tr("--");
     in property <string> platform-text: @tr("--");
     in property <string> transport-device-path: "Not located";
-    in property <string> renderer-text: "检测中";
+    in property <string> renderer-text: @tr("Detecting");
+    in property <bool> renderer-ready: false;
 
     in property <bool> battery-present: false;
     in property <int> battery-percent: 0;
@@ -621,6 +622,7 @@ export component MainWindow inherits Window {
                             selected-page: root.selected-page;
                             language-zh <=> root.language-zh;
                             renderer-text: root.renderer-text;
+                            renderer-ready: root.renderer-ready;
                             startup-enabled: root.startup-enabled;
                             set-startup(a0) => { root.set-startup(a0); }
                             set-language(a0) => { root.set-language(a0); }

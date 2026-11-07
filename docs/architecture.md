@@ -193,7 +193,9 @@ slint::invoke_from_event_loop
 ```
 
 Thermal data is polled every two seconds; extended reads run every other cycle.
-The UI animation is independent of hardware sampling.
+The UI animation is independent of hardware sampling. Renderer diagnostics are
+installed on every GUI launch; optional frame logging observes the same notifier
+without controlling whether the settings page receives the graphics API report.
 
 ## Write policy
 

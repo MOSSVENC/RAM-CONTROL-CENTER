@@ -20,10 +20,10 @@ mod ui_callbacks;
 mod ui_update;
 mod worker;
 
-use std::cell::RefCell;
+use std::cell::{Cell, RefCell};
 use std::rc::Rc;
 use std::sync::mpsc;
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 use slint::{CloseRequestResponse, ComponentHandle};
 
@@ -98,6 +98,72 @@ fn write_snapshot_ppm(
         file.write_all(&[pixel.r, pixel.g, pixel.b])?;
     }
     Ok(())
+}
+
+fn poll_settings_backend(
+    weak: slint::Weak<MainWindow>,
+    done: Rc<Cell<bool>>,
+    passed: Rc<Cell<bool>>,
+    deadline: Instant,
+) {
+    if done.get() {
+        return;
+    }
+    let Some(ui) = weak.upgrade() else {
+        done.set(true);
+        let _ = slint::quit_event_loop();
+        return;
+    };
+    if ui.get_renderer_ready() && ui.get_renderer_text().starts_with("GraphicsAPI::") {
+        passed.set(true);
+        done.set(true);
+        let _ = slint::quit_event_loop();
+        return;
+    }
+    if Instant::now() >= deadline {
+        done.set(true);
+        let _ = slint::quit_event_loop();
+        return;
+    }
+    slint::Timer::single_shot(Duration::from_millis(50), move || {
+        poll_settings_backend(weak, done, passed, deadline);
+    });
+}
+
+fn settings_backend_smoke() -> i32 {
+    let ui = match MainWindow::new() {
+        Ok(ui) => ui,
+        Err(error) => {
+            eprintln!("settings backend smoke could not create the window: {error}");
+            return 1;
+        }
+    };
+    ui.set_selected_page(5);
+    ui.set_navigation_page(5);
+    install_frame_diagnostics(&ui);
+    if let Err(error) = ui.show() {
+        eprintln!("settings backend smoke could not show the window: {error}");
+        return 1;
+    }
+
+    let passed = Rc::new(Cell::new(false));
+    let done = Rc::new(Cell::new(false));
+    poll_settings_backend(
+        ui.as_weak(),
+        Rc::clone(&done),
+        Rc::clone(&passed),
+        Instant::now() + Duration::from_secs(5),
+    );
+    if let Err(error) = slint::run_event_loop() {
+        eprintln!("settings backend smoke event loop failed: {error}");
+        return 1;
+    }
+    if passed.get() {
+        0
+    } else {
+        eprintln!("settings backend smoke did not receive a graphics API report");
+        1
+    }
 }
 
 #[cfg(any(debug_assertions, feature = "snapshot-tools"))]
@@ -275,6 +341,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         Some("--system-smoke") => std::process::exit(system_smoke()),
         Some("--io-smoke") => std::process::exit(io_smoke()),
         Some("--display-care-smoke") => std::process::exit(display_care_smoke()),
+        Some("--settings-smoke") => std::process::exit(settings_backend_smoke()),
         _ => {}
     }
 

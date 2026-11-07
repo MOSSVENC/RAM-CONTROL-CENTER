@@ -443,8 +443,35 @@ driver-level route if it is needed for compatibility.
   claim.
 - `scripts/check-unsafe.sh` fails if a new source file gains an `unsafe` token
   or any allowlisted FFI file exceeds its current ceiling. The current total is
-  83 tokens across 70 raw blocks. All 70 blocks have individual `SAFETY:`
-  comments, and Windows Clippy fails on any undocumented block.
+  90 tokens. Windows Clippy fails on any undocumented block.
+
+### Settings backend readiness audit (2026-11-07)
+
+The default GUI path now installs the Slint rendering notifier independently
+of `NEO_CONTROL_FRAME_LOG`; that environment variable only controls periodic
+frame-log output. The settings page binds its activity dot to an explicit
+`renderer-ready` property and displays the reported API string. If no rendering
+callback arrives, a 1.5-second watchdog replaces the placeholder instead of
+leaving it indefinitely.
+
+The native Settings page was captured at 0, 5 and 15 seconds. The full backend
+card produced the same SHA-256 at all three points:
+
+```text
+a45d78f02f485c39824e6ac0f10979cfce8544ae5760c46baa41130f3a5cadbf
+```
+
+The visible value was `GraphicsAPI::NativeOpenGL`. `--settings-smoke` starts the
+real Settings window, waits for both `renderer-ready` and a `GraphicsAPI::*`
+report, then exits non-zero on timeout. Three consecutive native Windows runs
+returned exit code 0.
+
+Deployed Release artifact:
+
+```text
+size    11,052,032 bytes
+sha256  753efd672d7d261163ab72148b7098671f5ec905461f5223a10ac4071f36daab
+```
 
 ## 2026-11-06 interaction audit
 

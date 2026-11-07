@@ -7,7 +7,7 @@ if (-not (Test-Path -LiteralPath $Executable -PathType Leaf)) {
     throw "Neo Control executable not found: $Executable"
 }
 
-$modes = @('--system-smoke', '--io-smoke', '--display-care-smoke')
+$modes = @('--settings-smoke', '--system-smoke', '--io-smoke', '--display-care-smoke')
 foreach ($mode in $modes) {
     Write-Host "==> $mode"
     $process = Start-Process -FilePath $Executable -ArgumentList $mode -NoNewWindow -Wait -PassThru
