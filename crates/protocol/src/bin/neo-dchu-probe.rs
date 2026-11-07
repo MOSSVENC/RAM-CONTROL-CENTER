@@ -1,4 +1,6 @@
 use std::process::ExitCode;
+use std::thread;
+use std::time::Duration;
 
 use neo_control_protocol::{
     CustomFanCurve, Dchu, FanCurveNodes, FanMode, FlexiChargerMode, PowerMode, QuickToggle,
@@ -407,10 +409,167 @@ fn main() -> ExitCode {
         println!("low-refresh-smoke: setting read back successfully");
     }
 
+    if let Some(encoded) = std::env::args()
+        .find_map(|argument| argument.strip_prefix("--rgb-set-color=").map(str::to_owned))
+    {
+        let channels = encoded
+            .split(',')
+            .map(str::trim)
+            .map(str::parse::<u8>)
+            .collect::<Result<Vec<_>, _>>();
+        let Ok(channels) = channels else {
+            eprintln!("rgb-set-color: expected R,G,B in 0..255");
+            return ExitCode::FAILURE;
+        };
+        if channels.len() != 3 {
+            eprintln!("rgb-set-color: expected exactly three channels");
+            return ExitCode::FAILURE;
+        }
+        let color = neo_control_protocol::RgbColor {
+            red: channels[0],
+            green: channels[1],
+            blue: channels[2],
+        };
+        return match dchu.set_rgb_keyboard_color(color) {
+            Ok(()) => {
+                println!("rgb-set-color: applied {color:?}");
+                ExitCode::SUCCESS
+            }
+            Err(error) => {
+                eprintln!("rgb-set-color: failed: {error}");
+                ExitCode::FAILURE
+            }
+        };
+    }
+
+    if std::env::args().any(|argument| argument == "--anti-dust-stability") {
+        return anti_dust_stability(&dchu);
+    }
+
+    if std::env::args().any(|argument| argument == "--rgb-sleep-stability-smoke") {
+        return rgb_sleep_stability_smoke(&dchu);
+    }
+
     if std::env::args().any(|argument| argument == "--write-smoke") {
         return write_smoke(&dchu, state);
     }
     ExitCode::SUCCESS
+}
+
+fn anti_dust_stability(dchu: &Dchu) -> ExitCode {
+    println!("anti-dust-stability: sampling schedule and run byte for 20 seconds");
+    let mut last_schedule = None;
+    let mut schedule_changes = 0_u32;
+    let mut errors = 0_u32;
+    for index in 0..20 {
+        match dchu.read_anti_dust_schedule() {
+            Ok(schedule) => {
+                let (_, running_raw) = dchu.raw_read_settings(4, 80, 1);
+                let running = running_raw.first().copied().unwrap_or_default();
+                println!(
+                    "anti-dust-stability[{index:02}]: schedule={schedule:?} running_byte={running}"
+                );
+                if last_schedule.is_some_and(|previous| previous != schedule) {
+                    schedule_changes += 1;
+                }
+                last_schedule = Some(schedule);
+            }
+            Err(error) => {
+                errors += 1;
+                eprintln!("anti-dust-stability[{index:02}]: read failed: {error}");
+            }
+        }
+        thread::sleep(Duration::from_secs(1));
+    }
+    println!("anti-dust-stability: errors={errors} schedule_changes={schedule_changes}");
+    if errors == 0 && schedule_changes == 0 {
+        ExitCode::SUCCESS
+    } else {
+        ExitCode::FAILURE
+    }
+}
+
+fn rgb_sleep_stability_smoke(dchu: &Dchu) -> ExitCode {
+    let previous = match dchu.read_rgb_keyboard_state() {
+        Ok(state) => state,
+        Err(error) => {
+            eprintln!("rgb-sleep-stability-smoke: initial read failed: {error}");
+            return ExitCode::FAILURE;
+        }
+    };
+    println!("rgb-sleep-stability-smoke: previous={previous:?}");
+    if let Err(error) = dchu.set_rgb_keyboard_brightness(0) {
+        eprintln!("rgb-sleep-stability-smoke: disabling backlight failed: {error}");
+        return ExitCode::FAILURE;
+    }
+    if let Err(error) = dchu.set_rgb_keyboard_sleep_timer(false, previous.sleep_seconds) {
+        eprintln!("rgb-sleep-stability-smoke: disabling sleep failed: {error}");
+        let _ = dchu.set_rgb_keyboard_brightness(if previous.enabled {
+            previous.brightness.max(1)
+        } else {
+            0
+        });
+        return ExitCode::FAILURE;
+    }
+
+    let mut failed = false;
+    for index in 0..12 {
+        match dchu.read_rgb_keyboard_state() {
+            Ok(state) => {
+                println!(
+                    "rgb-sleep-stability-smoke[{index:02}]: enabled={} sleep_enabled={} seconds={}",
+                    state.enabled, state.sleep_enabled, state.sleep_seconds
+                );
+                if state.sleep_enabled || state.enabled {
+                    eprintln!("rgb-sleep-stability-smoke: state changed unexpectedly");
+                    failed = true;
+                }
+            }
+            Err(error) => {
+                eprintln!("rgb-sleep-stability-smoke[{index:02}]: read failed: {error}");
+                failed = true;
+            }
+        }
+        thread::sleep(Duration::from_secs(1));
+    }
+
+    let sleep_restore =
+        dchu.set_rgb_keyboard_sleep_timer(previous.sleep_enabled, previous.sleep_seconds);
+    let brightness_restore = dchu.set_rgb_keyboard_brightness(if previous.enabled {
+        previous.brightness.max(1)
+    } else {
+        0
+    });
+    if let Err(error) = sleep_restore {
+        eprintln!("rgb-sleep-stability-smoke: sleep restore failed: {error}");
+        failed = true;
+    }
+    if let Err(error) = brightness_restore {
+        eprintln!("rgb-sleep-stability-smoke: brightness restore failed: {error}");
+        failed = true;
+    }
+    match dchu.read_rgb_keyboard_state() {
+        Ok(restored) => {
+            println!("rgb-sleep-stability-smoke: restored={restored:?}");
+            if restored.sleep_enabled != previous.sleep_enabled
+                || restored.sleep_seconds != previous.sleep_seconds
+                || restored.enabled != previous.enabled
+                || restored.brightness != previous.brightness
+            {
+                eprintln!("rgb-sleep-stability-smoke: restore verification failed");
+                failed = true;
+            }
+        }
+        Err(error) => {
+            eprintln!("rgb-sleep-stability-smoke: restore read failed: {error}");
+            failed = true;
+        }
+    }
+    if failed {
+        ExitCode::FAILURE
+    } else {
+        ExitCode::SUCCESS
+    }
 }
 
 fn write_smoke(dchu: &Dchu, state: neo_control_protocol::PlatformState) -> ExitCode {

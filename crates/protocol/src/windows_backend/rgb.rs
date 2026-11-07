@@ -126,21 +126,61 @@ impl Dchu {
             previous.sleep_seconds
         };
         self.apply_rgb_keyboard_sleep_timer(enabled, stored_seconds)?;
+        let after_sleep = self.read_rgb_keyboard_state()?;
+
+        // The vendor's 121/24 sleep-timer command can re-enable the keyboard
+        // backlight as a side effect. Preserve the caller's previous on/off
+        // state so turning sleep off while lighting is off does not turn the
+        // keyboard back on.
+        let restore_level = if previous.enabled {
+            previous.brightness.max(1)
+        } else {
+            0
+        };
+        let display_restore = self.set_rgb_keyboard_brightness(restore_level);
         let actual = self.read_rgb_keyboard_state()?;
-        if actual.sleep_enabled == enabled && actual.sleep_seconds == stored_seconds {
+        let sleep_matches =
+            actual.sleep_enabled == enabled && actual.sleep_seconds == stored_seconds;
+        let display_matches =
+            actual.enabled == previous.enabled && actual.brightness == previous.brightness;
+        if sleep_matches && display_matches {
             return Ok(());
         }
-        let rollback = self
+
+        let sleep_rollback = self
             .apply_rgb_keyboard_sleep_timer(previous.sleep_enabled, previous.sleep_seconds)
             .map_or_else(
                 |error| format!("could not restore keyboard sleep timer: {error}"),
                 |()| "restored keyboard sleep timer".to_owned(),
             );
+        let display_rollback = self
+            .apply_rgb_keyboard_brightness(
+                if previous.enabled {
+                    previous.brightness.max(1)
+                } else {
+                    0
+                },
+                previous.brightness,
+                previous.enabled,
+            )
+            .map_or_else(
+                |error| format!("could not restore keyboard backlight: {error}"),
+                |()| "restored keyboard backlight".to_owned(),
+            );
+        let restore_error = display_restore.err().map(|error| error.to_string());
         Err(DchuError::ControlFailed {
             operation: "set keyboard sleep timer",
             detail: format!(
-                "readback expected enabled={enabled} seconds={stored_seconds}, got enabled={} seconds={}; {rollback}",
-                actual.sleep_enabled, actual.sleep_seconds
+                "readback expected sleep enabled={enabled} seconds={stored_seconds}, backlight enabled={} brightness={}, got sleep enabled={} seconds={} backlight enabled={} brightness={}; restore={:?}; {sleep_rollback}; {display_rollback} (after sleep: enabled={} seconds={})",
+                previous.enabled,
+                previous.brightness,
+                actual.sleep_enabled,
+                actual.sleep_seconds,
+                actual.enabled,
+                actual.brightness,
+                restore_error,
+                after_sleep.sleep_enabled,
+                after_sleep.sleep_seconds
             ),
         })
     }

@@ -154,7 +154,10 @@ import {
                     width: 230px;
                     labels: [@tr("Enabled"), @tr("Disabled")];
                     selected-index: root.rgb-requested-sleep-enabled ? 0 : 1;
-                    selected(index) => { root.rgb-requested-sleep-enabled = index == 0; }
+                    selected(index) => {
+                        root.rgb-requested-sleep-enabled = index == 0;
+                        root.apply-rgb-sleep-timer(root.rgb-requested-sleep-enabled, root.rgb-requested-hours, root.rgb-requested-minutes, root.rgb-requested-seconds);
+                    }
                 }
                 HorizontalLayout {
                     spacing: 7px;

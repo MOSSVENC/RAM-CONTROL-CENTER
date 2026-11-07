@@ -175,23 +175,30 @@ pub(crate) fn apply_update(ui: &MainWindow, update: UiUpdate) {
     } else if update.extended_reads {
         ui.set_display_care_available(false);
     }
-    ui.set_anti_dust_running(update.platform.anti_dust_running.unwrap_or(false));
-    ui.set_anti_dust_supported(update.anti_dust_schedule.is_some());
-    if let Some(schedule) = update.anti_dust_schedule
-        && update.sync_selection
-    {
-        ui.set_anti_dust_enabled(schedule.enabled);
-        ui.set_anti_dust_resume(schedule.resume);
-        ui.set_anti_dust_day(if schedule.enabled {
-            i32::from(schedule.day.min(6))
-        } else {
-            6
-        });
-        ui.set_anti_dust_hour(if schedule.enabled {
-            i32::from(schedule.hour.min(23))
-        } else {
-            0
-        });
+    if update.extended_reads {
+        // Anti-dust exists only in the extended snapshot. Never let the 1 Hz
+        // light snapshot clear a previously valid state: doing so made the
+        // schedule toggles alternate between "Initialize" and "Enabled".
+        if let Some(running) = update.platform.anti_dust_running {
+            ui.set_anti_dust_running(running);
+        }
+        if let Some(schedule) = update.anti_dust_schedule {
+            ui.set_anti_dust_supported(true);
+            if update.sync_selection {
+                ui.set_anti_dust_enabled(schedule.enabled);
+                ui.set_anti_dust_resume(schedule.resume);
+                ui.set_anti_dust_day(if schedule.enabled {
+                    i32::from(schedule.day.min(6))
+                } else {
+                    6
+                });
+                ui.set_anti_dust_hour(if schedule.enabled {
+                    i32::from(schedule.hour.min(23))
+                } else {
+                    0
+                });
+            }
+        }
     }
     if let Some(table) = update.rpm_fan_table {
         let cpu = table.channels[0]
@@ -306,8 +313,16 @@ pub(crate) fn apply_update(ui: &MainWindow, update: UiUpdate) {
         }
     }
     if let Some(keyboard) = update.rgb_keyboard {
+        // The EC keeps the last nonzero brightness while the keyboard is off.
+        // The segmented control represents the effective state, so expose OFF
+        // as 0 and restore the stored level only when the backlight is on.
+        let display_brightness = if keyboard.enabled {
+            keyboard.brightness
+        } else {
+            0
+        };
         ui.set_rgb_enabled(keyboard.enabled);
-        ui.set_rgb_brightness(i32::from(keyboard.brightness));
+        ui.set_rgb_brightness(i32::from(display_brightness));
         ui.set_rgb_effect(i32::from(keyboard.effect));
         ui.set_rgb_red(i32::from(keyboard.color.red));
         ui.set_rgb_green(i32::from(keyboard.color.green));
@@ -321,7 +336,7 @@ pub(crate) fn apply_update(ui: &MainWindow, update: UiUpdate) {
             ui.set_rgb_requested_red(i32::from(keyboard.color.red));
             ui.set_rgb_requested_green(i32::from(keyboard.color.green));
             ui.set_rgb_requested_blue(i32::from(keyboard.color.blue));
-            ui.set_rgb_requested_brightness(i32::from(keyboard.brightness));
+            ui.set_rgb_requested_brightness(i32::from(display_brightness));
             ui.set_rgb_requested_effect(i32::from(keyboard.effect));
             ui.set_rgb_requested_boot_effect(keyboard.boot_effect);
             ui.set_rgb_requested_sleep_enabled(keyboard.sleep_enabled);
