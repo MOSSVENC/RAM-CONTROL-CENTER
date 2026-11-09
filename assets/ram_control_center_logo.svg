@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <rect width="512" height="512" rx="108" fill="#090E15"/>
+  <rect x="20" y="20" width="472" height="472" rx="92" fill="none" stroke="#223244" stroke-width="4"/>
+  <g shape-rendering="crispEdges">
+    <!-- RAM pixel monogram: three 3×5 glyphs on a shared 8 px grid. -->
+    <g fill="#EAF5FF">
+      <!-- R -->
+      <rect x="72" y="152" width="32" height="32" fill="#6EA8FF"/><rect x="112" y="152" width="32" height="32" fill="#6EA8FF"/><rect x="152" y="152" width="32" height="32" fill="#6EA8FF"/>
+      <rect x="72" y="192" width="32" height="32" fill="#EAF5FF"/><rect x="152" y="192" width="32" height="32" fill="#EAF5FF"/>
+      <rect x="72" y="232" width="32" height="32" fill="#6EA8FF"/><rect x="112" y="232" width="32" height="32" fill="#6EA8FF"/><rect x="152" y="232" width="32" height="32" fill="#6EA8FF"/>
+      <rect x="72" y="272" width="32" height="32" fill="#EAF5FF"/><rect x="112" y="272" width="32" height="32" fill="#EAF5FF"/>
+      <rect x="72" y="312" width="32" height="32" fill="#EAF5FF"/><rect x="152" y="312" width="32" height="32" fill="#65E0C4"/>
+      <!-- A -->
+      <rect x="232" y="152" width="32" height="32" fill="#65E0C4"/>
+      <rect x="192" y="192" width="32" height="32"/><rect x="272" y="192" width="32" height="32"/>
+      <rect x="192" y="232" width="32" height="32"/><rect x="232" y="232" width="32" height="32"/><rect x="272" y="232" width="32" height="32"/>
+      <rect x="192" y="272" width="32" height="32"/><rect x="272" y="272" width="32" height="32"/>
+      <rect x="192" y="312" width="32" height="32"/><rect x="272" y="312" width="32" height="32"/>
+      <!-- M -->
+      <rect x="312" y="152" width="32" height="32"/><rect x="392" y="152" width="32" height="32"/>
+      <rect x="312" y="192" width="32" height="32"/><rect x="352" y="192" width="32" height="32"/><rect x="392" y="192" width="32" height="32"/>
+      <rect x="312" y="232" width="32" height="32"/><rect x="352" y="232" width="32" height="32"/><rect x="392" y="232" width="32" height="32"/>
+      <rect x="312" y="272" width="32" height="32"/><rect x="392" y="272" width="32" height="32"/>
+      <rect x="312" y="312" width="32" height="32"/><rect x="392" y="312" width="32" height="32"/>
+    </g>
+  </g>
+  <g fill="#6EA8FF" opacity="0.72" shape-rendering="crispEdges">
+    <rect x="80" y="400" width="16" height="16"/>
+    <rect x="416" y="400" width="16" height="16" fill="#65E0C4"/>
+  </g>
+</svg>

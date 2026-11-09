@@ -71,6 +71,13 @@ impl CommandOutcome {
         }
     }
 
+    pub(super) fn silent_success() -> Self {
+        Self {
+            status: None,
+            sync_selection: true,
+        }
+    }
+
     pub(super) fn failure(message: impl ToString) -> Self {
         Self::with_tone(message.to_string(), 2)
     }
@@ -93,8 +100,7 @@ impl CommandOutcome {
     }
 
     pub(super) fn missing_transport() -> Self {
-        Self::failure(tr("Hardware transport is unavailable.", "硬件通道不可用。"))
-            .without_selection_sync()
+        Self::failure(tr("Hardware transport is unavailable.")).without_selection_sync()
     }
 
     pub(super) fn without_selection_sync(mut self) -> Self {
@@ -132,8 +138,7 @@ impl WorkerRuntime {
                 snapshot::push_update(
                     &weak,
                     UiUpdate {
-                        transport_detail: tr("Signed codec not found", "未找到签名编解码库")
-                            .to_owned(),
+                        transport_detail: tr("Signed codec not found").to_owned(),
                         status: Some((error.to_string(), 2)),
                         ..UiUpdate::default()
                     },
@@ -207,7 +212,7 @@ impl WorkerRuntime {
                     self.finish(power_fan::apply_low_refresh(self.dchu.as_ref(), enabled));
                 }
                 Ok(WorkerCommand::ApplyDisplayToggle(toggle, enabled)) => {
-                    self.finish(io_controls::apply_display_toggle(
+                    self.finish_display_toggle(io_controls::apply_display_toggle(
                         self.dchu.as_ref(),
                         toggle,
                         enabled,
@@ -283,6 +288,12 @@ impl WorkerRuntime {
         self.push_quick(false);
     }
 
+    fn finish_display_toggle(&mut self, outcome: CommandOutcome) {
+        self.status = outcome.status;
+        self.sync_selection_once |= outcome.sync_selection;
+        self.push_quick_with_display_care(false);
+    }
+
     fn push(&mut self, sync_selection: bool, extended_reads: bool) {
         snapshot::push_snapshot(
             &self.weak,
@@ -295,10 +306,19 @@ impl WorkerRuntime {
             },
             sync_selection,
             extended_reads,
+            extended_reads,
         );
     }
 
     fn push_quick(&mut self, sync_selection: bool) {
+        self.push_quick_inner(sync_selection, false);
+    }
+
+    fn push_quick_with_display_care(&mut self, sync_selection: bool) {
+        self.push_quick_inner(sync_selection, true);
+    }
+
+    fn push_quick_inner(&mut self, sync_selection: bool, refresh_display_care: bool) {
         snapshot::push_snapshot(
             &self.weak,
             &mut self.sampler,
@@ -310,6 +330,7 @@ impl WorkerRuntime {
             },
             sync_selection,
             false,
+            refresh_display_care,
         );
     }
 
@@ -317,10 +338,7 @@ impl WorkerRuntime {
         if self.dchu.is_none() {
             match Dchu::open() {
                 Ok(opened) => {
-                    self.status = Some((
-                        tr("Signed DCHU transport connected.", "签名 DCHU 通道已连接。").to_owned(),
-                        1,
-                    ));
+                    self.status = Some((tr("Signed DCHU transport connected.").to_owned(), 1));
                     self.dchu = Some(opened);
                 }
                 Err(error) => self.status = Some((error.to_string(), 2)),
@@ -337,10 +355,7 @@ impl WorkerRuntime {
         if self.dchu.is_none() && Instant::now() >= self.next_retry {
             if let Ok(opened) = Dchu::open() {
                 self.dchu = Some(opened);
-                self.status = Some((
-                    tr("Signed DCHU transport connected.", "签名 DCHU 通道已连接。").to_owned(),
-                    1,
-                ));
+                self.status = Some((tr("Signed DCHU transport connected.").to_owned(), 1));
             }
             self.next_retry = Instant::now() + Duration::from_secs(5);
         }

@@ -2,7 +2,7 @@
 //!
 //! The vendor exposes its macro/filter API through `HKFltrLib.dll`, but the
 //! device itself is a normal signed control device. The recovered interface
-//! GUID is used here so Neo Control can talk to `HKKbdFltr.sys` without
+//! GUID is used here so RAM CONTROL CENTER can talk to `HKKbdFltr.sys` without
 //! loading any vendor user-mode DLL.
 
 #[cfg(any(windows, test))]

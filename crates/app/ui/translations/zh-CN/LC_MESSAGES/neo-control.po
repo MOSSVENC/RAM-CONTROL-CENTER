@@ -27,8 +27,8 @@ msgstr "已禁用"
 msgid "Initialize"
 msgstr "初始化"
 
-msgid "NEO CONTROL"
-msgstr "NEO CONTROL"
+msgid "RAM CONTROL CENTER"
+msgstr "RAM CONTROL CENTER"
 
 msgid "Connecting to DCHU"
 msgstr "正在连接 DCHU"
@@ -54,11 +54,11 @@ msgstr "未初始化"
 msgid "Unavailable"
 msgstr "不可用"
 
-msgid "NEO"
-msgstr "NEO"
+msgid "RAM"
+msgstr "RAM"
 
-msgid "CONTROL"
-msgstr "CONTROL"
+msgid "CONTROL CENTER"
+msgstr "CONTROL CENTER"
 
 msgid "WORKSPACE"
 msgstr "工作区"
@@ -327,8 +327,8 @@ msgstr "起始阈值"
 msgid "Stop threshold"
 msgstr "停止阈值"
 
-msgid "Restart Windows once to refresh the DCHU charge channel. Neo Control then applies each charge policy through the signed AcpiBridge device and verifies the result."
-msgstr "重启一次 Windows 以刷新 DCHU 充电通道。随后 Neo Control 会通过签名 AcpiBridge 设备应用每一项充电策略并校验结果。"
+msgid "Restart Windows once to refresh the DCHU charge channel. RAM CONTROL CENTER then applies each charge policy through the signed AcpiBridge device and verifies the result."
+msgstr "重启一次 Windows 以刷新 DCHU 充电通道。随后 RAM CONTROL CENTER 会通过签名 AcpiBridge 设备应用每一项充电策略并校验结果。"
 
 msgid "Signed transport identity and vendor preferences reported by DCHU settings."
 msgstr "签名通道身份，以及 DCHU 设置报告的厂商偏好。"
@@ -420,8 +420,8 @@ msgstr "动画"
 msgid "Soft fade · immediate response"
 msgstr "柔和淡化 · 即时响应"
 
-msgid "Neo Control uses the Slint winit renderer. The scene is composed by the GPU; the hardware worker only samples telemetry off the UI thread."
-msgstr "Neo Control 使用 Slint winit 渲染器，画面由 GPU 合成；硬件采样在工作线程中进行，不阻塞 UI。"
+msgid "RAM CONTROL CENTER uses the Slint winit renderer. The scene is composed by the GPU; the hardware worker only samples telemetry off the UI thread."
+msgstr "RAM CONTROL CENTER 使用 Slint winit 渲染器，画面由 GPU 合成；硬件采样在工作线程中进行，不阻塞 UI。"
 
 msgid "If Windows graphics settings assign a specific adapter, the active backend string above remains the authoritative runtime report."
 msgstr "如果 Windows 图形设置指定了显卡，以上运行时后端字符串仍是最终权威结果。"
@@ -468,8 +468,8 @@ msgstr "可配置"
 msgid "Restart to refresh"
 msgstr "重启后刷新"
 
-msgid "Set the charge ceiling through DCHU command 4. Neo Control verifies the persisted mode and live thresholds."
-msgstr "通过 DCHU 命令 4 设置充电上限。Neo Control 会校验持久化模式与实时阈值。"
+msgid "Set the charge ceiling through DCHU command 4. RAM CONTROL CENTER verifies the persisted mode and live thresholds."
+msgstr "通过 DCHU 命令 4 设置充电上限。RAM CONTROL CENTER 会校验持久化模式与实时阈值。"
 
 msgid "100%"
 msgstr "100%"
@@ -1106,3 +1106,432 @@ msgstr "可用"
 
 msgid "Detecting"
 msgstr "检测中"
+
+msgid "A new FlexiKey profile was created and activated."
+msgstr "新的 FlexiKey 配置已创建并启用。"
+
+msgid "AC connected"
+msgstr "AC 已连接"
+
+msgid "AC online"
+msgstr "AC 已连接"
+
+msgid "AcpiBridge is online. The current release does not require HKKbdFltr."
+msgstr "AcpiBridge 已在线，当前版本不需要 HKKbdFltr。"
+
+msgid "AcpiBridge is online. The optional keyboard filter is also available."
+msgstr "AcpiBridge 已在线，可选的键盘过滤器也已就绪。"
+
+msgid "Action engine rejected the binding"
+msgstr "动作引擎拒绝了该绑定"
+
+msgid "Action engine rejected the change"
+msgstr "动作引擎拒绝了更改"
+
+msgid "Action engine rejected the profile"
+msgstr "动作引擎拒绝了该配置"
+
+msgid "Action engine unavailable"
+msgstr "动作引擎不可用"
+
+msgid "Activated and saved"
+msgstr "已启用并保存："
+
+msgid "Administrator permission is required."
+msgstr "需要管理员权限。"
+
+msgid "Administrator permission was not granted."
+msgstr "未获得管理员授权。"
+
+msgid "Anti-dust routine started."
+msgstr "防尘清洁已启动。"
+
+msgid "Anti-dust schedule applied."
+msgstr "防尘计划已应用。"
+
+msgid "Applying Quiet mode and staging the GPU choice…"
+msgstr "正在应用静音模式并暂存显卡策略…"
+
+msgid "Applying fan policy:"
+msgstr "正在应用风扇策略："
+
+msgid "Applying power profile:"
+msgstr "正在应用电源配置："
+
+msgid "Applying the anti-dust schedule…"
+msgstr "正在应用防尘计划…"
+
+msgid "At least one FlexiKey profile must remain."
+msgstr "必须至少保留一个 FlexiKey 配置。"
+
+msgid "Battery power"
+msgstr "电池供电"
+
+msgid "Binding removed from profile.xml and the input engine."
+msgstr "绑定已从 profile.xml 和输入引擎中移除。"
+
+msgid "Binding saved to profile.xml and loaded into the input engine."
+msgstr "绑定已保存到 profile.xml，并载入输入引擎。"
+
+msgid "Capture canceled"
+msgstr "已取消捕获"
+
+msgid "Charging"
+msgstr "充电中"
+
+msgid "Choose a trigger device"
+msgstr "请选择触发设备"
+
+msgid "Connected · not charging"
+msgstr "已连接 · 未充电"
+
+msgid "Could not create profile"
+msgstr "无法创建配置"
+
+msgid "Could not delete profile"
+msgstr "无法删除配置"
+
+msgid "Could not rename profile"
+msgstr "无法重命名配置"
+
+msgid "Could not save profile.xml"
+msgstr "无法保存 profile.xml"
+
+msgid "Could not start driver installation."
+msgstr "无法启动驱动安装。"
+
+msgid "Custom curve"
+msgstr "自定义曲线"
+
+msgid "Custom fan curve written; block-13 runtime table read back successfully."
+msgstr "自定义风扇曲线已写入，block 13 运行时表读回成功。"
+
+msgid "DCHU connected"
+msgstr "DCHU 已连接"
+
+msgid "DCHU preference write failed"
+msgstr "DCHU 偏好写入失败"
+
+msgid "DCHU unavailable"
+msgstr "DCHU 不可用"
+
+msgid "Device mode:"
+msgstr "设备模式："
+
+msgid "Disabled trigger"
+msgstr "禁用触发"
+
+msgid "Discharging"
+msgstr "放电中"
+
+msgid "Discrete GPU"
+msgstr "独立显卡"
+
+msgid "Driver installation completed."
+msgstr "驱动安装已完成。"
+
+msgid "Driver installation failed."
+msgstr "驱动安装失败。"
+
+msgid "Driver installation failed. Check driver-install.log."
+msgstr "驱动安装失败，请检查 driver-install.log。"
+
+msgid "Driver installed but not responding"
+msgstr "驱动已安装但未响应"
+
+msgid "Driver package is missing next to the application."
+msgstr "应用目录中缺少驱动包。"
+
+msgid "Driver package missing"
+msgstr "缺少驱动包"
+
+msgid "Driver package missing."
+msgstr "缺少驱动包。"
+
+msgid "Driver was installed but did not come online. Restart Windows and retry."
+msgstr "驱动已安装但未上线，请重启 Windows 后重试。"
+
+msgid "Dynamic"
+msgstr "动态"
+
+msgid "Enter a hotkey sequence for the new binding"
+msgstr "请为新绑定输入快捷键组合"
+
+msgid "Enter a launch target"
+msgstr "请输入要启动的程序或文档"
+
+msgid "Enter or capture a trigger key"
+msgstr "请选择或输入触发按键"
+
+msgid "Extended transport"
+msgstr "扩展通道"
+
+msgid "FlexiKey profile deleted and the next profile activated."
+msgstr "FlexiKey 配置已删除，并启用下一个配置。"
+
+msgid "FlexiKey profile name saved."
+msgstr "FlexiKey 配置名称已保存。"
+
+msgid "FlexiKey trigger devices saved and reloaded."
+msgstr "FlexiKey 触发设备已保存并重新载入。"
+
+msgid "Fn lock"
+msgstr "Fn 键锁定"
+
+msgid "Hardware transport is unavailable."
+msgstr "硬件通道不可用。"
+
+msgid "IQST"
+msgstr "IQST"
+
+msgid "Input hooks active"
+msgstr "输入钩子已启用"
+
+msgid "Integrated GPU"
+msgstr "集成显卡"
+
+msgid "Invalid 16-bit key code"
+msgstr "无效的 16 位按键代码"
+
+msgid "Listening for one key or mouse button…"
+msgstr "正在监听一个按键或鼠标按钮…"
+
+msgid "Loaded"
+msgstr "已载入"
+
+msgid "Lowest panel refresh rate enabled."
+msgstr "已启用最低屏幕刷新率。"
+
+msgid "MaxQ"
+msgstr "MaxQ"
+
+msgid "Monitor timeouts applied and read back."
+msgstr "显示器超时已应用并读回。"
+
+msgid "Mouse Back"
+msgstr "鼠标后退"
+
+msgid "Mouse Button"
+msgstr "鼠标按钮"
+
+msgid "Mouse Forward"
+msgstr "鼠标前进"
+
+msgid "Mouse Left"
+msgstr "鼠标左键"
+
+msgid "Mouse Middle"
+msgstr "鼠标中键"
+
+msgid "Mouse Right"
+msgstr "鼠标右键"
+
+msgid "Mouse triggers must be left, right, middle, back or forward"
+msgstr "鼠标触发只支持左键、右键、中键、后退和前进"
+
+msgid "NVML unavailable"
+msgstr "NVML 不可用"
+
+msgid "No battery detected"
+msgstr "未检测到电池"
+
+msgid "No profiles are available."
+msgstr "当前没有可用的配置文件。"
+
+msgid "Not located"
+msgstr "未找到"
+
+msgid "Panel refresh rate restored."
+msgstr "已恢复屏幕刷新率。"
+
+msgid "Personal"
+msgstr "个人配置"
+
+msgid "Profile"
+msgstr "配置"
+
+msgid "Profile XML unavailable:"
+msgstr "配置 XML 不可用："
+
+msgid "Profile name cannot be empty."
+msgstr "配置名称不能为空。"
+
+msgid "Put the signed AcpiBridge package in the drivers folder."
+msgstr "请将签名的 AcpiBridge 驱动包放入 drivers 文件夹。"
+
+msgid "Quiet mode applied, but GPU staging failed:"
+msgstr "静音模式已应用，但显卡策略暂存失败："
+
+msgid "Quiet mode applied."
+msgstr "静音模式已应用。"
+
+msgid "Quiet mode applied. Discrete GPU disable was staged for the next reboot."
+msgstr "静音模式已应用。关闭独显已暂存，将在下次重启后生效。"
+
+msgid "Renderer initialization timed out"
+msgstr "渲染器初始化超时"
+
+msgid "Required driver is already ready."
+msgstr "必需驱动已就绪。"
+
+msgid "Required driver missing"
+msgstr "缺少必需驱动"
+
+msgid "Runtime table unavailable"
+msgstr "运行时风扇表不可用"
+
+msgid "Screen saver applied and read back."
+msgstr "屏幕保护程序已应用并读回。"
+
+msgid "Signed AcpiBridge device not found"
+msgstr "未找到签名 AcpiBridge 设备"
+
+msgid "Signed DCHU transport connected."
+msgstr "签名 DCHU 通道已连接。"
+
+msgid "Signed codec not found"
+msgstr "未找到签名编解码库"
+
+msgid "Start with Windows disabled."
+msgstr "已关闭登录启动。"
+
+msgid "Start with Windows enabled."
+msgstr "已启用登录启动。"
+
+msgid "Starting the anti-dust routine…"
+msgstr "正在启动防尘清洁…"
+
+msgid "Startup setting failed"
+msgstr "启动设置失败"
+
+msgid "The selected binding no longer exists"
+msgstr "所选绑定已不存在"
+
+msgid "The signed OEM driver package is available next to the application."
+msgstr "应用目录中已找到签名的原厂驱动包。"
+
+msgid "Trigger captured. Choose the action and save."
+msgstr "已捕获触发按键，请选择动作并保存。"
+
+msgid "Unknown"
+msgstr "未知"
+
+msgid "Unknown action type"
+msgstr "未知的动作类型"
+
+msgid "Updating monitor timeouts…"
+msgstr "正在更新显示器超时…"
+
+msgid "Updating screen-saver state…"
+msgstr "正在更新屏幕保护程序…"
+
+msgid "Waiting for administrator permission…"
+msgstr "正在等待管理员授权…"
+
+msgid "Writing and verifying the custom fan curve…"
+msgstr "正在写入并校验自定义风扇曲线…"
+
+msgid "action engine reloaded"
+msgstr "动作引擎已重新加载"
+
+msgid "binding(s)"
+msgstr "条绑定"
+
+msgid "channels"
+msgstr "通道"
+
+msgid "disabled"
+msgstr "禁用"
+
+msgid "enabled"
+msgstr "启用"
+
+msgid "keyboard"
+msgstr "键盘"
+
+msgid "keyboard action(s)"
+msgstr "个键盘动作"
+
+msgid "mask"
+msgstr "掩码"
+
+msgid "mouse"
+msgstr "鼠标"
+
+msgid "mouse action(s)"
+msgstr "个鼠标动作"
+
+msgid "profile(s) from CC4.0 XML"
+msgstr "个来自 CC4.0 XML 的配置文件"
+
+msgid "profile.xml was not found. A blank profile is ready; saving a binding creates the file."
+msgstr "未找到 profile.xml。已准备空白配置，保存绑定时会创建此文件。"
+
+msgid "set to "
+msgstr "已设为"
+
+msgid "start"
+msgstr "起始"
+
+msgid "steps"
+msgstr "步"
+
+msgid "stop"
+msgstr "停止"
+
+msgid "unused"
+msgstr "未使用"
+
+msgid "hours"
+msgstr "小时"
+
+msgid "minutes"
+msgstr "分钟"
+
+msgid "h"
+msgstr "h"
+
+msgid "min"
+msgstr "min"
+
+msgid "Open RAM CONTROL CENTER"
+msgstr "打开 RAM CONTROL CENTER"
+
+msgid "Exit"
+msgstr "退出"
+
+msgid "Shortcut text is too long"
+msgstr "快捷键文本过长"
+
+msgid "Enter a shortcut, for example Ctrl+Shift+S"
+msgstr "请输入快捷键，例如 Ctrl+Shift+S"
+
+msgid "Shortcut combination"
+msgstr "快捷键组合"
+
+msgid "has no valid keys"
+msgstr "没有有效按键"
+
+msgid "Too many shortcut actions; split them into shorter sequences"
+msgstr "快捷键动作过多，请拆分成更短的组合"
+
+msgid "Unrecognized key code"
+msgstr "无法识别按键代码"
+
+msgid "Key code cannot be 0"
+msgstr "按键代码不能为 0"
+
+msgid "Function key is unsupported"
+msgstr "不支持功能键"
+
+msgid "Character key is unsupported"
+msgstr "暂不支持字符键"
+
+msgid "use a 0xNN scan code"
+msgstr "请使用 0xNN 扫描码"
+
+msgid "Unrecognized key"
+msgstr "无法识别按键"
+
+msgid "No scan code is available for key"
+msgstr "系统没有为按键提供扫描码"

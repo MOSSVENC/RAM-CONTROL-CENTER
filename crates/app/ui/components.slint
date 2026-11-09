@@ -1003,7 +1003,7 @@ export component ToggleStatusRow inherits Rectangle {
                     background: root.value && root.known ? Palette.green : Palette.surface-hi;
                     border-width: 1px;
                     border-color: root.value && root.known ? Palette.green : Palette.line-hi;
-                    animate x { duration: 240ms; easing: ease-out-back; }
+                    animate x { duration: 180ms; easing: cubic-bezier(0.2, 0, 0, 1); }
                     animate background { duration: 200ms; easing: cubic-bezier(0.2, 0, 0, 1); }
                     animate border-color { duration: 200ms; easing: cubic-bezier(0.2, 0, 0, 1); }
                 }

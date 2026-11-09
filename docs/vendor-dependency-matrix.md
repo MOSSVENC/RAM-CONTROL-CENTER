@@ -15,18 +15,18 @@ UEFI/ACPI 固件
             └─ 自定义设备接口 {86994c74-ad43-4812-b7e7-0c420b5c5fd7}
                  ├─ InsydeDCHU.dll（厂商用户态包装层，可替换）
                  ├─ FnKey.exe / CC40.exe（厂商用户态应用，可替换）
-                 └─ Neo Control（直接 CreateFileW + DeviceIoControl）
+                 └─ RAM CONTROL CENTER（直接 CreateFileW + DeviceIoControl）
 ```
 
 因此：
 
 - `InsydeDCHU.dll` 不是平台；它只是 `AcpiBridge.sys` 的用户态包装层。
-- Neo Control 已经自行实现该包装层对应的协议，不加载、不转发、不启动任何厂商用户态组件。
+- RAM CONTROL CENTER 已经自行实现该包装层对应的协议，不加载、不转发、不启动任何厂商用户态组件。
 - `AcpiBridge.sys` 及其 PnP 设备是整个私有控制协议真正不可跳过的边界。
 - 没有这个已签名内核驱动，普通用户态程序不能直接执行厂商的 ACPI `_DSM` 控制方法。
 - 本机虽然存在 Microsoft 的 `ACPI\PNP0C14` WMI 设备，但厂商 `CLEVO_GET`/`CLEVO_EVENT` WMI 类没有注册成功，不能作为当前可用的驱动替代路径。
 
-## Neo Control 的实际依赖
+## RAM CONTROL CENTER 的实际依赖
 
 ### 必须保留
 
@@ -114,12 +114,12 @@ Clevo_ANX.zip        299558bf87ac0b222e7225199de1e547b0057c9444390ebea77a04f7b32
 Clevo_USB3.zip       24b73f2427364a6773872dffbdfe642916bc5f4d5e6422192263dd3ee778c7bf
 ```
 
-## 为什么 Neo Control 不是命令转发器
+## 为什么 RAM CONTROL CENTER 不是命令转发器
 
 对部署的 `C:\ProgramData\NeoControl\neo-control.exe` 做 PE 和进程检查：
 
 - 导入表没有 `InsydeDCHU.dll`、`HKFltrLib.dll`、`CC40.exe`、`FnKey.exe`；
-- 运行中的 Neo Control 模块列表没有加载任何厂商控制 DLL；
+- 运行中的 RAM CONTROL CENTER 模块列表没有加载任何厂商控制 DLL；
 - 二进制直接包含设备路径和 IOCTL 常量；
 - Rust 代码自行构造 `_DSM` 请求，解析 `AeoB` 描述符响应，自行编码 AppSettings 和键盘过滤帧；
 - 不启动 `DCHUService`、`CCDCHUService`、`FnKey.exe` 或 `CC40.exe`。
@@ -134,7 +134,7 @@ command=12 returned=272
 
 `AeoB` 响应和 272 字节有效载荷证明 Rust 进程可以直接访问 `AcpiBridge` 设备。
 
-Neo Control 自己唯一主动启动的服务是 `AcpiBridge`。`NeoControlBoot` 的服务依赖也是 `AcpiBridge`，这是为了在用户 shell 之前恢复平台功耗状态。
+RAM CONTROL CENTER 自己唯一主动启动的服务是 `AcpiBridge`。`NeoControlBoot` 的服务依赖也是 `AcpiBridge`，这是为了在用户 shell 之前恢复平台功耗状态。
 
 ## 如果清理所有厂商用户态
 

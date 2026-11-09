@@ -117,12 +117,12 @@ mod tests {
     #[test]
     fn registry_values_round_trip_and_missing_values_are_none() {
         let _ = write_registry_dword(TEST_KEY, "dword", 42);
-        let _ = write_registry_string(TEST_KEY, "string", "Neo Control");
+        let _ = write_registry_string(TEST_KEY, "string", "RAM CONTROL CENTER");
 
         assert_eq!(read_registry_dword(TEST_KEY, "dword").unwrap(), Some(42));
         assert_eq!(
             read_registry_string(TEST_KEY, "string").unwrap().as_deref(),
-            Some("Neo Control")
+            Some("RAM CONTROL CENTER")
         );
         assert_eq!(read_registry_dword(TEST_KEY, "absent").unwrap(), None);
 

@@ -121,7 +121,7 @@ The same executable is registered as the native Windows service
 
 Verified service configuration:
 
-- display name: `Neo Control Boot Agent`;
+- display name: `RAM CONTROL CENTER Boot Agent`;
 - account: `LocalSystem`;
 - start mode: automatic;
 - dependency: signed `AcpiBridge` driver;
@@ -472,6 +472,28 @@ Deployed Release artifact:
 size    11,052,032 bytes
 sha256  753efd672d7d261163ab72148b7098671f5ec905461f5223a10ac4071f36daab
 ```
+
+### Product frame and display-care response (2026-11-09)
+
+The main window now uses the standard Windows application frame and remains
+resizable between 1180×820 and 1920×1200. A native Windows capture confirmed
+the minimize, maximize and system-menu style bits are present. The pixel RAM
+mark is embedded as SVG for Slint and as a multi-resolution ICO for the tray.
+
+The three display-care toggles now update their bound values on the click path,
+then read the resulting Windows state immediately after the serialized command
+finishes. They do not wait for the periodic extended snapshot. A full Release
+build containing this change was deployed to the Windows host:
+
+```text
+size    11,070,976 bytes
+sha256  a3126687602860e0ecb2b0657bbf98d63106645bf723fe933a4cdb46e452e37c
+```
+
+An interactive display-care click/readback pass could not be completed in this
+session because the WSL-to-Windows PowerShell bridge timed out during the UI
+automation attempt. The backend/settings readiness check and the window-frame
+capture completed separately.
 
 ## 2026-11-06 interaction audit
 

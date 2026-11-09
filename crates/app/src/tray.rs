@@ -27,17 +27,18 @@ mod platform {
     };
     use windows_sys::Win32::UI::WindowsAndMessaging::{
         AppendMenuW, CreateIconFromResourceEx, CreatePopupMenu, CreateWindowExW, DefWindowProcW,
-        DestroyIcon, DestroyMenu, DestroyWindow, DispatchMessageW, FindWindowW, GWL_EXSTYLE,
-        GetCursorPos, GetMessageW, GetSystemMetrics, GetWindowLongPtrW, GetWindowRect, HICON,
-        HWND_TOP, IDI_APPLICATION, LR_DEFAULTCOLOR, LoadIconW, MF_STRING, PostMessageW,
-        PostQuitMessage, RegisterClassW, RegisterWindowMessageW, SM_CXSCREEN, SM_CYSCREEN, SW_HIDE,
-        SW_RESTORE, SW_SHOW, SWP_NOZORDER, SWP_SHOWWINDOW, SetForegroundWindow, SetWindowLongPtrW,
-        SetWindowPos, ShowWindow, TPM_NONOTIFY, TPM_RETURNCMD, TPM_RIGHTBUTTON, TrackPopupMenu,
-        TranslateMessage, WM_APP, WM_CLOSE, WM_COMMAND, WM_CONTEXTMENU, WM_DESTROY, WM_LBUTTONUP,
-        WM_RBUTTONUP, WNDCLASSW, WS_EX_TOOLWINDOW, WS_OVERLAPPED,
+        DestroyIcon, DestroyMenu, DestroyWindow, DispatchMessageW, FindWindowW, GetCursorPos,
+        GetMessageW, GetSystemMetrics, GetWindowRect, HICON, HWND_TOP, IDI_APPLICATION,
+        LR_DEFAULTCOLOR, LoadIconW, MF_STRING, PostMessageW, PostQuitMessage, RegisterClassW,
+        RegisterWindowMessageW, SM_CXSCREEN, SM_CYSCREEN, SW_HIDE, SW_RESTORE, SW_SHOW,
+        SWP_NOZORDER, SWP_SHOWWINDOW, SetForegroundWindow, SetWindowPos, ShowWindow, TPM_NONOTIFY,
+        TPM_RETURNCMD, TPM_RIGHTBUTTON, TrackPopupMenu, TranslateMessage, WM_APP, WM_CLOSE,
+        WM_COMMAND, WM_CONTEXTMENU, WM_DESTROY, WM_LBUTTONUP, WM_RBUTTONUP, WNDCLASSW,
+        WS_OVERLAPPED,
     };
 
     use crate::MainWindow;
+    use crate::localization::tr;
 
     const TRAY_ID: u32 = 1;
     const TRAY_MESSAGE: u32 = WM_APP + 1;
@@ -45,9 +46,9 @@ mod platform {
     const MENU_OPEN: usize = 1;
     const MENU_EXIT: usize = 2;
     const WINDOW_CLASS: &str = "NeoControlTrayWindow";
-    const WINDOW_TITLE: &str = "Neo Control";
+    const WINDOW_TITLE: &str = "RAM CONTROL CENTER";
     const MUTEX_NAME: &str = "Local\\NeoControlUiInstance";
-    const ICON_BYTES: &[u8] = include_bytes!("../../../assets/neo_control_logo.ico");
+    const ICON_BYTES: &[u8] = include_bytes!("../../../assets/ram_control_center_logo.ico");
 
     struct TrayContext {
         window: usize,
@@ -131,19 +132,6 @@ mod platform {
         }
     }
 
-    fn make_tool_window(window: usize) {
-        if window == 0 {
-            return;
-        }
-        let window = window as HWND;
-        // SAFETY: `window` is a live top-level HWND and GetWindowLongPtrW /
-        // SetWindowLongPtrW operate on that same owned window.
-        unsafe {
-            let style = GetWindowLongPtrW(window, GWL_EXSTYLE);
-            SetWindowLongPtrW(window, GWL_EXSTYLE, style | WS_EX_TOOLWINDOW as isize);
-        }
-    }
-
     pub fn main_window_handle(ui: &MainWindow) -> Option<usize> {
         let handle = ui.window().window_handle();
         if let Ok(raw) = handle.window_handle()
@@ -151,7 +139,7 @@ mod platform {
         {
             return Some(window.hwnd.get() as usize);
         }
-        let title = wide("NEO CONTROL");
+        let title = wide("RAM CONTROL CENTER");
         // SAFETY: `title` is NUL-terminated and remains alive for the call.
         let window = unsafe { FindWindowW(ptr::null(), title.as_ptr()) };
         (!window.is_null()).then_some(window as usize)
@@ -228,7 +216,6 @@ mod platform {
 
     impl Tray {
         pub fn start(ui: slint::Weak<MainWindow>, main_window: usize) -> Result<Self, String> {
-            make_tool_window(main_window);
             let (ready_tx, ready_rx) = mpsc::channel();
             thread::spawn(move || {
                 if let Err(error) = run_tray_thread(ui, main_window, ready_tx.clone()) {
@@ -430,7 +417,7 @@ mod platform {
             return false;
         };
         let (icon, tip) = match context.lock() {
-            Ok(context) => (context.icon as HICON, wide("Neo Control")),
+            Ok(context) => (context.icon as HICON, wide("RAM CONTROL CENTER")),
             Err(_) => return false,
         };
         let mut data = notify_data(hwnd, icon);
@@ -458,8 +445,8 @@ mod platform {
     }
 
     fn show_menu(hwnd: HWND) {
-        let open = wide("打开 Neo Control");
-        let exit = wide("退出");
+        let open = wide(tr("Open RAM CONTROL CENTER"));
+        let exit = wide(tr("Exit"));
         // SAFETY: `hwnd` is the live tray window. The menu and both menu labels
         // stay alive until after TrackPopupMenu and DestroyMenu complete.
         unsafe {

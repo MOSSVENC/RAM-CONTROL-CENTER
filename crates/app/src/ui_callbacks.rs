@@ -186,7 +186,7 @@ pub(crate) fn wire_ui(
             ui.set_status_message(
                 format!(
                     "{} {}",
-                    tr("Applying power profile:", "正在应用电源配置："),
+                    tr("Applying power profile:"),
                     localized_power_label(mode)
                 )
                 .into(),
@@ -211,7 +211,7 @@ pub(crate) fn wire_ui(
             ui.set_status_message(
                 format!(
                     "{} {}",
-                    tr("Applying fan policy:", "正在应用风扇策略："),
+                    tr("Applying fan policy:"),
                     localized_fan_label(mode)
                 )
                 .into(),
@@ -291,13 +291,7 @@ pub(crate) fn wire_ui(
         };
         log_action("apply-fan-curve callback");
         ui.set_busy(true);
-        ui.set_status_message(
-            tr(
-                "Writing and verifying the custom fan curve…",
-                "正在写入并校验自定义风扇曲线…",
-            )
-            .into(),
-        );
+        ui.set_status_message(tr("Writing and verifying the custom fan curve…").into());
         ui.set_status_tone(0);
         let _ = tx.send(WorkerCommand::ApplyFanCurve(curve));
     });
@@ -308,13 +302,7 @@ pub(crate) fn wire_ui(
         if let Some(ui) = weak.upgrade() {
             ui.set_quiet_dialog_open(false);
             ui.set_busy(true);
-            ui.set_status_message(
-                tr(
-                    "Applying Quiet mode and staging the GPU choice…",
-                    "正在应用静音模式并暂存显卡策略…",
-                )
-                .into(),
-            );
+            ui.set_status_message(tr("Applying Quiet mode and staging the GPU choice…").into());
             ui.set_status_tone(0);
         }
         let _ = tx.send(WorkerCommand::ApplyQuiet(disable_dgpu));
@@ -335,13 +323,7 @@ pub(crate) fn wire_ui(
         };
         if let Some(ui) = weak.upgrade() {
             ui.set_busy(true);
-            ui.set_status_message(
-                tr(
-                    "Staging the GPU mode for the next boot…",
-                    "正在为下次启动暂存显卡模式…",
-                )
-                .into(),
-            );
+            ui.set_status_message(tr("Staging the GPU mode for the next boot…").into());
             ui.set_status_tone(0);
         }
         let _ = tx.send(WorkerCommand::ApplyGpuSwitch(mode));
@@ -361,7 +343,7 @@ pub(crate) fn wire_ui(
         };
         if let Some(ui) = weak.upgrade() {
             ui.set_busy(true);
-            ui.set_status_message(tr("Applying charge policy…", "正在应用充电策略…").into());
+            ui.set_status_message(tr("Applying charge policy…").into());
             ui.set_status_tone(0);
         }
         let _ = tx.send(WorkerCommand::ApplyFlexiCharger(mode, start, stop));
@@ -372,9 +354,7 @@ pub(crate) fn wire_ui(
     ui.on_apply_slow_fan(move |enabled| {
         if let Some(ui) = weak.upgrade() {
             ui.set_busy(true);
-            ui.set_status_message(
-                tr("Applying Noiseless fan mode…", "正在应用静音风扇模式…").into(),
-            );
+            ui.set_status_message(tr("Applying Noiseless fan mode…").into());
             ui.set_status_tone(0);
         }
         let _ = tx.send(WorkerCommand::ApplySlowFan(enabled));
@@ -385,7 +365,7 @@ pub(crate) fn wire_ui(
     ui.on_apply_turbo_fan(move |enabled| {
         if let Some(ui) = weak.upgrade() {
             ui.set_busy(true);
-            ui.set_status_message(tr("Applying Turbo fan…", "正在应用涡轮风扇…").into());
+            ui.set_status_message(tr("Applying Turbo fan…").into());
             ui.set_status_tone(0);
         }
         let _ = tx.send(WorkerCommand::ApplyTurboFan(enabled));
@@ -579,7 +559,7 @@ pub(crate) fn wire_ui(
             ),
         ];
         ui.set_busy(true);
-        ui.set_status_message(tr("Applying ten-point fan curve…", "正在应用十点风扇曲线…").into());
+        ui.set_status_message(tr("Applying ten-point fan curve…").into());
         ui.set_status_tone(0);
         let _ = tx.send(WorkerCommand::ApplyRpmEdit { cpu, gpu });
     });
@@ -592,7 +572,7 @@ pub(crate) fn wire_ui(
         };
         if let Some(ui) = weak.upgrade() {
             ui.set_busy(true);
-            ui.set_status_message(tr("Applying fan offset…", "正在应用风扇补偿…").into());
+            ui.set_status_message(tr("Applying fan offset…").into());
             ui.set_status_tone(0);
         }
         let _ = tx.send(WorkerCommand::ApplyFanOffset(percent));
@@ -603,9 +583,7 @@ pub(crate) fn wire_ui(
     ui.on_run_anti_dust(move || {
         if let Some(ui) = weak.upgrade() {
             ui.set_busy(true);
-            ui.set_status_message(
-                tr("Starting the anti-dust routine…", "正在启动防尘清洁…").into(),
-            );
+            ui.set_status_message(tr("Starting the anti-dust routine…").into());
             ui.set_status_tone(0);
         }
         let _ = tx.send(WorkerCommand::RunAntiDust);
@@ -628,9 +606,7 @@ pub(crate) fn wire_ui(
         }
         if let Some(ui) = weak.upgrade() {
             ui.set_busy(true);
-            ui.set_status_message(
-                tr("Applying the anti-dust schedule…", "正在应用防尘计划…").into(),
-            );
+            ui.set_status_message(tr("Applying the anti-dust schedule…").into());
             ui.set_status_tone(0);
         }
         let _ = tx.send(WorkerCommand::ApplyAntiDustSchedule(schedule));
@@ -644,7 +620,7 @@ pub(crate) fn wire_ui(
         };
         if let Some(ui) = weak.upgrade() {
             ui.set_busy(true);
-            ui.set_status_message(tr("Applying display brightness…", "正在应用屏幕亮度…").into());
+            ui.set_status_message(tr("Applying display brightness…").into());
             ui.set_status_tone(0);
         }
         let _ = tx.send(WorkerCommand::ApplyBrightness(percent));
@@ -658,7 +634,7 @@ pub(crate) fn wire_ui(
         };
         if let Some(ui) = weak.upgrade() {
             ui.set_busy(true);
-            ui.set_status_message(tr("Applying blue-light filter…", "正在应用蓝光滤镜…").into());
+            ui.set_status_message(tr("Applying blue-light filter…").into());
             ui.set_status_tone(0);
         }
         let _ = tx.send(WorkerCommand::ApplyBlueLight(level));
@@ -705,16 +681,13 @@ pub(crate) fn wire_ui(
             return;
         }
         if ui.get_driver_core_ready() {
-            ui.set_status_message(tr("Required driver is already ready.", "必需驱动已就绪。").into());
+            ui.set_status_message(tr("Required driver is already ready.").into());
             ui.set_status_tone(1);
             return;
         }
         if !ui.get_driver_payload_ready() {
             ui.set_status_message(
-                tr(
-                    "Driver package is missing next to the application.",
-                    "应用目录中缺少驱动包。",
-                )
+                tr("Driver package is missing next to the application.")
                 .into(),
             );
             ui.set_status_tone(2);
@@ -723,10 +696,7 @@ pub(crate) fn wire_ui(
 
         ui.set_driver_installing(true);
         ui.set_status_message(
-            tr(
-                "Waiting for administrator permission…",
-                "正在等待管理员授权…",
-            )
+            tr("Waiting for administrator permission…")
             .into(),
         );
         ui.set_status_tone(0);
@@ -740,40 +710,25 @@ pub(crate) fn wire_ui(
                     match result {
                         Ok(0) => {
                             ui.set_status_message(
-                                tr(
-                                    "Driver installation completed.",
-                                    "驱动安装已完成。",
-                                )
+                                tr("Driver installation completed.")
                                 .into(),
                             );
                             ui.set_status_tone(1);
                         }
                         Ok(code) => {
                             let message = match code {
-                                2 => tr("Driver package missing.", "缺少驱动包。"),
-                                3 => tr(
-                                    "Administrator permission is required.",
-                                    "需要管理员权限。",
-                                ),
-                                4 => tr(
-                                    "Driver installation failed. Check driver-install.log.",
-                                    "驱动安装失败，请检查 driver-install.log。",
-                                ),
-                                5 => tr(
-                                    "Driver was installed but did not come online. Restart Windows and retry.",
-                                    "驱动已安装但未上线，请重启 Windows 后重试。",
-                                ),
-                                _ => tr("Driver installation failed.", "驱动安装失败。"),
+                                2 => tr("Driver package missing."),
+                                3 => tr("Administrator permission is required."),
+                                4 => tr("Driver installation failed. Check driver-install.log."),
+                                5 => tr("Driver was installed but did not come online. Restart Windows and retry."),
+                                _ => tr("Driver installation failed."),
                             };
                             ui.set_status_message(format!("{message} ({code})").into());
                             ui.set_status_tone(2);
                         }
                         Err(InstallLaunchError::Cancelled) => {
                             ui.set_status_message(
-                                tr(
-                                    "Administrator permission was not granted.",
-                                    "未获得管理员授权。",
-                                )
+                                tr("Administrator permission was not granted.")
                                 .into(),
                             );
                             ui.set_status_tone(0);
@@ -782,10 +737,7 @@ pub(crate) fn wire_ui(
                             ui.set_status_message(
                                 format!(
                                     "{}: {error}",
-                                    tr(
-                                        "Could not start driver installation.",
-                                        "无法启动驱动安装。"
-                                    )
+                                    tr("Could not start driver installation.")
                                 )
                                 .into(),
                             );
@@ -812,9 +764,9 @@ pub(crate) fn wire_ui(
                     ui.set_startup_enabled(enabled);
                     ui.set_status_message(
                         if enabled {
-                            tr("Start with Windows enabled.", "已启用登录启动。")
+                            tr("Start with Windows enabled.")
                         } else {
-                            tr("Start with Windows disabled.", "已关闭登录启动。")
+                            tr("Start with Windows disabled.")
                         }
                         .into(),
                     );
@@ -822,7 +774,7 @@ pub(crate) fn wire_ui(
                 }
                 Err(error) => {
                     ui.set_status_message(
-                        format!("{}: {error}", tr("Startup setting failed", "启动设置失败")).into(),
+                        format!("{}: {error}", tr("Startup setting failed")).into(),
                     );
                     ui.set_status_tone(2);
                 }
@@ -840,15 +792,12 @@ pub(crate) fn wire_ui(
             return;
         }
         if let Some(ui) = weak.upgrade() {
-            ui.set_busy(true);
-            ui.set_status_message(
-                tr(
-                    "Applying Windows display protection…",
-                    "正在应用 Windows 显示保护…",
-                )
-                .into(),
-            );
-            ui.set_status_tone(0);
+            match kind {
+                0 => ui.set_taskbar_auto_hide(enabled),
+                1 => ui.set_taskbar_transparency(enabled),
+                2 => ui.set_display_dark_mode(enabled),
+                _ => unreachable!(),
+            }
         }
         let _ = tx.send(WorkerCommand::ApplyDisplayToggle(kind, enabled));
     });
@@ -860,7 +809,7 @@ pub(crate) fn wire_ui(
         let dc = u32::try_from(dc).unwrap_or(0);
         if let Some(ui) = weak.upgrade() {
             ui.set_busy(true);
-            ui.set_status_message(tr("Updating monitor timeouts…", "正在更新显示器超时…").into());
+            ui.set_status_message(tr("Updating monitor timeouts…").into());
             ui.set_status_tone(0);
         }
         let _ = tx.send(WorkerCommand::ApplyMonitorTimeouts(ac, dc));
@@ -873,9 +822,7 @@ pub(crate) fn wire_ui(
         let minutes = u32::try_from(minutes).unwrap_or(0);
         if let Some(ui) = weak.upgrade() {
             ui.set_busy(true);
-            ui.set_status_message(
-                tr("Updating screen-saver state…", "正在更新屏幕保护程序…").into(),
-            );
+            ui.set_status_message(tr("Updating screen-saver state…").into());
             ui.set_status_tone(0);
         }
         let _ = tx.send(WorkerCommand::ApplyScreenSaver(

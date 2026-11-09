@@ -9,7 +9,7 @@ pub(super) fn apply_brightness(dchu: Option<&Dchu>, level: u8) -> CommandOutcome
     };
     CommandOutcome::from_result(
         active.set_rgb_keyboard_brightness(level),
-        tr("Keyboard brightness applied.", "键盘亮度已应用。"),
+        tr("Keyboard brightness applied."),
     )
 }
 
@@ -19,7 +19,7 @@ pub(super) fn apply_color(dchu: Option<&Dchu>, color: RgbColor) -> CommandOutcom
     };
     CommandOutcome::from_result(
         active.set_rgb_keyboard_color(color),
-        tr("Keyboard color applied.", "键盘颜色已应用。"),
+        tr("Keyboard color applied."),
     )
 }
 
@@ -29,7 +29,7 @@ pub(super) fn apply_effect(dchu: Option<&Dchu>, effect: u8) -> CommandOutcome {
     };
     CommandOutcome::from_result(
         active.set_rgb_keyboard_effect(effect),
-        tr("Keyboard effect applied.", "键盘灯效已应用。"),
+        tr("Keyboard effect applied."),
     )
 }
 
@@ -43,7 +43,7 @@ pub(super) fn apply_sleep_timer(
     };
     CommandOutcome::from_result(
         active.set_rgb_keyboard_sleep_timer(enabled, seconds),
-        tr("Keyboard sleep timer applied.", "键盘休眠计时已应用。"),
+        tr("Keyboard sleep timer applied."),
     )
 }
 
@@ -53,6 +53,6 @@ pub(super) fn apply_boot_effect(dchu: Option<&Dchu>, enabled: bool) -> CommandOu
     };
     CommandOutcome::from_result(
         active.set_rgb_keyboard_boot_effect(enabled),
-        tr("Keyboard boot effect applied.", "键盘开机灯效已应用。"),
+        tr("Keyboard boot effect applied."),
     )
 }

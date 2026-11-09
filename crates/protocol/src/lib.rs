@@ -1,6 +1,6 @@
 //! Direct, in-process transport to the signed AcpiBridge device.
 //!
-//! Neo Control does not load the vendor Control Center codec DLL, launch
+//! RAM CONTROL CENTER does not load the vendor Control Center codec DLL, launch
 //! `CC40.exe`, replace the signed driver, or write EC/BIOS firmware. On Windows
 //! this crate opens the signed AcpiBridge device and sends the recovered DCHU
 //! IOCTL frames directly. Non-Windows builds expose the same data model with an

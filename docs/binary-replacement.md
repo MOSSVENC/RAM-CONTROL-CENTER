@@ -1,6 +1,6 @@
 # User-mode binary replacement
 
-Neo Control replaces the vendor user-mode control path while keeping the
+RAM CONTROL CENTER replaces the vendor user-mode control path while keeping the
 signed hardware boundary intact. The replacement is statically linked into one
 deployment binary, so there is no separate codec DLL to load, initialize,
 discover or version during startup.
@@ -39,7 +39,7 @@ operations. The deployed executable import table contains neither
 ## HKFltrLib.dll exports
 
 The direct keyboard-filter transport covers the control messages used by the
-Neo Control feature set:
+RAM CONTROL CENTER feature set:
 
 ```text
 0xBA400  filter enable/disable
@@ -52,7 +52,7 @@ Neo Control feature set:
 Open, filter enable/disable, clear and USB enable are live-verified. Macro add
 uses the vendor 16-byte key-collection format. Selective `0xBA408` removal is
 not used because the vendor wrapper clears the complete macro set first and
-discards the actual remove result. Neo Control replaces the complete set with a
+discards the actual remove result. RAM CONTROL CENTER replaces the complete set with a
 validated clear-and-reapply transaction instead.
 
 ## Boot service

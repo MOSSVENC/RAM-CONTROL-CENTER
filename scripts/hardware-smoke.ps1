@@ -4,7 +4,7 @@ param(
 
 $ErrorActionPreference = 'Stop'
 if (-not (Test-Path -LiteralPath $Executable -PathType Leaf)) {
-    throw "Neo Control executable not found: $Executable"
+    throw "RAM CONTROL CENTER executable not found: $Executable"
 }
 
 $modes = @('--settings-smoke', '--system-smoke', '--io-smoke', '--display-care-smoke')

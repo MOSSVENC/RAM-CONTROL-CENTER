@@ -1,4 +1,4 @@
-# Neo Control quality assessment
+# RAM CONTROL CENTER quality assessment
 
 Date: 2026-11-06. Measurements are from the current project and the installed
 vendor package; no BIOS, EC, driver or vendor binary was modified for them.
@@ -230,7 +230,7 @@ HKFltrLib.dll               457,600 bytes
 CC40 plus two DLLs       33,246,592 bytes
 ```
 
-Current Neo Control:
+Current RAM CONTROL CENTER:
 
 ```text
 neo-control.exe          11,046,912 bytes

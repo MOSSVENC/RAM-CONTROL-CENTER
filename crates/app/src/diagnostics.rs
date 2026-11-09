@@ -10,7 +10,7 @@ use slint::ComponentHandle;
 pub(crate) fn install_frame_diagnostics(ui: &MainWindow) {
     let path = std::env::var_os("NEO_CONTROL_FRAME_LOG").map(std::path::PathBuf::from);
     ui.set_renderer_ready(false);
-    ui.set_renderer_text(tr("Detecting", "检测中").into());
+    ui.set_renderer_text(tr("Detecting").into());
 
     let frames = Arc::new(AtomicU64::new(0));
     let ready = Arc::new(AtomicBool::new(false));
@@ -42,7 +42,7 @@ pub(crate) fn install_frame_diagnostics(ui: &MainWindow) {
         })
         .is_err()
     {
-        ui.set_renderer_text(tr("Unavailable", "不可用").into());
+        ui.set_renderer_text(tr("Unavailable").into());
         return;
     }
 
@@ -57,9 +57,7 @@ pub(crate) fn install_frame_diagnostics(ui: &MainWindow) {
         }
         if let Some(ui) = ui_for_timeout.upgrade() {
             ui.set_renderer_ready(false);
-            ui.set_renderer_text(
-                tr("Renderer initialization timed out", "渲染器初始化超时").into(),
-            );
+            ui.set_renderer_text(tr("Renderer initialization timed out").into());
         }
     });
 

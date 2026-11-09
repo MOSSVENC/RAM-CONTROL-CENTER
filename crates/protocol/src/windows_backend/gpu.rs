@@ -19,7 +19,7 @@ impl Dchu {
     pub fn set_gpu_switch(&self, mode: GpuSwitchMode) -> Result<()> {
         if mode == GpuSwitchMode::Integrated {
             return Err(DchuError::InvalidArgument(
-                "Neo Control does not allow leaving the discrete GPU disabled".to_owned(),
+                "RAM CONTROL CENTER does not allow leaving the discrete GPU disabled".to_owned(),
             ));
         }
 

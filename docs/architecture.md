@@ -1,4 +1,4 @@
-# Neo Control architecture
+# RAM CONTROL CENTER architecture
 
 ## Stack
 
@@ -165,16 +165,16 @@ headless worker.
 
 The interactive process has three Windows responsibilities:
 
-- a hidden tray window with the embedded Neo Control icon;
+- a hidden tray window with the embedded RAM CONTROL CENTER icon;
 - `WH_KEYBOARD_LL` and `WH_MOUSE_LL` FlexiKey hooks plus an action worker;
 - a single-instance mutex that restores the existing window and prevents a
   second hook from starting.
 
-The main window is marked `WS_EX_TOOLWINDOW`, so it does not create a taskbar
-button. Closing the window moves it off-screen and keeps the Slint event loop
-alive; the tray restores and centers the same HWND. A current-user Run entry
-starts the process with `--background` at logon. No helper executable or
-scheduled task is used.
+The main window uses the standard Windows application frame and taskbar entry.
+Closing the window moves it off-screen and keeps the Slint event loop alive; the
+tray restores and centers the same HWND. A current-user Run entry starts the
+process with `--background` at logon. No helper executable or scheduled task is
+used.
 
 ## Threading
 

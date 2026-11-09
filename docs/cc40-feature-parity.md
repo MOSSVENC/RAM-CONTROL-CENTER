@@ -106,7 +106,7 @@ Modes:
   0 none, 1 3D Text, 2 Blank, 3 Bubbles, 4 Mystify, 5 Photos, 6 Ribbons
 ```
 
-The Neo Control implementation applies the Windows state first, writes the
+The RAM CONTROL CENTER implementation applies the Windows state first, writes the
 vendor mirror byte, verifies both, and restores the previous Windows state when
 either side fails. The page remains available on LCD systems because taskbar,
 dark-mode, timeout and screen-saver controls are Windows features; panel-only
@@ -224,7 +224,7 @@ Vendor profile path:
 C:\ComboKey\profile.xml
 ```
 
-Neo Control parses and writes the same XML schema:
+RAM CONTROL CENTER parses and writes the same XML schema:
 
 ```text
 Profile_N
@@ -273,7 +273,7 @@ Supported actions:
 - text: optional start keys, Unicode text, then optional send keys;
 - disable: swallow the trigger key.
 
-Injected events created by Neo Control carry a private `dwExtraInfo` marker and
+Injected events created by RAM CONTROL CENTER carry a private `dwExtraInfo` marker and
 are ignored by the hook to prevent macro loops. The interactive process is
 single-instance, remains resident in the tray after its window closes, and uses
 the current-user Run key to start in the background at logon. Mouse bindings

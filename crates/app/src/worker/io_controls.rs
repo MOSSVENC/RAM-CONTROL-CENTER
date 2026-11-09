@@ -26,10 +26,7 @@ pub(super) fn apply_display_toggle(
         Ok(()) => {
             if let (Some(active), Some(offset)) = (dchu, display_care_offset(toggle)) {
                 match active.write_setting_byte(0, offset, u8::from(enabled)) {
-                    Ok(()) => CommandOutcome::success(tr(
-                        "Display protection applied and read back.",
-                        "显示保护设置已应用并读回。",
-                    )),
+                    Ok(()) => CommandOutcome::silent_success(),
                     Err(error) => {
                         let rollback = restore_display_toggle(toggle, &previous).map_or_else(
                             |error| format!("; rollback failed: {error}"),
@@ -37,15 +34,12 @@ pub(super) fn apply_display_toggle(
                         );
                         CommandOutcome::failure(format!(
                             "{}: {error}{rollback}",
-                            tr("DCHU preference write failed", "DCHU 偏好写入失败")
+                            tr("DCHU preference write failed")
                         ))
                     }
                 }
             } else {
-                CommandOutcome::success(tr(
-                    "Windows display setting applied; DCHU preference mirror is unavailable.",
-                    "Windows 显示设置已应用；DCHU 偏好镜像不可用。",
-                ))
+                CommandOutcome::silent_success()
             }
         }
         Err(error) => CommandOutcome::failure(error),
@@ -55,10 +49,7 @@ pub(super) fn apply_display_toggle(
 pub(super) fn apply_monitor_timeouts(ac: u32, dc: u32) -> CommandOutcome {
     CommandOutcome::from_result(
         system_controls::set_monitor_timeouts(ac, dc),
-        tr(
-            "Monitor timeouts applied and read back.",
-            "显示器超时已应用并读回。",
-        ),
+        tr("Monitor timeouts applied and read back."),
     )
 }
 
@@ -91,13 +82,10 @@ pub(super) fn apply_screen_saver(
                 );
                 CommandOutcome::failure(format!(
                     "{}: {error}{rollback}",
-                    tr("DCHU preference write failed", "DCHU 偏好写入失败")
+                    tr("DCHU preference write failed")
                 ))
             } else {
-                CommandOutcome::success(tr(
-                    "Screen saver applied and read back.",
-                    "屏幕保护程序已应用并读回。",
-                ))
+                CommandOutcome::success(tr("Screen saver applied and read back."))
             }
         }
         Err(error) => CommandOutcome::failure(error),
@@ -107,21 +95,21 @@ pub(super) fn apply_screen_saver(
 pub(super) fn apply_brightness(percent: u8) -> CommandOutcome {
     CommandOutcome::from_result(
         system_controls::set_screen_brightness(percent),
-        tr("Display brightness applied.", "屏幕亮度已应用。"),
+        tr("Display brightness applied."),
     )
 }
 
 pub(super) fn apply_blue_light(level: u8) -> CommandOutcome {
     CommandOutcome::from_result(
         system_controls::set_blue_light_filter(level),
-        tr("Blue-light filter applied.", "蓝光滤镜已应用。"),
+        tr("Blue-light filter applied."),
     )
 }
 
 pub(super) fn apply_volume(percent: u8) -> CommandOutcome {
     CommandOutcome::from_result(
         system_controls::set_audio_volume(percent),
-        tr("Volume applied.", "音量已应用。"),
+        tr("Volume applied."),
     )
 }
 
@@ -129,9 +117,9 @@ pub(super) fn apply_mute(muted: bool) -> CommandOutcome {
     CommandOutcome::from_result(
         system_controls::set_audio_mute(muted),
         if muted {
-            tr("Audio muted.", "音频已静音。")
+            tr("Audio muted.")
         } else {
-            tr("Audio unmuted.", "音频已取消静音。")
+            tr("Audio unmuted.")
         },
     )
 }

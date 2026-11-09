@@ -72,13 +72,9 @@ impl Default for UiUpdate {
             flexi_ready: false,
             extended_api: false,
             transport_ready: false,
-            transport_label: tr("Connecting to DCHU", "正在连接 DCHU").to_owned(),
-            transport_detail: tr(
-                "Opening the signed AcpiBridge device",
-                "正在打开签名 AcpiBridge 设备",
-            )
-            .to_owned(),
-            transport_device_path: tr("Not located", "未找到").to_owned(),
+            transport_label: tr("Connecting to DCHU").to_owned(),
+            transport_detail: tr("Opening the signed AcpiBridge device").to_owned(),
+            transport_device_path: tr("Not located").to_owned(),
             driver_health: DriverHealth::default(),
             busy: false,
             status: None,
@@ -95,42 +91,30 @@ pub(crate) fn apply_driver_health(ui: &MainWindow, driver: &DriverHealth) {
     ui.set_driver_payload_ready(driver.payload_ready);
     ui.set_driver_keyboard_payload_ready(driver.keyboard_payload_ready);
     let driver_summary = if !driver.required_missing() {
-        tr("Required driver ready", "必需驱动已就绪")
+        tr("Required driver ready")
     } else if !driver.payload_ready {
-        tr("Driver package missing", "缺少驱动包")
+        tr("Driver package missing")
     } else if driver.core_installed {
-        tr("Driver installed but not responding", "驱动已安装但未响应")
+        tr("Driver installed but not responding")
     } else {
-        tr("Required driver missing", "缺少必需驱动")
+        tr("Required driver missing")
     };
     let driver_detail = if driver.core_ready {
         if driver.keyboard_ready {
-            tr(
-                "AcpiBridge is online. The optional keyboard filter is also available.",
-                "AcpiBridge 已在线，可选的键盘过滤器也已就绪。",
-            )
+            tr("AcpiBridge is online. The optional keyboard filter is also available.")
         } else {
-            tr(
-                "AcpiBridge is online. The current release does not require HKKbdFltr.",
-                "AcpiBridge 已在线，当前版本不需要 HKKbdFltr。",
-            )
+            tr("AcpiBridge is online. The current release does not require HKKbdFltr.")
         }
     } else if driver.payload_ready {
-        tr(
-            "The signed OEM driver package is available next to the application.",
-            "应用目录中已找到签名的原厂驱动包。",
-        )
+        tr("The signed OEM driver package is available next to the application.")
     } else {
-        tr(
-            "Put the signed AcpiBridge package in the drivers folder.",
-            "请将签名的 AcpiBridge 驱动包放入 drivers 文件夹。",
-        )
+        tr("Put the signed AcpiBridge package in the drivers folder.")
     };
     ui.set_driver_summary(driver_summary.into());
     ui.set_driver_detail(driver_detail.into());
     ui.set_driver_payload_path(
         if driver.payload_path.as_os_str().is_empty() {
-            tr("Not located", "未找到").to_owned()
+            tr("Not located").to_owned()
         } else {
             driver.payload_path.display().to_string()
         }
@@ -389,9 +373,9 @@ pub(crate) fn apply_update(ui: &MainWindow, update: UiUpdate) {
         set_fan_curve_properties(ui, update.fan_curve.as_ref(), update.sync_selection);
         ui.set_extended_api_text(
             if update.extended_api {
-                tr("Available", "可用")
+                tr("Available")
             } else {
-                tr("Extended transport", "扩展通道")
+                tr("Extended transport")
             }
             .into(),
         );
@@ -402,11 +386,11 @@ pub(crate) fn apply_update(ui: &MainWindow, update: UiUpdate) {
                     format!(
                         "{} · {} 0x{:02X}",
                         localized_gpu_label(gpu.current_mode),
-                        tr("mask", "掩码"),
+                        tr("mask"),
                         gpu.supported_mask
                     )
                 })
-                .unwrap_or_else(|| tr("Unavailable", "不可用").to_owned())
+                .unwrap_or_else(|| tr("Unavailable").to_owned())
                 .into(),
         );
         if let Some(gpu) = update.gpu_switch {
@@ -426,10 +410,10 @@ pub(crate) fn apply_update(ui: &MainWindow, update: UiUpdate) {
             }
             ui.set_flexi_mode_text(
                 match charger.mode {
-                    0 => tr("Charge to 100%", "充至 100%").to_owned(),
-                    1 => tr("Preset · 70–80%", "预设 · 70–80%").to_owned(),
-                    2 => tr("Custom thresholds", "自定义阈值").to_owned(),
-                    _ => format!("{} {}", tr("Mode", "模式"), charger.mode),
+                    0 => tr("Charge to 100%").to_owned(),
+                    1 => tr("Preset · 70–80%").to_owned(),
+                    2 => tr("Custom thresholds").to_owned(),
+                    _ => format!("{} {}", tr("Mode"), charger.mode),
                 }
                 .into(),
             );
@@ -439,12 +423,9 @@ pub(crate) fn apply_update(ui: &MainWindow, update: UiUpdate) {
         } else {
             ui.set_flexi_mode_text(
                 if update.flexi_ready {
-                    tr("Charge channel ready", "充电通道就绪")
+                    tr("Charge channel ready")
                 } else {
-                    tr(
-                        "Restart to refresh the charge channel",
-                        "重启后刷新充电通道",
-                    )
+                    tr("Restart to refresh the charge channel")
                 }
                 .into(),
             );
@@ -498,7 +479,7 @@ pub(crate) fn apply_update(ui: &MainWindow, update: UiUpdate) {
     } else {
         ui.set_gpu_load(0);
         ui.set_gpu_memory_load(0);
-        ui.set_gpu_clock(tr("NVML unavailable", "NVML 不可用").into());
+        ui.set_gpu_clock(tr("NVML unavailable").into());
         ui.set_gpu_clock_max("--".into());
         ui.set_gpu_memory_text("--".into());
     }
@@ -508,25 +489,25 @@ pub(crate) fn apply_update(ui: &MainWindow, update: UiUpdate) {
         ui.set_battery_percent(i32::from(battery.percent.unwrap_or(0)));
         ui.set_battery_status_text(
             if battery.charging {
-                tr("Charging", "充电中")
+                tr("Charging")
             } else if battery.ac_online {
-                tr("Connected · not charging", "已连接 · 未充电")
+                tr("Connected · not charging")
             } else {
-                tr("Discharging", "放电中")
+                tr("Discharging")
             }
             .into(),
         );
         ui.set_battery_ac_text(
             if battery.ac_online {
-                tr("AC online", "AC 已连接")
+                tr("AC online")
             } else {
-                tr("Battery power", "电池供电")
+                tr("Battery power")
             }
             .into(),
         );
         ui.set_battery_time_text(
             if battery.ac_online && !battery.charging {
-                tr("AC connected", "AC 已连接").to_owned()
+                tr("AC connected").to_owned()
             } else {
                 format_battery_time(battery.seconds_remaining)
             }
@@ -539,7 +520,7 @@ pub(crate) fn apply_update(ui: &MainWindow, update: UiUpdate) {
     } else {
         ui.set_battery_present(false);
         ui.set_battery_percent(0);
-        ui.set_battery_status_text(tr("No battery detected", "未检测到电池").into());
+        ui.set_battery_status_text(tr("No battery detected").into());
         ui.set_battery_ac_text("--".into());
         ui.set_battery_time_text("--".into());
         ui.set_battery_capacity_text("--".into());

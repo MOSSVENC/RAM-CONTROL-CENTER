@@ -26,6 +26,7 @@ pub(super) fn push_snapshot(
     input: SnapshotInput<'_>,
     sync_selection: bool,
     extended_reads: bool,
+    refresh_display_care: bool,
 ) {
     let SnapshotInput {
         status,
@@ -139,7 +140,7 @@ pub(super) fn push_snapshot(
         )
     };
     let extended_api = dchu.is_some_and(Dchu::has_extended_api);
-    let display_care = extended_reads
+    let display_care = (extended_reads || refresh_display_care)
         .then(system_controls::display_care_state)
         .and_then(Result::ok);
     let flexi_ready = flexi_recovery_ready();
@@ -150,20 +151,16 @@ pub(super) fn push_snapshot(
     };
     let transport_ready = dchu.is_some();
     let transport_label = if transport_ready {
-        tr("DCHU connected", "DCHU 已连接").to_owned()
+        tr("DCHU connected").to_owned()
     } else {
-        tr("DCHU unavailable", "DCHU 不可用").to_owned()
+        tr("DCHU unavailable").to_owned()
     };
     let (transport_detail, transport_device_path) = if let Some(dchu) = dchu {
         (shorten_path(dchu.path()), dchu.path().to_owned())
     } else {
         (
-            tr(
-                "Signed AcpiBridge device not found",
-                "未找到签名 AcpiBridge 设备",
-            )
-            .to_owned(),
-            tr("Not located", "未找到").to_owned(),
+            tr("Signed AcpiBridge device not found").to_owned(),
+            tr("Not located").to_owned(),
         )
     };
     push_update(

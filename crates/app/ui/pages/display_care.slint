@@ -86,21 +86,21 @@ import {
                     label: @tr("Automatically hide taskbar");
                     value: root.taskbar-auto-hide;
                     known: root.display-care-available;
-                    busy: root.busy;
+                    busy: false;
                     toggled(enabled) => { root.set-display-toggle(0, enabled); }
                 }
                 ToggleStatusRow {
                     label: @tr("Taskbar transparency");
                     value: root.taskbar-transparency;
                     known: root.display-care-available;
-                    busy: root.busy;
+                    busy: false;
                     toggled(enabled) => { root.set-display-toggle(1, enabled); }
                 }
                 ToggleStatusRow {
                     label: @tr("Dark appearance");
                     value: root.display-dark-mode;
                     known: root.display-care-available;
-                    busy: root.busy;
+                    busy: false;
                     toggled(enabled) => { root.set-display-toggle(2, enabled); }
                 }
                 Rectangle { height: 4px; }

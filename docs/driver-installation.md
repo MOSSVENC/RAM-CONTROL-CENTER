@@ -1,6 +1,6 @@
 # Driver detection and installation
 
-Neo Control treats the signed OEM driver as a separate deployment dependency.
+RAM CONTROL CENTER treats the signed OEM driver as a separate deployment dependency.
 It never installs a driver at startup and never embeds a `.sys` file inside the
 GUI executable.
 

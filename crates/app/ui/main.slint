@@ -36,10 +36,14 @@ import { FlexiKeyPage } from "pages/flexikey.slint";
 import { DisplayCarePage } from "pages/display_care.slint";
 
 export component MainWindow inherits Window {
-    title: @tr("NEO CONTROL");
-    icon: @image-url("../../../assets/neo_control_logo.svg");
-    width: 1180px;
-    height: 820px;
+    title: @tr("RAM CONTROL CENTER");
+    icon: @image-url("../../../assets/ram_control_center_logo.svg");
+    preferred-width: 1180px;
+    preferred-height: 820px;
+    min-width: 1180px;
+    min-height: 820px;
+    max-width: 1920px;
+    max-height: 1200px;
     background: Palette.base-gradient;
     default-font-family: "Bahnschrift";
     default-font-size: 13px;
@@ -375,14 +379,14 @@ export component MainWindow inherits Window {
                     Image {
                         width: 34px;
                         height: 34px;
-                        source: @image-url("../../../assets/neo_control_logo.svg");
+                        source: @image-url("../../../assets/ram_control_center_logo.svg");
                         image-fit: contain;
                     }
                     VerticalLayout {
                         spacing: 1px;
                         alignment: center;
                         Text {
-                            text: @tr("NEO");
+                            text: @tr("RAM");
                             color: Palette.text;
                             font-family: "Bahnschrift";
                             font-size: 15px;
@@ -390,7 +394,7 @@ export component MainWindow inherits Window {
                             letter-spacing: 1.2px;
                         }
                         Text {
-                            text: @tr("CONTROL");
+                            text: @tr("CONTROL CENTER");
                             color: Palette.text-dim;
                             font-family: "Cascadia Mono";
                             font-size: 9px;

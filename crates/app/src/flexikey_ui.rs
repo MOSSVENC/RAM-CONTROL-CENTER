@@ -38,7 +38,7 @@ fn blank_flexikey_store() -> FlexiKeyStore {
     FlexiKeyStore {
         profiles: vec![FlexiKeyProfile {
             index: 0,
-            name: tr("Personal", "个人配置").to_owned(),
+            name: tr("Personal").to_owned(),
             icon: String::new(),
             current_device: 1,
             keyboard_enabled: true,
@@ -79,10 +79,7 @@ fn load_flexikey_view(path: &Path) -> FlexiKeyViewState {
             load_error: None,
             activated_index: None,
             operation_error: None,
-            operation_notice: Some(tr(
-                "profile.xml was not found. A blank profile is ready; saving a binding creates the file.",
-                "未找到 profile.xml。已准备空白配置，保存绑定时会创建此文件。",
-            )
+            operation_notice: Some(tr("profile.xml was not found. A blank profile is ready; saving a binding creates the file.")
             .to_owned()),
             engine_report: None,
             engine_error: None,
@@ -117,7 +114,7 @@ fn active_profile_position(store: &FlexiKeyStore) -> Option<usize> {
 fn parse_trigger_key_code(value: &str) -> Result<u16, String> {
     let value = value.trim();
     if value.is_empty() {
-        return Err(tr("Enter or capture a trigger key", "请选择或输入触发按键").to_owned());
+        return Err(tr("Enter or capture a trigger key").to_owned());
     }
     let parsed = if let Some(hex) = value
         .strip_prefix("0x")
@@ -127,22 +124,17 @@ fn parse_trigger_key_code(value: &str) -> Result<u16, String> {
     } else {
         value.parse::<u16>()
     };
-    parsed.map_err(|_| {
-        format!(
-            "{}: {value}",
-            tr("Invalid 16-bit key code", "无效的 16 位按键代码")
-        )
-    })
+    parsed.map_err(|_| format!("{}: {value}", tr("Invalid 16-bit key code")))
 }
 
 fn mouse_trigger_name(key_code: u16) -> String {
     let name = match key_code {
-        0x01 => tr("Mouse Left", "鼠标左键"),
-        0x04 => tr("Mouse Right", "鼠标右键"),
-        0x10 => tr("Mouse Middle", "鼠标中键"),
-        0x40 => tr("Mouse Back", "鼠标后退"),
-        0x100 => tr("Mouse Forward", "鼠标前进"),
-        _ => tr("Mouse Button", "鼠标按钮"),
+        0x01 => tr("Mouse Left"),
+        0x04 => tr("Mouse Right"),
+        0x10 => tr("Mouse Middle"),
+        0x40 => tr("Mouse Back"),
+        0x100 => tr("Mouse Forward"),
+        _ => tr("Mouse Button"),
     };
     name.to_owned()
 }
@@ -158,11 +150,7 @@ fn editor_action(
                 if let Some(action @ FlexiKeyAction::Keypress { .. }) = existing {
                     return Ok(action.clone());
                 }
-                return Err(tr(
-                    "Enter a hotkey sequence for the new binding",
-                    "请为新绑定输入快捷键组合",
-                )
-                .to_owned());
+                return Err(tr("Enter a hotkey sequence for the new binding").to_owned());
             }
             Ok(FlexiKeyAction::Keypress {
                 steps: flexikey_engine::hotkey_steps(value)?,
@@ -171,7 +159,7 @@ fn editor_action(
         2 => {
             let app_path = value.trim();
             if app_path.is_empty() {
-                return Err(tr("Enter a launch target", "请输入要启动的程序或文档").to_owned());
+                return Err(tr("Enter a launch target").to_owned());
             }
             let event_id = match existing {
                 Some(FlexiKeyAction::Launch { event_id, .. }) => *event_id,
@@ -198,7 +186,7 @@ fn editor_action(
             })
         }
         4 => Ok(FlexiKeyAction::Disable),
-        _ => Err(tr("Unknown action type", "未知的动作类型").to_owned()),
+        _ => Err(tr("Unknown action type").to_owned()),
     }
 }
 
@@ -214,15 +202,11 @@ fn editor_binding(
     let device = match device {
         1 => FlexiKeyDevice::Keyboard,
         2 => FlexiKeyDevice::Mouse,
-        _ => return Err(tr("Choose a trigger device", "请选择触发设备").to_owned()),
+        _ => return Err(tr("Choose a trigger device").to_owned()),
     };
     let key_code = parse_trigger_key_code(key_code)?;
     if device == FlexiKeyDevice::Mouse && !matches!(key_code, 0x01 | 0x04 | 0x10 | 0x40 | 0x100) {
-        return Err(tr(
-            "Mouse triggers must be left, right, middle, back or forward",
-            "鼠标触发只支持左键、右键、中键、后退和前进",
-        )
-        .to_owned());
+        return Err(tr("Mouse triggers must be left, right, middle, back or forward").to_owned());
     }
     let existing = usize::try_from(binding_index)
         .ok()
@@ -256,8 +240,8 @@ fn editor_binding(
 
 fn format_binding_label(index: usize, binding: &FlexiKeyBinding) -> String {
     let device = match binding.device {
-        FlexiKeyDevice::Keyboard => tr("Keyboard", "键盘"),
-        FlexiKeyDevice::Mouse => tr("Mouse", "鼠标"),
+        FlexiKeyDevice::Keyboard => tr("Keyboard"),
+        FlexiKeyDevice::Mouse => tr("Mouse"),
         FlexiKeyDevice::None => "---",
     };
     let trigger = if binding.key_display.trim().is_empty() {
@@ -271,25 +255,20 @@ fn format_binding_label(index: usize, binding: &FlexiKeyBinding) -> String {
     };
     let action = match &binding.action {
         FlexiKeyAction::Keypress { steps } => {
-            format!(
-                "{} ({} {})",
-                tr("Hotkey", "快捷键"),
-                steps.len(),
-                tr("steps", "步")
-            )
+            format!("{} ({} {})", tr("Hotkey"), steps.len(), tr("steps"))
         }
         FlexiKeyAction::Launch { app_path, .. } => {
-            format!("{} {}", tr("Launch", "启动"), app_path)
+            format!("{} {}", tr("Launch"), app_path)
         }
         FlexiKeyAction::Text { text, .. } => {
             let preview = text.chars().take(36).collect::<String>();
             if text.chars().count() > 36 {
-                format!("{} \"{preview}…\"", tr("Text", "文本"))
+                format!("{} \"{preview}…\"", tr("Text"))
             } else {
-                format!("{} \"{preview}\"", tr("Text", "文本"))
+                format!("{} \"{preview}\"", tr("Text"))
             }
         }
-        FlexiKeyAction::Disable => tr("Disabled trigger", "禁用触发").to_owned(),
+        FlexiKeyAction::Disable => tr("Disabled trigger").to_owned(),
     };
     format!("{:02}  {device}  {trigger:<14}  →  {action}", index + 1)
 }
@@ -313,11 +292,7 @@ fn start_flexikey_capture_poll(weak: Weak<MainWindow>, engine: FlexiKeyEngine) {
             ui.set_flexikey_editor_key_name(name.into());
             ui.set_flexikey_capture_armed(false);
             ui.set_flexikey_editor_status(
-                tr(
-                    "Trigger captured. Choose the action and save.",
-                    "已捕获触发按键，请选择动作并保存。",
-                )
-                .into(),
+                tr("Trigger captured. Choose the action and save.").into(),
             );
         } else {
             start_flexikey_capture_poll(ui.as_weak(), engine);
@@ -366,7 +341,7 @@ pub(crate) fn wire_flexikey(
         if let Err(error) = engine_for_select.update_profile(next.active()) {
             state.operation_error = Some(format!(
                 "{}: {error}",
-                tr("Action engine rejected the profile", "动作引擎拒绝了该配置")
+                tr("Action engine rejected the profile")
             ));
             drop(state);
             if let Some(ui) = weak.upgrade() {
@@ -376,10 +351,7 @@ pub(crate) fn wire_flexikey(
         }
         if let Err(error) = save_flexikey_store(&state.path, &next) {
             let _ = engine_for_select.update_profile(state.store.active());
-            state.operation_error = Some(format!(
-                "{}: {error}",
-                tr("Could not save profile.xml", "无法保存 profile.xml")
-            ));
+            state.operation_error = Some(format!("{}: {error}", tr("Could not save profile.xml")));
             drop(state);
             if let Some(ui) = weak.upgrade() {
                 render_flexikey(&ui, &state_for_select.borrow());
@@ -407,7 +379,7 @@ pub(crate) fn wire_flexikey(
         let mut next = state_for_new_profile.borrow().store.clone();
         let name = format!(
             "{} {}",
-            tr("Profile", "配置"),
+            tr("Profile"),
             next.profiles.len().saturating_add(1)
         );
         next.add_profile(name);
@@ -415,11 +387,7 @@ pub(crate) fn wire_flexikey(
             &state_for_new_profile,
             &engine_for_new_profile,
             next,
-            tr(
-                "A new FlexiKey profile was created and activated.",
-                "新的 FlexiKey 配置已创建并启用。",
-            )
-            .to_owned(),
+            tr("A new FlexiKey profile was created and activated.").to_owned(),
         ) {
             Ok(()) => {
                 if let Some(ui) = weak.upgrade() {
@@ -429,10 +397,8 @@ pub(crate) fn wire_flexikey(
             }
             Err(error) => {
                 let mut state = state_for_new_profile.borrow_mut();
-                state.operation_error = Some(format!(
-                    "{}: {error}",
-                    tr("Could not create profile", "无法创建配置")
-                ));
+                state.operation_error =
+                    Some(format!("{}: {error}", tr("Could not create profile")));
                 drop(state);
                 if let Some(ui) = weak.upgrade() {
                     render_flexikey(&ui, &state_for_new_profile.borrow());
@@ -454,8 +420,7 @@ pub(crate) fn wire_flexikey(
         drop(state_snapshot);
         if !next.rename_profile(profile_position, name.as_str()) {
             let mut state = state_for_rename_profile.borrow_mut();
-            state.operation_error =
-                Some(tr("Profile name cannot be empty.", "配置名称不能为空。").to_owned());
+            state.operation_error = Some(tr("Profile name cannot be empty.").to_owned());
             drop(state);
             if let Some(ui) = weak.upgrade() {
                 render_flexikey(&ui, &state_for_rename_profile.borrow());
@@ -466,7 +431,7 @@ pub(crate) fn wire_flexikey(
             &state_for_rename_profile,
             &engine_for_rename_profile,
             next,
-            tr("FlexiKey profile name saved.", "FlexiKey 配置名称已保存。").to_owned(),
+            tr("FlexiKey profile name saved.").to_owned(),
         ) {
             Ok(()) => {
                 if let Some(ui) = weak.upgrade() {
@@ -476,10 +441,8 @@ pub(crate) fn wire_flexikey(
             }
             Err(error) => {
                 let mut state = state_for_rename_profile.borrow_mut();
-                state.operation_error = Some(format!(
-                    "{}: {error}",
-                    tr("Could not rename profile", "无法重命名配置")
-                ));
+                state.operation_error =
+                    Some(format!("{}: {error}", tr("Could not rename profile")));
                 drop(state);
                 if let Some(ui) = weak.upgrade() {
                     render_flexikey(&ui, &state_for_rename_profile.borrow());
@@ -500,13 +463,8 @@ pub(crate) fn wire_flexikey(
         drop(state_snapshot);
         if !next.remove_profile(profile_position) {
             let mut state = state_for_delete_profile.borrow_mut();
-            state.operation_error = Some(
-                tr(
-                    "At least one FlexiKey profile must remain.",
-                    "必须至少保留一个 FlexiKey 配置。",
-                )
-                .to_owned(),
-            );
+            state.operation_error =
+                Some(tr("At least one FlexiKey profile must remain.").to_owned());
             drop(state);
             if let Some(ui) = weak.upgrade() {
                 render_flexikey(&ui, &state_for_delete_profile.borrow());
@@ -517,11 +475,7 @@ pub(crate) fn wire_flexikey(
             &state_for_delete_profile,
             &engine_for_delete_profile,
             next,
-            tr(
-                "FlexiKey profile deleted and the next profile activated.",
-                "FlexiKey 配置已删除，并启用下一个配置。",
-            )
-            .to_owned(),
+            tr("FlexiKey profile deleted and the next profile activated.").to_owned(),
         ) {
             Ok(()) => {
                 if let Some(ui) = weak.upgrade() {
@@ -531,10 +485,8 @@ pub(crate) fn wire_flexikey(
             }
             Err(error) => {
                 let mut state = state_for_delete_profile.borrow_mut();
-                state.operation_error = Some(format!(
-                    "{}: {error}",
-                    tr("Could not delete profile", "无法删除配置")
-                ));
+                state.operation_error =
+                    Some(format!("{}: {error}", tr("Could not delete profile")));
                 drop(state);
                 if let Some(ui) = weak.upgrade() {
                     render_flexikey(&ui, &state_for_delete_profile.borrow());
@@ -567,7 +519,7 @@ pub(crate) fn wire_flexikey(
                 let mut state = state_for_devices.borrow_mut();
                 state.operation_error = Some(format!(
                     "{}: {error}",
-                    tr("Action engine rejected the change", "动作引擎拒绝了更改")
+                    tr("Action engine rejected the change")
                 ));
                 drop(state);
                 if let Some(ui) = weak.upgrade() {
@@ -580,10 +532,7 @@ pub(crate) fn wire_flexikey(
         if let Err(error) = save_flexikey_store(&state_for_devices.borrow().path, &next) {
             let _ = engine_for_devices.update_profile(previous.active());
             let mut state = state_for_devices.borrow_mut();
-            state.operation_error = Some(format!(
-                "{}: {error}",
-                tr("Could not save profile.xml", "无法保存 profile.xml")
-            ));
+            state.operation_error = Some(format!("{}: {error}", tr("Could not save profile.xml")));
             drop(state);
             if let Some(ui) = weak.upgrade() {
                 render_flexikey(&ui, &state_for_devices.borrow());
@@ -593,13 +542,8 @@ pub(crate) fn wire_flexikey(
         let mut state = state_for_devices.borrow_mut();
         state.store = next;
         state.operation_error = None;
-        state.operation_notice = Some(
-            tr(
-                "FlexiKey trigger devices saved and reloaded.",
-                "FlexiKey 触发设备已保存并重新载入。",
-            )
-            .to_owned(),
-        );
+        state.operation_notice =
+            Some(tr("FlexiKey trigger devices saved and reloaded.").to_owned());
         state.activated_index = None;
         state.engine_report = Some(report);
         state.engine_error = None;
@@ -668,11 +612,7 @@ pub(crate) fn wire_flexikey(
             match engine_for_capture.arm_capture() {
                 Ok(()) => {
                     ui.set_flexikey_editor_status(
-                        tr(
-                            "Listening for one key or mouse button…",
-                            "正在监听一个按键或鼠标按钮…",
-                        )
-                        .into(),
+                        tr("Listening for one key or mouse button…").into(),
                     );
                     ui.set_flexikey_capture_armed(true);
                     start_flexikey_capture_poll(ui.as_weak(), engine_for_capture.clone());
@@ -691,7 +631,7 @@ pub(crate) fn wire_flexikey(
         engine_for_cancel_capture.cancel_capture();
         if let Some(ui) = weak.upgrade() {
             ui.set_flexikey_capture_armed(false);
-            ui.set_flexikey_editor_status(tr("Capture canceled", "已取消捕获").into());
+            ui.set_flexikey_editor_status(tr("Capture canceled").into());
         }
     });
 
@@ -734,7 +674,7 @@ pub(crate) fn wire_flexikey(
             if !changed {
                 if let Some(ui) = weak.upgrade() {
                     ui.set_flexikey_editor_status(
-                        tr("The selected binding no longer exists", "所选绑定已不存在").into(),
+                        tr("The selected binding no longer exists").into(),
                     );
                 }
                 return;
@@ -744,11 +684,7 @@ pub(crate) fn wire_flexikey(
                 Err(error) => {
                     if let Some(ui) = weak.upgrade() {
                         ui.set_flexikey_editor_status(
-                            format!(
-                                "{}: {error}",
-                                tr("Action engine rejected the binding", "动作引擎拒绝了该绑定")
-                            )
-                            .into(),
+                            format!("{}: {error}", tr("Action engine rejected the binding")).into(),
                         );
                     }
                     return;
@@ -762,10 +698,8 @@ pub(crate) fn wire_flexikey(
                 let mut state = state_for_save.borrow_mut();
                 state.engine_report = engine_report;
                 state.engine_error = engine_error;
-                state.operation_error = Some(format!(
-                    "{}: {error}",
-                    tr("Could not save profile.xml", "无法保存 profile.xml")
-                ));
+                state.operation_error =
+                    Some(format!("{}: {error}", tr("Could not save profile.xml")));
                 drop(state);
                 if let Some(ui) = weak.upgrade() {
                     ui.set_flexikey_editor_status(error.into());
@@ -778,11 +712,7 @@ pub(crate) fn wire_flexikey(
             state.load_error = None;
             state.operation_error = None;
             state.operation_notice = Some(
-                tr(
-                    "Binding saved to profile.xml and loaded into the input engine.",
-                    "绑定已保存到 profile.xml，并载入输入引擎。",
-                )
-                .to_owned(),
+                tr("Binding saved to profile.xml and loaded into the input engine.").to_owned(),
             );
             state.activated_index = None;
             state.engine_report = Some(report);
@@ -818,11 +748,7 @@ pub(crate) fn wire_flexikey(
             Err(error) => {
                 if let Some(ui) = weak.upgrade() {
                     ui.set_flexikey_editor_status(
-                        format!(
-                            "{}: {error}",
-                            tr("Action engine rejected the change", "动作引擎拒绝了更改")
-                        )
-                        .into(),
+                        format!("{}: {error}", tr("Action engine rejected the change")).into(),
                     );
                 }
                 return;
@@ -832,10 +758,7 @@ pub(crate) fn wire_flexikey(
         if let Err(error) = save_flexikey_store(&state_for_delete.borrow().path, &next) {
             let _ = engine_for_delete.update_profile(previous.active());
             let mut state = state_for_delete.borrow_mut();
-            state.operation_error = Some(format!(
-                "{}: {error}",
-                tr("Could not save profile.xml", "无法保存 profile.xml")
-            ));
+            state.operation_error = Some(format!("{}: {error}", tr("Could not save profile.xml")));
             drop(state);
             if let Some(ui) = weak.upgrade() {
                 ui.set_flexikey_editor_status(error.into());
@@ -847,13 +770,8 @@ pub(crate) fn wire_flexikey(
         state.store = next;
         state.load_error = None;
         state.operation_error = None;
-        state.operation_notice = Some(
-            tr(
-                "Binding removed from profile.xml and the input engine.",
-                "绑定已从 profile.xml 和输入引擎中移除。",
-            )
-            .to_owned(),
-        );
+        state.operation_notice =
+            Some(tr("Binding removed from profile.xml and the input engine.").to_owned());
         state.activated_index = None;
         state.engine_report = Some(report);
         state.engine_error = None;
@@ -894,21 +812,18 @@ fn flexikey_visible_profile(state: &FlexiKeyViewState) -> Option<&FlexiKeyProfil
 
 fn flexikey_engine_status(state: &FlexiKeyViewState) -> String {
     if let Some(error) = &state.engine_error {
-        return format!(
-            "{}: {error}",
-            tr("Action engine unavailable", "动作引擎不可用")
-        );
+        return format!("{}: {error}", tr("Action engine unavailable"));
     }
     let Some(report) = &state.engine_report else {
         return String::new();
     };
     format!(
         "{} · {} {} · {} {}",
-        tr("Input hooks active", "输入钩子已启用"),
+        tr("Input hooks active"),
         report.keyboard_actions,
-        tr("keyboard action(s)", "个键盘动作"),
+        tr("keyboard action(s)"),
         report.mouse_actions,
-        tr("mouse action(s)", "个鼠标动作")
+        tr("mouse action(s)")
     )
 }
 
@@ -952,9 +867,7 @@ pub(crate) fn render_flexikey(ui: &MainWindow, state: &FlexiKeyViewState) {
         ui.set_flexikey_mouse_enabled(false);
         ui.set_flexikey_profile_name("".into());
         ui.set_flexikey_active_title("FlexiKey".into());
-        ui.set_flexikey_summary(
-            tr("No profiles are available.", "当前没有可用的配置文件。").into(),
-        );
+        ui.set_flexikey_summary(tr("No profiles are available.").into());
     }
 
     let status = if let Some(error) = &state.operation_error {
@@ -970,21 +883,18 @@ pub(crate) fn render_flexikey(ui: &MainWindow, state: &FlexiKeyViewState) {
     }) {
         format!(
             "{} {} · {}",
-            tr("Activated and saved", "已启用并保存："),
+            tr("Activated and saved"),
             profile.name,
-            tr("action engine reloaded", "动作引擎已重新加载")
+            tr("action engine reloaded")
         )
     } else if let Some(error) = &state.load_error {
-        format!(
-            "{} {error}",
-            tr("Profile XML unavailable:", "配置 XML 不可用：")
-        )
+        format!("{} {error}", tr("Profile XML unavailable:"))
     } else {
         let count = state.store.profiles.len();
         format!(
             "{} {count} {}",
-            tr("Loaded", "已载入"),
-            tr("profile(s) from CC4.0 XML", "个来自 CC4.0 XML 的配置文件")
+            tr("Loaded"),
+            tr("profile(s) from CC4.0 XML")
         )
     };
     ui.set_flexikey_status(status.into());
@@ -994,20 +904,20 @@ fn format_flexikey_profile(profile: &FlexiKeyProfile) -> String {
     format!(
         "{} {} · {} {} · {} {}\n{} {}",
         profile.bindings.len(),
-        tr("binding(s)", "条绑定"),
-        tr("keyboard", "键盘"),
+        tr("binding(s)"),
+        tr("keyboard"),
         if profile.keyboard_enabled {
-            tr("enabled", "启用")
+            tr("enabled")
         } else {
-            tr("disabled", "禁用")
+            tr("disabled")
         },
-        tr("mouse", "鼠标"),
+        tr("mouse"),
         if profile.mouse_enabled {
-            tr("enabled", "启用")
+            tr("enabled")
         } else {
-            tr("disabled", "禁用")
+            tr("disabled")
         },
-        tr("Device mode:", "设备模式："),
+        tr("Device mode:"),
         profile.current_device
     )
 }

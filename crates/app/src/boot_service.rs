@@ -26,9 +26,9 @@ mod platform {
     use crate::boot_agent;
 
     const SERVICE_NAME: &str = "NeoControlBoot";
-    const SERVICE_DISPLAY_NAME: &str = "Neo Control Boot Agent";
+    const SERVICE_DISPLAY_NAME: &str = "RAM CONTROL CENTER Boot Agent";
     const SERVICE_DESCRIPTION: &str =
-        "Applies the persisted Neo Control power policy before the user shell starts.";
+        "Applies the persisted RAM CONTROL CENTER power policy before the user shell starts.";
     const SERVICE_DEPENDENCY: &str = "AcpiBridge";
     const SERVICE_WAIT_MS: u32 = 120_000;
 

@@ -1,8 +1,8 @@
-# Neo Control visual direction
+# RAM CONTROL CENTER visual direction
 
 ## Concept
 
-Neo Control is a hardware instrument, not a generic settings dashboard. The UI should feel like a precise piece of laptop equipment: cool graphite, restrained signal colour, stable typography and dense but legible telemetry.
+RAM CONTROL CENTER is a hardware instrument, not a generic settings dashboard. The UI should feel like a precise piece of laptop equipment: cool graphite, restrained signal colour, stable typography and dense but legible telemetry.
 
 ## Tokens
 

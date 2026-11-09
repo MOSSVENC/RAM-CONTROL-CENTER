@@ -1,15 +1,22 @@
-# Neo Control
+# RAM CONTROL CENTER
 
-Native Windows control center for compatible CC4.0 platforms, built with Rust
-and Slint. The current hardware validation baseline is the Firebat/Clevo ZY-T6K.
+<img src="assets/ram_control_center_logo.png" width="72" alt="RAM CONTROL CENTER pixel logo">
 
-![Neo Control overview](docs/images/overview.png)
+RAM CONTROL CENTER is a native Windows control center for compatible CC4.0/DCHU
+platforms. It is built with Rust and Slint and communicates with the platform
+through the signed AcpiBridge device interface.
 
-Neo Control provides a fast, Chinese-first desktop interface for platform power,
-cooling, lighting, battery, display, input and FlexiKey controls. Hardware
-access goes through the signed `AcpiBridge` driver interface. The current
-FlexiKey engine is user-mode; the `HKKbdFltr` protocol remains available as an
-optional hardware-filter path. Firmware and driver signatures remain unchanged.
+The app provides a Chinese-first desktop interface for platform power, cooling,
+lighting, battery, display, input and FlexiKey controls. The checked-in protocol
+and UI are model-capability driven; writable controls are enabled only after
+their platform support and readback behavior have been validated. Firebat/Clevo
+ZY-T6K is the current hardware validation reference. Other CC4.0 models can use
+the same project after the compatibility checks below.
+
+```bash
+git clone https://github.com/MOSSVENC/RAM-CONTROL-CENTER.git
+cd RAM-CONTROL-CENTER
+```
 
 ## Highlights
 
@@ -53,8 +60,9 @@ model-level checks before enabling write controls:
 - start with read-only telemetry, then exercise the reversible hardware smoke
   suite on that exact machine.
 
-`Firebat/Clevo ZY-T6K` is the validated reference implementation; other CC4.0
-models require their own readback validation before write support is enabled.
+`Firebat/Clevo ZY-T6K` is the validated reference machine. Support for another
+CC4.0 model requires confirming its device path, capability response, fan
+mapping and settings behavior before enabling writes.
 
 ## Build and verify
 

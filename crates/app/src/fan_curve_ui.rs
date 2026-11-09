@@ -23,7 +23,7 @@ pub(crate) fn curve_nodes(t2: i32, d2: i32, t3: i32, d3: i32) -> Option<FanCurve
 pub(crate) fn set_fan_curve_properties(ui: &MainWindow, curve: Option<&FanCurveState>, sync: bool) {
     let Some(curve) = curve else {
         ui.set_curve_available(false);
-        ui.set_curve_current_text(tr("Runtime table unavailable", "运行时风扇表不可用").into());
+        ui.set_curve_current_text(tr("Runtime table unavailable").into());
         return;
     };
     let available = !curve.channels[0].is_unused() || !curve.channels[1].is_unused();
@@ -32,7 +32,7 @@ pub(crate) fn set_fan_curve_properties(ui: &MainWindow, curve: Option<&FanCurveS
         format!(
             "{} {} · CPU {} / GPU {}",
             curve.fan_count,
-            tr("channels", "通道"),
+            tr("channels"),
             curve_profile_text(&curve.channels[0]),
             curve_profile_text(&curve.channels[1])
         )
@@ -82,7 +82,7 @@ fn apply_curve_channel(
 
 fn curve_profile_text(channel: &neo_control_protocol::FanCurveChannel) -> String {
     if channel.is_unused() {
-        return tr("unused", "未使用").to_owned();
+        return tr("unused").to_owned();
     }
     format!(
         "{}°C/{}% · {}°C/{}%",

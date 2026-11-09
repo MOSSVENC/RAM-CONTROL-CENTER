@@ -3,7 +3,7 @@
 This document records evidence recovered from the installed Control Center
 applications and from live transport instrumentation.
 
-Neo Control's implemented path is the direct `CreateFileW` / `DeviceIoControl`
+RAM CONTROL CENTER's implemented path is the direct `CreateFileW` / `DeviceIoControl`
 branch below. The vendor UI/DLL call graph is retained as protocol provenance,
 not as a runtime dependency.
 
@@ -17,7 +17,7 @@ not as a runtime dependency.
 ## Transport stack
 
 ```text
-Neo Control                              Vendor reference
+RAM CONTROL CENTER                              Vendor reference
      │                                        │
      │ CreateFileW + DeviceIoControl          ├─ InsydeDCHU.dll
      │                                        │      ├─ GetDCHU_Data_*
@@ -272,7 +272,7 @@ ReadAppSettings(page=519, offset=1, length=1)
 before the Control Center initialization sequence. `InsydeDCHU.dll` raised an
 access violation at `InsydeDCHU.dll+0x190d1f` and terminated the probe process.
 
-Neo Control uses the recovered page 2 keyboard state layout and the initialized
+RAM CONTROL CENTER uses the recovered page 2 keyboard state layout and the initialized
 `SetDCHU_DataEx(4, [63], ...)` / `SetDCHU_Data(103, ...)` paths.
 - RGB brightness, color, effects, sleep timer and boot effect have been
   exercised through the direct transport.

@@ -12,9 +12,9 @@ pub(super) fn apply_camera(dchu: Option<&Dchu>, enabled: bool) -> CommandOutcome
     CommandOutcome::from_result(
         active.set_camera_enabled(enabled),
         if enabled {
-            tr("Camera enabled.", "摄像头已启用。")
+            tr("Camera enabled.")
         } else {
-            tr("Camera disabled.", "摄像头已关闭。")
+            tr("Camera disabled.")
         },
     )
 }
@@ -27,9 +27,9 @@ pub(super) fn apply_touchpad(dchu: Option<&Dchu>, enabled: bool) -> CommandOutco
     let persisted = active.set_touchpad_enabled(enabled);
     match (input, persisted) {
         (Ok(()), Ok(())) => CommandOutcome::success(if enabled {
-            tr("Touchpad enabled.", "触摸板已启用。")
+            tr("Touchpad enabled.")
         } else {
-            tr("Touchpad disabled.", "触摸板已关闭。")
+            tr("Touchpad disabled.")
         }),
         (input, persisted) => CommandOutcome::failure(format!(
             "{}; {}",
@@ -49,9 +49,9 @@ pub(super) fn apply_airplane(dchu: Option<&Dchu>, enabled: bool) -> CommandOutco
                 let _ = active.notify_airplane_mode(enabled);
             }
             CommandOutcome::success(if enabled {
-                tr("Airplane mode enabled.", "飞行模式已开启。")
+                tr("Airplane mode enabled.")
             } else {
-                tr("Airplane mode disabled.", "飞行模式已关闭。")
+                tr("Airplane mode disabled.")
             })
         }
         Err(error) => CommandOutcome::failure(error),
@@ -71,19 +71,16 @@ pub(super) fn apply_quick_toggle(
         format!(
             "{} {}{}",
             localized_toggle_label(toggle),
-            tr("set to ", "已设为"),
+            tr("set to "),
             if enabled {
-                tr("enabled", "启用")
+                tr("enabled")
             } else {
-                tr("disabled", "禁用")
+                tr("disabled")
             }
         ),
     )
 }
 
 pub(super) fn apply_lock_key(vk: u8) -> CommandOutcome {
-    CommandOutcome::from_result(
-        send_virtual_key(vk),
-        tr("Lock key toggled.", "锁定键已切换。"),
-    )
+    CommandOutcome::from_result(send_virtual_key(vk), tr("Lock key toggled."))
 }

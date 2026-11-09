@@ -42,7 +42,7 @@ pub(super) fn apply_slow_fan(dchu: Option<&Dchu>, enabled: bool) -> CommandOutco
     };
     CommandOutcome::from_result(
         active.set_slow_fan(enabled),
-        tr("Noiseless fan setting applied.", "静音风扇设置已应用。"),
+        tr("Noiseless fan setting applied."),
     )
 }
 
@@ -52,7 +52,7 @@ pub(super) fn apply_turbo_fan(dchu: Option<&Dchu>, enabled: bool) -> CommandOutc
     };
     CommandOutcome::from_result(
         active.set_turbo_fan(enabled),
-        tr("Turbo fan setting applied.", "涡轮风扇设置已应用。"),
+        tr("Turbo fan setting applied."),
     )
 }
 
@@ -60,20 +60,14 @@ pub(super) fn apply_fan_offset(dchu: Option<&Dchu>, percent: u8) -> CommandOutco
     let Some(active) = dchu else {
         return CommandOutcome::missing_transport();
     };
-    CommandOutcome::from_result(
-        active.set_fan_offset(percent),
-        tr("Fan offset applied.", "风扇补偿已应用。"),
-    )
+    CommandOutcome::from_result(active.set_fan_offset(percent), tr("Fan offset applied."))
 }
 
 pub(super) fn run_anti_dust(dchu: Option<&Dchu>) -> CommandOutcome {
     let Some(active) = dchu else {
         return CommandOutcome::missing_transport();
     };
-    CommandOutcome::from_result(
-        active.run_anti_dust(),
-        tr("Anti-dust routine started.", "防尘清洁已启动。"),
-    )
+    CommandOutcome::from_result(active.run_anti_dust(), tr("Anti-dust routine started."))
 }
 
 pub(super) fn apply_anti_dust_schedule(
@@ -85,7 +79,7 @@ pub(super) fn apply_anti_dust_schedule(
     };
     CommandOutcome::from_result(
         active.set_anti_dust_schedule(schedule),
-        tr("Anti-dust schedule applied.", "防尘计划已应用。"),
+        tr("Anti-dust schedule applied."),
     )
 }
 
@@ -109,10 +103,7 @@ pub(super) fn apply_rpm_edit(
     }
     CommandOutcome::from_result(
         active.set_custom_rpm_fan_table(&table),
-        tr(
-            "Ten-point fan table applied and read back.",
-            "十点风扇曲线已应用并读回。",
-        ),
+        tr("Ten-point fan table applied and read back."),
     )
 }
 
@@ -121,12 +112,9 @@ pub(super) fn apply_low_refresh(dchu: Option<&Dchu>, enabled: bool) -> CommandOu
         return CommandOutcome::missing_transport();
     };
     let success = if enabled {
-        tr(
-            "Lowest panel refresh rate enabled.",
-            "已启用最低屏幕刷新率。",
-        )
+        tr("Lowest panel refresh rate enabled.")
     } else {
-        tr("Panel refresh rate restored.", "已恢复屏幕刷新率。")
+        tr("Panel refresh rate restored.")
     };
     CommandOutcome::from_result(active.set_low_refresh_rate(enabled), success)
 }
@@ -137,10 +125,7 @@ pub(super) fn apply_fan_curve(dchu: Option<&Dchu>, curve: CustomFanCurve) -> Com
     };
     CommandOutcome::from_result(
         active.set_custom_fan_curve(curve),
-        tr(
-            "Custom fan curve written; block-13 runtime table read back successfully.",
-            "自定义风扇曲线已写入，block 13 运行时表读回成功。",
-        ),
+        tr("Custom fan curve written; block-13 runtime table read back successfully."),
     )
 }
 
@@ -148,7 +133,7 @@ pub(super) fn apply_quiet(dchu: Option<&Dchu>, disable_dgpu: bool) -> CommandOut
     let Some(active) = dchu else {
         return CommandOutcome::missing_transport();
     };
-    let quiet_applied = tr("Quiet mode applied.", "静音模式已应用。");
+    let quiet_applied = tr("Quiet mode applied.");
     let mut message = match active.set_power_mode(PowerMode::Quiet) {
         Ok(()) => {
             persist_power_mode(PowerMode::Quiet);
@@ -160,20 +145,15 @@ pub(super) fn apply_quiet(dchu: Option<&Dchu>, disable_dgpu: bool) -> CommandOut
     if disable_dgpu {
         match active.stage_gpu_switch(GpuSwitchMode::Integrated) {
             Ok(()) => {
-                message = tr(
-                    "Quiet mode applied. Discrete GPU disable was staged for the next reboot.",
-                    "静音模式已应用。关闭独显已暂存，将在下次重启后生效。",
-                )
-                .to_owned();
+                message =
+                    tr("Quiet mode applied. Discrete GPU disable was staged for the next reboot.")
+                        .to_owned();
                 tone = 1;
             }
             Err(error) => {
                 message = format!(
                     "{} {}",
-                    tr(
-                        "Quiet mode applied, but GPU staging failed:",
-                        "静音模式已应用，但显卡策略暂存失败："
-                    ),
+                    tr("Quiet mode applied, but GPU staging failed:"),
                     error
                 );
                 tone = 2;
@@ -191,9 +171,9 @@ pub(super) fn apply_gpu_switch(dchu: Option<&Dchu>, mode: GpuSwitchMode) -> Comm
         active.stage_gpu_switch(mode),
         format!(
             "{} {} {}",
-            tr("GPU mode staged:", "显卡模式已暂存："),
+            tr("GPU mode staged:"),
             localized_gpu_label(mode.as_u8()),
-            tr("Restart to apply.", "重启后生效。")
+            tr("Restart to apply.")
         ),
     )
 }
@@ -208,14 +188,10 @@ pub(super) fn apply_flexi_charger(
         return CommandOutcome::missing_transport();
     };
     let Some(mode) = FlexiChargerMode::from_u8(mode) else {
-        return CommandOutcome::failure(tr("Unsupported charge mode.", "不支持的充电模式。"))
-            .without_selection_sync();
+        return CommandOutcome::failure(tr("Unsupported charge mode.")).without_selection_sync();
     };
     CommandOutcome::from_result(
         active.set_flexi_charger(mode, start, stop),
-        tr(
-            "Charge policy applied and verified.",
-            "充电策略已应用并校验。",
-        ),
+        tr("Charge policy applied and verified."),
     )
 }

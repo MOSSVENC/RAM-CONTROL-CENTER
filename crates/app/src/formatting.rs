@@ -1,4 +1,4 @@
-use crate::localization::{is_zh, tr};
+use crate::localization::tr;
 
 pub(crate) fn format_threshold_ranges(values: &[u8]) -> String {
     if values.is_empty() {
@@ -14,9 +14,9 @@ pub(crate) fn format_threshold_ranges(values: &[u8]) -> String {
     format!(
         "{} {} · {} {}",
         range(start),
-        tr("start", "起始"),
+        tr("start"),
         range(stop),
-        tr("stop", "停止")
+        tr("stop")
     )
 }
 
@@ -34,15 +34,15 @@ pub(crate) fn format_battery_time(seconds: Option<u32>) -> String {
     };
     let minutes = seconds / 60;
     if minutes >= 60 {
-        if is_zh() {
-            format!("{} 小时 {:02} 分钟", minutes / 60, minutes % 60)
-        } else {
-            format!("{} h {:02} min", minutes / 60, minutes % 60)
-        }
-    } else if is_zh() {
-        format!("{minutes} 分钟")
+        format!(
+            "{} {} {:02} {}",
+            minutes / 60,
+            tr("hours"),
+            minutes % 60,
+            tr("minutes")
+        )
     } else {
-        format!("{minutes} min")
+        format!("{minutes} {}", tr("minutes"))
     }
 }
 
